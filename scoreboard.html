@@ -2148,9 +2148,7 @@ async function executeQuickUpdate(){
 }
 
 async function unlinkChannel(id){
-  if(!confirm('Clear the Dispatcharr channel link from this scoreboard?
-
-This does NOT delete the channel from Dispatcharr — it just lets you re-push as a new channel.'))return;
+  if(!confirm('Clear the Dispatcharr channel link from this scoreboard?\n\nThis does NOT delete the channel from Dispatcharr — it just lets you re-push as a new channel.'))return;
   try{
     const r=await fetch(`${API_BASE}/scoreboards/${id}/unlink`,{method:'POST'});
     const d=await r.json();
