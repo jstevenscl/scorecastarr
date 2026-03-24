@@ -2119,8 +2119,12 @@ async function quLoadStreamProfiles(){
   const savedId=sb?.dispatcharr_stream_profile_id;
   sel.innerHTML='<option value="">— loading... —</option>';
   try{
-    // Use cached profiles if available
-    if(!_cachedStreamProfiles?.length) await loadStreamProfiles();
+    // Fetch directly if cache is empty (don't rely on loadStreamProfiles which needs the Dispatcharr tab DOM)
+    if(!_cachedStreamProfiles?.length){
+      const r=await fetch(`${API_BASE}/dispatcharr/streamprofiles`,{signal:AbortSignal.timeout(15000)});
+      const d=await r.json();
+      if(r.ok&&d.profiles?.length) _cachedStreamProfiles=d.profiles;
+    }
     const profiles=_cachedStreamProfiles||[];
     if(!profiles.length){sel.innerHTML='<option value="">— none available —</option>';return;}
     sel.innerHTML='<option value="">— default (none) —</option>'+
@@ -2946,6 +2950,13 @@ function openSettings(section='scoreboards'){
 
 function closeSettings(){
   if(_dirty) flushSave();
+  // Reset wizard state so it always starts fresh next time
+  _wizardStep=1;
+  _wizardData={};
+  document.getElementById('sbPushWizard').style.display='none';
+  document.getElementById('sbQuickUpdate').style.display='none';
+  document.getElementById('sbListView').style.display='block';
+  _activeSbId=null;
   document.getElementById('settingsPage').style.display='none';
   document.body.style.overflow='';
   // Always return to All Sports view when closing settings
@@ -2953,6 +2964,15 @@ function closeSettings(){
 }
 
 function switchSection(section){
+  // If navigating away from scoreboards, reset wizard state
+  if(section!=='scoreboards'){
+    _wizardStep=1;
+    _wizardData={};
+    document.getElementById('sbPushWizard').style.display='none';
+    document.getElementById('sbQuickUpdate').style.display='none';
+    document.getElementById('sbListView').style.display='block';
+    _activeSbId=null;
+  }
   document.querySelectorAll('.snav-btn').forEach(b=>b.classList.toggle('active',b.dataset.section===section));
   document.querySelectorAll('.settings-section').forEach(s=>s.classList.remove('active'));
   const panel=document.getElementById(`section-${section}`);
