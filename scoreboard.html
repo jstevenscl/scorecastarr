@@ -15,7 +15,7 @@
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:var(--bg-primary);color:var(--text-primary);font-family:'Barlow',sans-serif;min-height:100vh;overflow-x:hidden;}
-body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+
 #app{position:relative;z-index:1;display:flex;height:100vh;}
 
 /* SIDEBAR */
@@ -589,7 +589,7 @@ body.stream-mode .game-card.live:hover{border-color:rgba(0,255,136,0.3);}
     <button class="sidebar-btn" onclick="openSettings('scoreboards')">&#x2699;&#xFE0F; Settings</button>
   </div>
 
-  <div class="sidebar-footer">ScoreStream v0.0.1-beta &middot; ESPN Data</div>
+  <div class="sidebar-footer" id="ssVersion">ScoreStream v0.3.1 &middot; ESPN Data</div>
 </aside>
 
 <div id="main">
@@ -623,6 +623,9 @@ body.stream-mode .game-card.live:hover{border-color:rgba(0,255,136,0.3);}
       </button>
       <button class="snav-btn" data-section="dispatcharr" onclick="switchSection('dispatcharr')">
         <span class="snav-icon">📡</span><span>Integrations</span>
+      </button>
+      <button class="snav-btn" data-section="backup" onclick="switchSection('backup')">
+        <span class="snav-icon">💾</span><span>Backup &amp; Restore</span>
       </button>
 
     </nav>
@@ -1028,6 +1031,31 @@ body.stream-mode .game-card.live:hover{border-color:rgba(0,255,136,0.3);}
     </div><!-- /section-dispatcharr -->
 
     <!-- ── NCAA Teams Management ─────────────────────────────────── -->
+    <!-- SECTION: BACKUP & RESTORE -->
+    <div id="section-backup" class="settings-section">
+      <div class="settings-section-header">
+        <h2>Backup &amp; Restore</h2>
+        <p>Export your ScoreStream configuration or restore from a previous backup.</p>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">Export Backup</div>
+        <div class="modal-sublabel" style="margin-bottom:12px;">Downloads a JSON file containing all your scoreboards, display settings, and Dispatcharr configuration. Does not include stream credentials.</div>
+        <button class="modal-btn" onclick="exportBackup()">⬇ Download Backup</button>
+        <div id="exportResult" style="display:none;margin-top:8px;font-size:12px;"></div>
+      </div>
+      <div class="modal-section" style="margin-top:20px;">
+        <div class="modal-section-title">Restore Backup</div>
+        <div class="modal-sublabel" style="margin-bottom:12px;">Upload a previously exported backup file. This will overwrite your current scoreboards and settings.</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input type="file" id="restoreFile" accept=".json" style="display:none;" onchange="handleRestoreFile(event)">
+          <button class="modal-btn" onclick="document.getElementById('restoreFile').click()">⬆ Choose Backup File</button>
+          <span id="restoreFileName" style="font-size:12px;color:var(--text-dim);">No file chosen</span>
+        </div>
+        <button class="modal-btn" id="restoreBtn" onclick="executeRestore()" style="margin-top:10px;display:none;">↺ Restore Now</button>
+        <div id="restoreResult" style="display:none;margin-top:8px;font-size:12px;"></div>
+      </div>
+    </div>
+
     <div id="section-ncaa" class="settings-section" style="display:none;">
       <div class="section-header">
         <div class="section-title">🏫 NCAA Teams</div>
@@ -2263,12 +2291,20 @@ function renderWizardStep(){
         </div>
       </div>
       <div class="wiz-field">
-        <div class="wiz-label">Stream URL (auto-generated)</div>
-        <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--accent);padding:8px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;">
-          ${sb.slug?`${window.location.origin}/hls/${sb.slug}.m3u8`:'(STREAM_BASE_URL not configured)'}
+        <div class="wiz-label">Stream URL (server-configured)</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--accent);padding:8px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;" id="wiz_streamUrlDisplay">
+          Loading...
         </div>
-        <div class="wiz-sublabel">This URL is stored as the stream source in Dispatcharr. If blank, set STREAM_BASE_URL in your docker-compose env.</div>
+        <div class="wiz-sublabel">Built from STREAM_BASE_URL in your docker-compose. This is what Dispatcharr uses to pull the stream.</div>
       </div>`;
+    // Fetch actual stream URL from API
+    fetch(\`\${API_BASE}/scoreboards/\${_activeSbId}/stream_url\`).then(r=>r.json()).then(d=>{
+      const el=document.getElementById('wiz_streamUrlDisplay');
+      if(el)el.textContent=d.stream_url||'(STREAM_BASE_URL not configured)';
+    }).catch(()=>{
+      const el=document.getElementById('wiz_streamUrlDisplay');
+      if(el)el.textContent=sb.slug?\`(loading...)\`:'(no slug)';
+    });
     setTimeout(wizPopulateStreamProfiles,100);
   }
   else if(_wizardStep===5){
@@ -3745,6 +3781,85 @@ async function saveCredentials(){
   }catch(e){
     el.className='dispatcharr-test-result err';
     el.textContent='❌ ScoreStream API not reachable — check that the scorestream-api container is running. URL and username were cached locally.';
+  }
+}
+
+// ── Backup & Restore ──────────────────────────────────────────────────────────
+async function exportBackup(){
+  const resultEl=document.getElementById('exportResult');
+  resultEl.style.display='block';
+  resultEl.style.color='var(--text-dim)';
+  resultEl.textContent='Preparing backup...';
+  try{
+    const r=await fetch(`${API_BASE}/backup/export`,{signal:AbortSignal.timeout(15000)});
+    if(!r.ok){const d=await r.json();resultEl.style.color='var(--accent-red)';resultEl.textContent='❌ '+(d.error||'Export failed');return;}
+    const blob=await r.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`scorestream-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    resultEl.style.color='var(--accent-green)';
+    resultEl.textContent='✅ Backup downloaded';
+  }catch(e){
+    resultEl.style.color='var(--accent-red)';
+    resultEl.textContent='❌ '+e.message;
+  }
+}
+
+let _restoreData=null;
+function handleRestoreFile(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  document.getElementById('restoreFileName').textContent=file.name;
+  document.getElementById('restoreResult').style.display='none';
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      _restoreData=JSON.parse(ev.target.result);
+      document.getElementById('restoreBtn').style.display='block';
+    }catch(err){
+      document.getElementById('restoreResult').style.display='block';
+      document.getElementById('restoreResult').style.color='var(--accent-red)';
+      document.getElementById('restoreResult').textContent='❌ Invalid JSON file';
+      _restoreData=null;
+    }
+  };
+  reader.readAsText(file);
+}
+
+async function executeRestore(){
+  if(!_restoreData){return;}
+  if(!confirm('This will overwrite your current scoreboards and settings. Are you sure?'))return;
+  const resultEl=document.getElementById('restoreResult');
+  resultEl.style.display='block';
+  resultEl.style.color='var(--text-dim)';
+  resultEl.textContent='Restoring...';
+  document.getElementById('restoreBtn').disabled=true;
+  try{
+    const r=await fetch(`${API_BASE}/backup/restore`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(_restoreData),signal:AbortSignal.timeout(30000)
+    });
+    const d=await r.json();
+    if(r.ok){
+      resultEl.style.color='var(--accent-green)';
+      resultEl.textContent=`✅ Restored: ${d.scoreboards} scoreboards, ${d.settings} settings`;
+      _restoreData=null;
+      document.getElementById('restoreBtn').style.display='none';
+      document.getElementById('restoreFileName').textContent='No file chosen';
+      // Reload scoreboards
+      setTimeout(()=>loadScoreboards(),1500);
+    }else{
+      resultEl.style.color='var(--accent-red)';
+      resultEl.textContent='❌ '+(d.error||'Restore failed');
+      document.getElementById('restoreBtn').disabled=false;
+    }
+  }catch(e){
+    resultEl.style.color='var(--accent-red)';
+    resultEl.textContent='❌ '+e.message;
+    document.getElementById('restoreBtn').disabled=false;
   }
 }
 

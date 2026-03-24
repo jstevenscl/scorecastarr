@@ -988,6 +988,63 @@ def scoreboard_duplicate(sid):
     return jsonify(scoreboard_to_dict(row)), 201
 
 # ── Dispatcharr channel push / update per scoreboard ─────────────────────────
+@app.route('/scoreboards/<int:sid>/stream_url', methods=['GET'])
+def scoreboard_stream_url(sid):
+    with get_db() as conn:
+        sb = conn.execute('SELECT slug FROM scoreboards WHERE id=?',(sid,)).fetchone()
+    if not sb: return jsonify({'error':'not found'}),404
+    url = f'{STREAM_BASE_URL}/hls/{sb["slug"]}.m3u8' if STREAM_BASE_URL else None
+    return jsonify({'stream_url': url, 'base_url': STREAM_BASE_URL})
+
+@app.route('/backup/export', methods=['GET'])
+def backup_export():
+    import json as _json, datetime
+    with get_db() as conn:
+        scoreboards = [scoreboard_to_dict(r) for r in conn.execute('SELECT * FROM scoreboards').fetchall()]
+        settings = {r['key']: r['value'] for r in conn.execute(
+            "SELECT key,value FROM settings WHERE key NOT IN ('dispatcharr_password','dispatcharr_api_token')"
+        ).fetchall()}
+    payload = {'version':'1','exported_at':datetime.datetime.utcnow().isoformat(),
+               'scoreboards':scoreboards,'settings':settings}
+    from flask import Response
+    return Response(_json.dumps(payload,indent=2), mimetype='application/json',
+        headers={'Content-Disposition':'attachment; filename=scorestream-backup.json'})
+
+@app.route('/backup/restore', methods=['POST'])
+def backup_restore():
+    import json as _json
+    b = request.get_json(force=True)
+    if not b or b.get('version') != '1':
+        return jsonify({'error':'Invalid backup file — missing version field'}),400
+    sb_count = 0; settings_count = 0
+    skip_keys = {'dispatcharr_password','dispatcharr_api_token'}
+    try:
+        with get_db() as conn:
+            for key,value in (b.get('settings') or {}).items():
+                if key not in skip_keys:
+                    conn.execute('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',(key,str(value)))
+                    settings_count += 1
+            for sb in (b.get('scoreboards') or []):
+                slug = sb.get('slug')
+                if not slug: continue
+                existing = conn.execute('SELECT id FROM scoreboards WHERE slug=?',(slug,)).fetchone()
+                sc = _json.dumps(sb.get('sport_config',{}))
+                tc = _json.dumps(sb.get('team_config',{}))
+                dc = _json.dumps(sb.get('display_config',{}))
+                if existing:
+                    conn.execute(
+                        "UPDATE scoreboards SET name=?,is_default=?,sport_config=?,team_config=?,display_config=?,updated_at=datetime('now') WHERE slug=?",
+                        (sb.get('name'),sb.get('is_default',0),sc,tc,dc,slug))
+                else:
+                    conn.execute(
+                        "INSERT INTO scoreboards(name,slug,is_default,sport_config,team_config,display_config,created_at,updated_at) VALUES(?,?,?,?,?,?,datetime('now'),datetime('now'))",
+                        (sb.get('name'),slug,sb.get('is_default',0),sc,tc,dc))
+                sb_count += 1
+            conn.commit()
+        return jsonify({'status':'restored','scoreboards':sb_count,'settings':settings_count})
+    except Exception as e:
+        return jsonify({'error':str(e)}),500
+
 @app.route('/scoreboards/<int:sid>/unlink', methods=['POST'])
 def scoreboard_unlink(sid):
     """Clear stored Dispatcharr IDs from a scoreboard without deleting the channel."""
