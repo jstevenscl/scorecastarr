@@ -4686,7 +4686,33 @@ function renderStreamCanvas() {
     }
   });
 
-  if (!allSections.length) {
+  // ── Pinned favorites section ───────────────────────────────────────────────
+  // Mirror the normal scoreboard's "⭐ My Teams" pinned section at the top.
+  // Collect any favorited game from across all sports/sections and prepend
+  // a dedicated favorites section as the first page item.
+  if (state.favTeams && state.favTeams.size > 0) {
+    const pinnedGames = [];
+    const sports2 = getSPORTS();
+    sports2.forEach(sport => {
+      let games = state.games[sport.id] || [];
+      // Apply team filter same as above
+      if (_activeTeamConfig) {
+        const sportTeams = _activeTeamConfig[sport.id];
+        if (sportTeams && sportTeams.length)
+          games = games.filter(g => g.teams.some(t => sportTeams.includes(t.name) || sportTeams.includes(t.abbr)));
+      }
+      games.forEach(g => {
+        if (!g.isFinal && isGameFavorited(g)) pinnedGames.push(g);
+      });
+    });
+    if (pinnedGames.length > 0) {
+      // Use a fake sport object for the section header
+      const favSport = { id: '__favs__', name: 'My Teams', emoji: '⭐', color: '#ffd700' };
+      allSections.unshift({ sport: favSport, games: pinnedGames, isFavSection: true });
+    }
+  }
+
+
     pagesEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-dim);font-family:Barlow Condensed,sans-serif;font-size:22px;letter-spacing:2px;">NO GAMES RIGHT NOW</div>';
     if (paginationEl) paginationEl.innerHTML = '';
     return;
@@ -4764,11 +4790,11 @@ function renderStreamCanvas() {
     pageEl.className = 'stream-page' + (pageIdx === _streamCurrentPage ? ' active' : '');
     pageEl.dataset.page = pageIdx;
 
-    sections.forEach(({ sport, games, isFinalSection, finalDate, continued }) => {
+    sections.forEach(({ sport, games, isFinalSection, isFavSection, finalDate, continued }) => {
       // Sport section header
       const season = state.seasonMeta[sport.id];
       let sbadge = '';
-      if (season && season.key !== 'reg' && !isFinalSection) sbadge = `<span class="league-season-badge ${season.key}">${season.label}</span>`;
+      if (season && season.key !== 'reg' && !isFinalSection && !isFavSection) sbadge = `<span class="league-season-badge ${season.key}">${season.label}</span>`;
       const sec = document.createElement('div');
       sec.className = 'league-section';
       sec.dataset.sportId = sport.id;
@@ -4780,7 +4806,8 @@ function renderStreamCanvas() {
       const countLabel = continued
         ? `${games.length} games (more →)`
         : `${games.length} game${games.length !== 1 ? 's' : ''}`;
-      sec.innerHTML = `<div class="league-header"><div class="league-stripe" style="background:${isFinalSection ? '#ffb400' : sport.color}"></div><div class="league-name">${sectionLabel}</div>${sbadge}<div class="league-game-count">${countLabel}</div></div>`;
+      const stripeColor = isFavSection ? '#ffd700' : isFinalSection ? '#ffb400' : sport.color;
+      sec.innerHTML = `<div class="league-header"><div class="league-stripe" style="background:${stripeColor}"></div><div class="league-name">${sectionLabel}</div>${sbadge}<div class="league-game-count">${countLabel}</div></div>`;
 
       const grid = document.createElement('div');
       grid.className = 'games-grid grid-mode';
