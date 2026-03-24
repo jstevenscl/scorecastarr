@@ -338,6 +338,15 @@ def init_db():
             conn.execute('ALTER TABLE scoreboards ADD COLUMN dispatcharr_stream_id TEXT')
         except Exception:
             pass  # column already exists
+        # Migrate existing DBs: add audio columns if missing
+        try:
+            conn.execute("ALTER TABLE scoreboards ADD COLUMN audio_mode TEXT NOT NULL DEFAULT 'none'")
+        except Exception:
+            pass
+        try:
+            conn.execute('ALTER TABLE scoreboards ADD COLUMN audio_source_url TEXT')
+        except Exception:
+            pass
         # Seed default scoreboard if none exists
         existing = conn.execute('SELECT COUNT(*) FROM scoreboards').fetchone()[0]
         if existing == 0:
@@ -679,7 +688,30 @@ def dispatcharr_session(creds=None):
 def health():
     return jsonify({'status':'ok','version':'v0.3.0'})
 
-# ── Credentials ───────────────────────────────────────────────────────────────
+# ── Audio ──────────────────────────────────────────────────────────────────────
+@app.route('/audio/test', methods=['POST'])
+def audio_test():
+    import requests as _requests
+    b = request.get_json(force=True)
+    url = (b.get('url') or '').strip()
+    if not url:
+        return jsonify({'ok': False, 'error': 'No URL provided'}), 400
+    try:
+        r = _requests.head(url, timeout=8, allow_redirects=True)
+        ct = r.headers.get('Content-Type', '')
+        if r.status_code < 400:
+            return jsonify({'ok': True, 'content_type': ct.split(';')[0].strip()})
+        # HEAD not supported — try GET with stream
+        r2 = _requests.get(url, timeout=8, stream=True)
+        ct = r2.headers.get('Content-Type', '')
+        r2.close()
+        if r2.status_code < 400:
+            return jsonify({'ok': True, 'content_type': ct.split(';')[0].strip()})
+        return jsonify({'ok': False, 'error': f'HTTP {r2.status_code}'}), 200
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 200
+
+
 @app.route('/dispatcharr/credentials', methods=['GET'])
 def get_credentials():
     c = get_creds()
@@ -850,6 +882,8 @@ def scoreboard_to_dict(r):
         'dispatcharr_stream_profile_id': r['dispatcharr_stream_profile_id'],
         'dispatcharr_logo_id': r['dispatcharr_logo_id'],
         'is_default': bool(r['is_default']),
+        'audio_mode': r['audio_mode'] if r['audio_mode'] else 'none',
+        'audio_source_url': r['audio_source_url'] or '',
         'created_at': r['created_at'], 'updated_at': r['updated_at']
     }
 
@@ -913,7 +947,8 @@ def scoreboard_update(sid):
         fields, vals = [], []
         for col in ['name','sport_config','team_config','display_config',
                     'dispatcharr_channel_id','dispatcharr_channel_number',
-                    'dispatcharr_group_id','dispatcharr_stream_profile_id','dispatcharr_logo_id']:
+                    'dispatcharr_group_id','dispatcharr_stream_profile_id','dispatcharr_logo_id',
+                    'audio_mode','audio_source_url']:
             if col in b:
                 fields.append(f'{col}=?')
                 val = b[col]

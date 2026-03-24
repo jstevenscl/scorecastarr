@@ -154,29 +154,90 @@ function prebakeHLS(slug) {
   console.log(`[manager][${slug}] Pre-baked ${PREROLL_SEGMENTS} segs → ${PREROLL_SEGMENTS * SEG_DURATION}s buffer`);
 }
 
+// ── Audio config ──────────────────────────────────────────────────────────────
+const AUDIO_DIR = process.env.AUDIO_DIR || '/audio';
+
+function getAudioConfig(slug) {
+  try {
+    const row = db.prepare(
+      "SELECT audio_mode, audio_source_url FROM scoreboards WHERE slug = ?"
+    ).get(slug);
+    if (!row) return { mode: 'none', url: '' };
+    return {
+      mode: row.audio_mode || 'none',
+      url:  row.audio_source_url || ''
+    };
+  } catch (e) {
+    return { mode: 'none', url: '' };
+  }
+}
+
 // ── ffmpeg (live) ────────────────────────────────────────────────────────────
 // Starts from segment 0. As it writes segments 0,1,2... it naturally overwrites
 // the pre-baked files, and its playlist updates roll the window forward.
 // VLC transitions from pre-bake to live seamlessly as the sequence advances.
 function startFfmpeg(slug) {
   const frame = framePath(slug);
-  const args = [
+  const audio = getAudioConfig(slug);
+
+  let args = [
     '-loglevel', 'warning',
     '-re', '-loop', '1', '-framerate', String(FPS), '-i', frame,
+  ];
+
+  // Add audio input if configured
+  if (audio.mode === 'playlist') {
+    // Built-in royalty-free sports music — loop the playlist file
+    const playlistPath = path.join(AUDIO_DIR, 'playlist.m3u');
+    const fallbackMp3  = path.join(AUDIO_DIR, 'hype.mp3');
+    const audioInput   = fs.existsSync(playlistPath) ? playlistPath : fallbackMp3;
+    if (fs.existsSync(audioInput)) {
+      args.push('-stream_loop', '-1', '-i', audioInput);
+    } else {
+      console.warn(`[manager][${slug}] Audio playlist not found at ${audioInput} — streaming silent`);
+      audio.mode = 'none';
+    }
+  } else if (audio.mode === 'stream' && audio.url) {
+    // Custom online audio stream URL
+    args.push('-reconnect', '1', '-reconnect_streamed', '1',
+              '-reconnect_delay_max', '5', '-i', audio.url);
+  }
+
+  const hasAudio = (audio.mode === 'playlist' || audio.mode === 'stream') && audio.mode !== 'none';
+
+  args.push(
     '-vf', 'format=yuv420p',
     '-c:v', 'libx264', '-preset', 'veryfast', '-tune', 'stillimage',
     '-b:v', '800k', '-maxrate', '1200k', '-bufsize', '2000k',
     '-pix_fmt', 'yuv420p',
     '-g', String(FPS * SEG_DURATION), '-sc_threshold', '0',
+  );
+
+  if (hasAudio) {
+    args.push(
+      '-c:a', 'aac', '-b:a', '128k', '-ac', '2',
+      '-map', '0:v:0', '-map', '1:a:0',
+      '-shortest',
+    );
+  } else {
+    args.push('-an');  // no audio
+  }
+
+  args.push(
     '-f', 'hls',
     '-hls_time', String(SEG_DURATION),
     '-hls_list_size', String(PLAYLIST_SIZE),
     '-hls_flags', 'delete_segments+independent_segments',
     '-hls_segment_filename', path.join(HLS_DIR, `${slug}_%05d.ts`),
     path.join(HLS_DIR, `${slug}.m3u8`)
-  ];
+  );
 
-  console.log(`[manager][${slug}] Starting live ffmpeg`);
+  if (hasAudio) {
+    console.log(`[manager][${slug}] Starting live ffmpeg with audio (mode=${audio.mode})`);
+  } else {
+    console.log(`[manager][${slug}] Starting live ffmpeg (no audio)`);
+  }
+
   const proc = spawn('ffmpeg', args, { stdio: ['ignore', 'ignore', 'pipe'] });
   proc.stderr.on('data', d => {
     const l = d.toString().trim();
