@@ -66,6 +66,7 @@ services:
       - MANAGER_PORT=3001
       - HLS_SEGMENT_DURATION=${HLS_SEGMENT_DURATION:-2}
       - HLS_PLAYLIST_SIZE=${HLS_PLAYLIST_SIZE:-10}
+      - AUDIO_DIR=/audio
     volumes:
       - ./config:/config:ro
       - hls_segments:/hls
