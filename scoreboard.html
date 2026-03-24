@@ -1281,7 +1281,9 @@ function openSbEditor(id){
     name: sb.name,
     sport_config: Object.assign({}, sb.sport_config||{}),
     team_config: (sb.team_config && !Array.isArray(sb.team_config)) ? JSON.parse(JSON.stringify(sb.team_config)) : {},
-    display_config: Object.assign({}, sb.display_config||{})
+    display_config: Object.assign({}, sb.display_config||{}),
+    audio_mode: sb.audio_mode || 'none',
+    audio_source_url: sb.audio_source_url || ''
   };
 
   // Hide list and push wizard
@@ -1480,6 +1482,33 @@ function renderEditorStep(sbOverride){
             </div>
           </div>
         </div>
+
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+          <div class="modal-section-title" style="margin-bottom:4px;">🎵 Stream Audio</div>
+          <div class="wiz-sublabel" style="margin-bottom:14px;">Optional background audio mixed into the HLS stream output.</div>
+          <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+            ${['none','playlist','stream'].map(m=>`
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border-radius:20px;border:1px solid ${(_editorDraft.audio_mode||'none')===m?'var(--accent)':'var(--border)'};background:${(_editorDraft.audio_mode||'none')===m?'rgba(0,212,255,0.1)':'transparent'};font-size:12px;color:${(_editorDraft.audio_mode||'none')===m?'var(--accent)':'var(--text-dim)'};transition:all 0.15s;">
+                <input type="radio" name="sbAudioMode" value="${m}" ${(_editorDraft.audio_mode||'none')===m?'checked':''} onchange="sbAudioModeChange(this.value)" style="display:none;">
+                ${{none:'🔇 None',playlist:'🎵 Built-in Music',stream:'📻 Custom Stream'}[m]}
+              </label>`).join('')}
+          </div>
+          <div id="sbAudioPlaylistInfo" style="display:${(_editorDraft.audio_mode||'none')==='playlist'?'block':'none'};padding:10px 14px;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.2);border-radius:8px;font-size:12px;color:var(--text-dim);line-height:1.6;">
+            🎵 Plays royalty-free sports/hype instrumental music bundled in the stream container. Music loops automatically. No configuration needed.
+          </div>
+          <div id="sbAudioStreamPanel" style="display:${(_editorDraft.audio_mode||'none')==='stream'?'block':'none'};">
+            <div class="wiz-label" style="margin-bottom:6px;">Audio Stream URL</div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input class="wiz-input" id="sbAudioUrl" value="${_editorDraft.audio_source_url||''}"
+                placeholder="e.g. http://stream.example.com/radio.mp3"
+                style="flex:1;" oninput="sbAudioUrlChange(this.value)">
+              <button onclick="sbTestAudioUrl()" style="padding:6px 12px;border-radius:6px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:11px;cursor:pointer;white-space:nowrap;">Test URL</button>
+            </div>
+            <div id="sbAudioTestResult" style="margin-top:6px;font-size:11px;color:var(--text-dim);min-height:16px;"></div>
+            <div class="wiz-sublabel" style="margin-top:6px;">Paste any direct audio stream URL (MP3, AAC, Icecast, Shoutcast). Mixed into HLS output. If unavailable, video continues silently.</div>
+          </div>
+        </div>
+
       </div>`;
   // Init preview to current scale after render
   setTimeout(()=>{
@@ -1682,6 +1711,7 @@ function collectEditorStepData(){
     if(nameColEl) _editorDraft.display_config.card_name_color=nameColEl.value;
     const rotEl=document.getElementById('sbEditRotation');
     if(rotEl) _editorDraft.display_config.stream_rotation_secs=parseInt(rotEl.value);
+    // Audio settings are updated live via sbAudioModeChange/sbAudioUrlChange, no collection needed here
   }
   if(_editorStep===2){
     document.querySelectorAll('#sbEditorBody input[data-sport]').forEach(cb=>{
@@ -1952,13 +1982,60 @@ function closeSbEditor(){
   _activeSbId=null;
 }
 
-async function saveSbEditor(){
+// ── Audio editor helpers ───────────────────────────────────────────────────────
+function sbAudioModeChange(mode){
+  _editorDraft.audio_mode=mode;
+  // Update radio button label styles
+  document.querySelectorAll('input[name="sbAudioMode"]').forEach(inp=>{
+    const label=inp.closest('label');
+    if(!label)return;
+    const active=inp.value===mode;
+    label.style.borderColor=active?'var(--accent)':'var(--border)';
+    label.style.background=active?'rgba(0,212,255,0.1)':'transparent';
+    label.style.color=active?'var(--accent)':'var(--text-dim)';
+  });
+  const playlistInfo=document.getElementById('sbAudioPlaylistInfo');
+  const streamPanel=document.getElementById('sbAudioStreamPanel');
+  if(playlistInfo) playlistInfo.style.display=mode==='playlist'?'block':'none';
+  if(streamPanel)  streamPanel.style.display=mode==='stream'?'block':'none';
+}
+
+function sbAudioUrlChange(url){
+  _editorDraft.audio_source_url=url;
+  const res=document.getElementById('sbAudioTestResult');
+  if(res) res.textContent='';
+}
+
+async function sbTestAudioUrl(){
+  const url=(_editorDraft.audio_source_url||'').trim();
+  const res=document.getElementById('sbAudioTestResult');
+  if(!url){if(res)res.textContent='Enter a URL first.';return;}
+  if(res){res.style.color='var(--text-dim)';res.textContent='Testing...';}
+  try{
+    const r=await fetch(`${API_BASE}/audio/test`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({url}),
+      signal:AbortSignal.timeout(15000)
+    });
+    const d=await r.json();
+    if(r.ok&&d.ok){
+      if(res){res.style.color='var(--accent-green)';res.textContent=`✅ Reachable (${d.content_type||'unknown type'})`;}
+    }else{
+      if(res){res.style.color='var(--accent-red)';res.textContent=`❌ ${d.error||'Could not reach URL'}`;}
+    }
+  }catch(e){
+    if(res){res.style.color='var(--accent-red)';res.textContent='❌ Test failed — check URL format';}
+  }
+}
+
+
   collectEditorStepData();
   const result=document.getElementById('sbEditResult');
   if(result){result.style.color='var(--text-dim)';result.textContent='Saving...';}
   const r=await fetch(`${API_BASE}/scoreboards/${_activeSbId}`,{
     method:'PATCH',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({name:_editorDraft.name, sport_config:_editorDraft.sport_config, display_config:_editorDraft.display_config, team_config:_editorDraft.team_config||{}})
+    body:JSON.stringify({name:_editorDraft.name, sport_config:_editorDraft.sport_config, display_config:_editorDraft.display_config, team_config:_editorDraft.team_config||{}, audio_mode:_editorDraft.audio_mode||'none', audio_source_url:_editorDraft.audio_source_url||''})
   });
   if(r.ok){
     const d=await r.json();
