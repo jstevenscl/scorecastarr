@@ -162,12 +162,17 @@ function getAudioConfig(slug) {
     const row = db.prepare(
       "SELECT audio_mode, audio_source_url FROM scoreboards WHERE slug = ?"
     ).get(slug);
-    if (!row) return { mode: 'none', url: '' };
+    if (!row) {
+      console.warn(`[manager][${slug}] getAudioConfig: no DB row found`);
+      return { mode: 'none', url: '' };
+    }
+    console.log(`[manager][${slug}] audio_mode=${row.audio_mode || 'none'}`);
     return {
       mode: row.audio_mode || 'none',
       url:  row.audio_source_url || ''
     };
   } catch (e) {
+    console.error(`[manager][${slug}] getAudioConfig error: ${e.message}`);
     return { mode: 'none', url: '' };
   }
 }
