@@ -1490,7 +1490,7 @@ function renderEditorStep(sbOverride){
             ${['none','playlist','stream'].map(m=>`
               <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border-radius:20px;border:1px solid ${(_editorDraft.audio_mode||'none')===m?'var(--accent)':'var(--border)'};background:${(_editorDraft.audio_mode||'none')===m?'rgba(0,212,255,0.1)':'transparent'};font-size:12px;color:${(_editorDraft.audio_mode||'none')===m?'var(--accent)':'var(--text-dim)'};transition:all 0.15s;">
                 <input type="radio" name="sbAudioMode" value="${m}" ${(_editorDraft.audio_mode||'none')===m?'checked':''} onchange="sbAudioModeChange(this.value)" style="display:none;">
-                ${{none:'🔇 None',playlist:'🎵 Built-in Music',stream:'📻 Custom Stream'}[m]}
+                ${m==='none'?'🔇 None':m==='playlist'?'🎵 Built-in Music':'📻 Custom Stream'}
               </label>`).join('')}
           </div>
           <div id="sbAudioPlaylistInfo" style="display:${(_editorDraft.audio_mode||'none')==='playlist'?'block':'none'};padding:10px 14px;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.2);border-radius:8px;font-size:12px;color:var(--text-dim);line-height:1.6;">
@@ -2030,6 +2030,7 @@ async function sbTestAudioUrl(){
 }
 
 
+async function saveSbEditor(){
   collectEditorStepData();
   const result=document.getElementById('sbEditResult');
   if(result){result.style.color='var(--text-dim)';result.textContent='Saving...';}
