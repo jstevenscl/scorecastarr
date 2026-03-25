@@ -194,37 +194,39 @@ function startFfmpeg(slug) {
 
   // Add audio input if configured
   if (audio.mode === 'playlist') {
-    // Built-in royalty-free sports music — find first available mp3
+    // Built-in royalty-free sports music — find first available non-empty mp3
     const playlistPath = path.join(AUDIO_DIR, 'playlist.m3u');
     let audioInput = null;
 
     if (fs.existsSync(playlistPath)) {
-      // Read playlist and pick first valid track, build ffconcat for looping
       try {
         const lines = fs.readFileSync(playlistPath, 'utf8')
           .split('\n').map(l => l.trim())
-          .filter(l => l && !l.startsWith('#') && fs.existsSync(l));
+          .filter(l => l && !l.startsWith('#') && fs.existsSync(l) && fs.statSync(l).size > 1000);
         if (lines.length > 0) {
-          // Write a ffconcat file for seamless looping
           const concatPath = path.join(AUDIO_DIR, `loop_${slug}.txt`);
-          // Repeat tracks enough times to cover a long stream (100x each)
           const entries = lines.map(f => `file '${f}'\n`).join('').repeat(100);
           fs.writeFileSync(concatPath, entries);
           audioInput = concatPath;
           args.push('-f', 'concat', '-safe', '0', '-i', audioInput);
+          console.log(`[manager][${slug}] Audio: using ${lines.length} tracks from playlist`);
         }
       } catch(e) {
         console.warn(`[manager][${slug}] Could not read playlist: ${e.message}`);
       }
     }
 
-    // Fallback: try any mp3 directly
+    // Fallback: find any non-empty mp3 directly
     if (!audioInput) {
       try {
-        const mp3s = fs.readdirSync(AUDIO_DIR).filter(f => f.endsWith('.mp3'));
+        const mp3s = fs.readdirSync(AUDIO_DIR)
+          .filter(f => f.endsWith('.mp3'))
+          .filter(f => fs.statSync(path.join(AUDIO_DIR, f)).size > 1000)
+          .sort();
         if (mp3s.length > 0) {
           audioInput = path.join(AUDIO_DIR, mp3s[0]);
           args.push('-stream_loop', '-1', '-i', audioInput);
+          console.log(`[manager][${slug}] Audio: fallback to ${mp3s[0]}`);
         }
       } catch(e) {}
     }
