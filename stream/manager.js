@@ -159,9 +159,11 @@ const AUDIO_DIR = process.env.AUDIO_DIR || '/audio';
 
 function getAudioConfig(slug) {
   try {
+    const db  = new Database(DB_PATH, { fileMustExist: true });
     const row = db.prepare(
       "SELECT audio_mode, audio_source_url FROM scoreboards WHERE slug = ?"
     ).get(slug);
+    db.close();
     if (!row) {
       console.warn(`[manager][${slug}] getAudioConfig: no DB row found`);
       return { mode: 'none', url: '' };
