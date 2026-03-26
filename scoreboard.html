@@ -1575,7 +1575,6 @@ function renderEditorStep(sbOverride){
   else if(_editorStep===2){
     const groups=[
       {key:'pro',    label:'Pro Leagues',         sports: ALL_SPORTS.filter(s=>s.group==='pro')},
-      {key:'motor',  label:'Motorsport',           sports: ALL_SPORTS.filter(s=>s.group==='motor')},
       {key:'soccer', label:'International Soccer', sports: ALL_SPORTS.filter(s=>s.group==='soccer')},
       {key:'ncaam',  label:"NCAA Men's",           sports: ALL_SPORTS.filter(s=>s.group==='ncaam')},
       {key:'ncaaw',  label:"NCAA Women's",         sports: ALL_SPORTS.filter(s=>s.group==='ncaaw')},
@@ -2740,9 +2739,7 @@ const ALL_SPORTS=[
   {id:'mls',        name:'MLS',                    group:'pro',   color:'#1a1a2e',emoji:'⚽',url:'https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard'},
   {id:'nwsl',       name:'NWSL',                   group:'pro',   color:'#c7006b',emoji:'⚽',url:'https://site.api.espn.com/apis/site/v2/sports/soccer/usa.nwsl/scoreboard'},
   {id:'pga',        name:'PGA Tour',               group:'pro',   color:'#00594f',emoji:'⛳',url:'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard',isIndividualSport:true},
-  // Motorsport (custom data sources)
-  {id:'nascar',     name:'NASCAR Cup',             group:'motor', color:'#ffd700',emoji:'🏁',fetchFn:'fetchNascarData'},
-  {id:'f1',         name:'Formula 1',              group:'motor', color:'#e10600',emoji:'🏎️',fetchFn:'fetchF1Data'},
+  // NOTE: NASCAR, F1, Tennis — custom data sources, dedicated scoreboard type coming soon.
   // International Soccer
   {id:'epl',        name:'Premier League',         group:'soccer',color:'#3d195b',emoji:'⚽',url:'https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard'},
   {id:'ucl',        name:'Champions League',       group:'soccer',color:'#1b3f8b',emoji:'⚽',url:'https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.champions/scoreboard'},
@@ -2863,7 +2860,7 @@ const state={
   games:{},
   favTeams:loadFavs(),
   showEnded:false,
-  daysPerSport:{nfl:7,nhl:2,nba:2,mlb:1,ncaamb:2,ncaawb:2,ncaabase:1,ncaasb:1,ncaafb:7,wnba:2,cfl:7,xfl:7,ufl:7,mls:3,nwsl:3,pga:4,nascar:7,f1:7,epl:3,ucl:4,laliga:3,bundesliga:3,seriea:3,ligue1:3,ncaavb:2,ncaalax:2},
+  daysPerSport:{nfl:7,nhl:2,nba:2,mlb:1,ncaamb:2,ncaawb:2,ncaabase:1,ncaasb:1,ncaafb:7,wnba:2,cfl:7,xfl:7,ufl:7,mls:3,nwsl:3,pga:4,epl:3,ucl:4,laliga:3,bundesliga:3,seriea:3,ligue1:3,ncaavb:2,ncaalax:2},
   endedLeagues:new Set(ALL_SPORTS.map(s=>s.id)),
   endedFilter:Object.fromEntries(ALL_SPORTS.map(s=>[s.id,'all'])),
   seasonMeta:{},
@@ -3152,7 +3149,7 @@ function handleModalOverlay(e){}
 //  SPORTS SETTINGS TAB
 // =====================
 function buildSportsTab(){
-  ['pro','motor','soccer','ncaam','ncaaw'].forEach(group=>{
+  ['pro','soccer','ncaam','ncaaw'].forEach(group=>{
     const c=document.getElementById(`sg-${group}`);if(!c)return;c.innerHTML='';
     ALL_SPORTS.filter(s=>s.group===group).forEach(sport=>{
       const on=state.enabledSports.has(sport.id);
