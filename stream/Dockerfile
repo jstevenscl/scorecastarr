@@ -1,6 +1,6 @@
 FROM node:20-slim
 
-# Install Chromium dependencies + ffmpeg + sqlite3 build tools + wget for audio
+# Install Chromium dependencies + ffmpeg + sqlite3 build tools + curl for audio
 RUN apt-get update && apt-get install -y \
     chromium \
     fonts-liberation \
@@ -19,37 +19,38 @@ RUN apt-get update && apt-get install -y \
     python3 \
     make \
     g++ \
-    wget \
+    curl \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Built-in sports music ─────────────────────────────────────────────────────
-# Kevin MacLeod - CC-BY license (incompetech.com)
-# Downloaded from Internet Archive at build time — baked into the image.
-# Uses ; not && so a failed download doesn't abort the build.
-# Falls back to a 60s silent mp3 if all downloads fail (no internet at build time).
+# Kevin MacLeod - CC BY 3.0 (incompetech.com)
+# Downloaded from chosic.com CDN — URLs verified March 2026.
+# Uses curl -f so any 404/error causes an immediate build failure (no silent 0-byte files).
+# The size check at the end double-confirms every file is valid before the image is committed.
 RUN mkdir -p /audio && \
-    wget -q --user-agent="Mozilla/5.0" \
-      "https://archive.org/download/incompetech-all-the-music-2020/Run%20Amok.mp3" \
-      -O /audio/01-run-amok.mp3 ; \
-    wget -q --user-agent="Mozilla/5.0" \
-      "https://archive.org/download/incompetech-all-the-music-2020/Sport%20of%20Kings.mp3" \
-      -O /audio/02-sport-of-kings.mp3 ; \
-    wget -q --user-agent="Mozilla/5.0" \
-      "https://archive.org/download/incompetech-all-the-music-2020/Pump.mp3" \
-      -O /audio/03-pump.mp3 ; \
-    wget -q --user-agent="Mozilla/5.0" \
-      "https://archive.org/download/incompetech-all-the-music-2020/Hep%20Cats.mp3" \
-      -O /audio/04-hep-cats.mp3 ; \
-    TRACKS=$(find /audio -name '*.mp3' -size +0c 2>/dev/null | wc -l) ; \
-    if [ "$TRACKS" -eq "0" ]; then \
-      echo "No tracks downloaded — generating silent fallback" ; \
-      ffmpeg -f lavfi -i anullsrc=r=44100:cl=stereo -t 60 \
-        -c:a libmp3lame -b:a 128k /audio/01-fallback.mp3 -y ; \
-    fi ; \
-    printf '#EXTM3U\n' > /audio/playlist.m3u && \
-    find /audio -name '*.mp3' -size +0c | sort >> /audio/playlist.m3u && \
-    echo "Audio playlist ready:" && cat /audio/playlist.m3u
+    curl -fsSL -A "Mozilla/5.0" \
+      "https://www.chosic.com/wp-content/uploads/2022/06/Run-Amok(chosic.com).mp3" \
+      -o /audio/02-run-amok.mp3 && \
+    curl -fsSL -A "Mozilla/5.0" \
+      "https://www.chosic.com/wp-content/uploads/2022/06/Sneaky-Snitch(chosic.com).mp3" \
+      -o /audio/03-sneaky-snitch.mp3 && \
+    curl -fsSL -A "Mozilla/5.0" \
+      "https://www.chosic.com/wp-content/uploads/2022/10/Kevin-MacLeod-Investigations(chosic.com).mp3" \
+      -o /audio/04-investigations.mp3 && \
+    curl -fsSL -A "Mozilla/5.0" \
+      "https://www.chosic.com/wp-content/uploads/2022/10/Scheming-Weasel-faster(chosic.com).mp3" \
+      -o /audio/05-scheming-weasel.mp3 && \
+    echo "=== Verifying audio files ===" && \
+    for f in /audio/0*.mp3; do \
+      size=$(stat -c%s "$f"); \
+      echo "  $f = ${size} bytes"; \
+      [ "$size" -gt 50000 ] || { echo "ABORT: $f is too small (${size} bytes) — download failed"; exit 1; }; \
+    done && \
+    printf '/audio/02-run-amok.mp3\n/audio/03-sneaky-snitch.mp3\n/audio/04-investigations.mp3\n/audio/05-scheming-weasel.mp3\n' \
+      > /audio/playlist.m3u && \
+    echo "=== Audio playlist ===" && cat /audio/playlist.m3u && \
+    echo "=== Audio OK ==="
 
 WORKDIR /app
 
