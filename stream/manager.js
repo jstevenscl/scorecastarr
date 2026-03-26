@@ -507,6 +507,13 @@ function startHttpServer() {
           writeStartingFrame(slug);
           prebakeHLS(slug);
         }
+        // If stream is live, reload the Puppeteer page so it picks up new settings
+        const s = streams.get(slug);
+        if (s && s.running && s.page) {
+          console.log(`[manager][${slug}] Settings changed — reloading renderer`);
+          s.page.reload({ waitUntil: 'networkidle2', timeout: 15000 })
+            .catch(e => console.warn(`[manager][${slug}] Reload warning: ${e.message}`));
+        }
       }
       return;
     }
