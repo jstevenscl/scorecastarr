@@ -273,9 +273,9 @@ body.stream-mode .game-card.live:hover{border-color:rgba(0,255,136,0.3);}
 .fullscreen-mode .game-card{max-width:680px;margin:0 auto;}
 .fullscreen-mode .team-score{font-size:calc(var(--card-score-size,34px) + 16px);}
 .fullscreen-mode .team-abbr{font-size:calc(var(--card-abbr-size,18px) + 6px);}
-.ticker-row{display:flex;align-items:center;padding:9px 14px;gap:12px;border-left:3px solid var(--ticker-sport-color,var(--border));}
-.ticker-teams{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--ticker-font-size,14px);color:var(--text-primary);flex:1;}
-.ticker-score{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:calc(var(--ticker-font-size,14px) + 3px);color:var(--accent);letter-spacing:2px;}
+.ticker-row{display:flex;align-items:center;padding:9px 14px;gap:12px;}
+.ticker-teams{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;color:var(--text-primary);flex:1;}
+.ticker-score{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px;color:var(--accent);letter-spacing:2px;}
 .ticker-period{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);min-width:60px;text-align:right;}
 .pinned-section{margin-bottom:26px;}
 .pinned-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(255,215,0,0.25);}
@@ -625,6 +625,9 @@ body.stream-mode .game-card.live:hover{border-color:rgba(0,255,136,0.3);}
       <button class="snav-btn" data-section="dispatcharr" onclick="switchSection('dispatcharr')">
         <span class="snav-icon">📡</span><span>Integrations</span>
       </button>
+      <button class="snav-btn" data-section="sports" onclick="switchSection('sports')">
+        <span class="snav-icon">🏆</span><span>Sports Library</span>
+      </button>
       <button class="snav-btn" data-section="backup" onclick="switchSection('backup')">
         <span class="snav-icon">💾</span><span>Backup &amp; Restore</span>
       </button>
@@ -781,15 +784,6 @@ body.stream-mode .game-card.live:hover{border-color:rgba(0,255,136,0.3);}
           <span class="modal-slider-label" data-tip="Size of the full team name shown in small text below the abbreviation (e.g. 'Los Angeles Lakers · Away')">Team Name Size</span>
           <input type="range" min="9" max="16" value="11" id="sl-name" oninput="applyDisplay()">
           <span class="modal-slider-val" id="val-name">11px</span>
-        </div>
-      </div>
-
-      <div class="modal-section" id="ticker-size-section" style="display:none;">
-        <div class="modal-section-title">Ticker Font Size</div>
-        <div class="modal-slider-row">
-          <span class="modal-slider-label" data-tip="Font size for team names in ticker layout rows">Ticker Text Size</span>
-          <input type="range" min="11" max="22" value="14" id="sl-ticker" oninput="applyDisplay()">
-          <span class="modal-slider-val" id="val-ticker">14px</span>
         </div>
       </div>
 
@@ -1066,6 +1060,41 @@ body.stream-mode .game-card.live:hover{border-color:rgba(0,255,136,0.3);}
       </div>
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════════
+         SECTION: SPORTS LIBRARY
+    ═══════════════════════════════════════════════════════════ -->
+    <div id="section-sports" class="settings-section">
+      <div class="settings-section-header">
+        <h2>Sports Library</h2>
+        <p>Enable or disable sports globally. Enabled sports appear in the sidebar and can be toggled per scoreboard.</p>
+      </div>
+
+      <div style="margin-bottom:18px;">
+        <div class="section-label" style="margin-bottom:8px;">🏆 Pro &amp; Individual Sports</div>
+        <div id="sg-pro" style="display:flex;flex-direction:column;gap:5px;"></div>
+      </div>
+
+      <div style="margin-bottom:18px;">
+        <div class="section-label" style="margin-bottom:8px;">🏎️ Motorsport</div>
+        <div id="sg-motor" style="display:flex;flex-direction:column;gap:5px;"></div>
+      </div>
+
+      <div style="margin-bottom:18px;">
+        <div class="section-label" style="margin-bottom:8px;">⚽ International Soccer</div>
+        <div id="sg-soccer" style="display:flex;flex-direction:column;gap:5px;"></div>
+      </div>
+
+      <div style="margin-bottom:18px;">
+        <div class="section-label" style="margin-bottom:8px;">🏀 NCAA Men</div>
+        <div id="sg-ncaam" style="display:flex;flex-direction:column;gap:5px;"></div>
+      </div>
+
+      <div style="margin-bottom:18px;">
+        <div class="section-label" style="margin-bottom:8px;">🏀 NCAA Women</div>
+        <div id="sg-ncaaw" style="display:flex;flex-direction:column;gap:5px;"></div>
+      </div>
+    </div>
+
     <div id="section-ncaa" class="settings-section" style="display:none;">
       <div class="section-header">
         <div class="section-title">🏫 NCAA Teams</div>
@@ -1187,7 +1216,7 @@ let _scoreboards=[];
 let _activeSbId=null;  // scoreboard being edited or pushed
 let _wizardStep=1;
 let _wizardData={};    // accumulated wizard form data
-let _streamStatus={};  // slug → {running, hasLive} from /api/stream/status
+let _streamStatus={};  // slug → {running} from /api/stream/status
 
 async function fetchStreamStatus(){
   try{
@@ -1197,10 +1226,8 @@ async function fetchStreamStatus(){
     _streamStatus=d.streams||{};
     Object.entries(_streamStatus).forEach(([slug,s])=>{
       const card=document.querySelector(`[data-slug="${slug}"]`);
-      if(card){
-        const badge=card.querySelector('.sb-stream-badge');
-        if(badge) badge.style.display = s.running ? 'inline-flex' : 'none';
-      }
+      if(card){const badge=card.querySelector('.sb-stream-badge');
+        if(badge) badge.style.display = s.running ? 'inline-flex' : 'none';}
     });
   }catch(e){}
 }
@@ -1369,18 +1396,8 @@ function renderEditorStep(sbOverride){
         <div class="wiz-sublabel">Clock displayed on the stream output uses this timezone</div>
       </div>
       <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-          <div class="modal-section-title" style="margin-bottom:0;">📺 Stream Output</div>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span style="font-size:11px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;">Copy from:</span>
-            <select id="sbCopyFromSelect" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);font-family:'Share Tech Mono',monospace;font-size:10px;padding:3px 6px;cursor:pointer;max-width:140px;">
-              <option value="">— select —</option>
-              ${_scoreboards.filter(s=>s.id!==_activeSbId).map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}
-            </select>
-            <button onclick="sbCopyDisplayFrom(document.getElementById('sbCopyFromSelect').value)" style="padding:3px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-secondary);font-family:'Share Tech Mono',monospace;font-size:10px;cursor:pointer;">Copy</button>
-          </div>
-        </div>
-        <div class="wiz-sublabel" style="margin-bottom:14px;">Per-scoreboard stream display settings. Use Copy to clone settings from another scoreboard.</div>
+        <div class="modal-section-title" style="margin-bottom:4px;">📺 Stream Output</div>
+        <div class="wiz-sublabel" style="margin-bottom:14px;">Per-scoreboard stream display settings.</div>
         <div style="margin-bottom:12px;">
           <div class="wiz-label" data-tip="Stored for reference only. To change the actual output resolution, update STREAM_WIDTH and STREAM_HEIGHT in your Docker stack and restart the stream container.">Output Resolution</div>
           <select class="wiz-input" id="sbEditResolution" style="max-width:220px;">
@@ -1558,6 +1575,7 @@ function renderEditorStep(sbOverride){
   else if(_editorStep===2){
     const groups=[
       {key:'pro',    label:'Pro Leagues',         sports: ALL_SPORTS.filter(s=>s.group==='pro')},
+      {key:'motor',  label:'Motorsport',           sports: ALL_SPORTS.filter(s=>s.group==='motor')},
       {key:'soccer', label:'International Soccer', sports: ALL_SPORTS.filter(s=>s.group==='soccer')},
       {key:'ncaam',  label:"NCAA Men's",           sports: ALL_SPORTS.filter(s=>s.group==='ncaam')},
       {key:'ncaaw',  label:"NCAA Women's",         sports: ALL_SPORTS.filter(s=>s.group==='ncaaw')},
@@ -1976,20 +1994,6 @@ function sbEditorSetDiv(div){
   if(_sbTeamActiveSport) sbEditorLoadTeams(_sbTeamActiveSport);
 }
 // Select All / Deselect All for a sport group
-function sbCopyDisplayFrom(sourceId){
-  if(!sourceId) return;
-  const src=_scoreboards.find(s=>s.id===parseInt(sourceId));
-  if(!src||!src.display_config) return;
-  const dc=src.display_config;
-  const copyFields=['card_abbr_size','card_score_size','card_name_size','card_name_color',
-    'stream_card_scale','stream_layout','stream_rotation_secs','stream_resolution','finals'];
-  copyFields.forEach(f=>{if(dc[f]!=null)_editorDraft.display_config[f]=dc[f];});
-  renderEditorStep();
-  const sel=document.getElementById('sbCopyFromSelect');
-  const btn=sel?.nextElementSibling;
-  if(btn){const orig=btn.textContent;btn.textContent='✓ Copied!';btn.style.color='var(--accent-green)';setTimeout(()=>{btn.textContent=orig;btn.style.color='';},1500);}
-}
-
 function sbEditorToggleGroup(groupKey){
   const grid = document.querySelector(`.sport-grid[data-group="${groupKey}"]`);
   if(!grid) return;
@@ -2724,7 +2728,7 @@ const _origLoadStreamProfiles=typeof loadStreamProfiles!=='undefined'?loadStream
 
 
 const ALL_SPORTS=[
-  // Pro
+  // Pro Team Sports
   {id:'nfl',        name:'NFL',                    group:'pro',   color:'#4169e1',emoji:'🏈',url:'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard'},
   {id:'nba',        name:'NBA',                    group:'pro',   color:'#c9082a',emoji:'🏀',url:'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard'},
   {id:'mlb',        name:'MLB',                    group:'pro',   color:'#002d72',emoji:'⚾',url:'https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard'},
@@ -2735,8 +2739,10 @@ const ALL_SPORTS=[
   {id:'ufl',        name:'UFL',                    group:'pro',   color:'#003087',emoji:'🏈',url:'https://site.api.espn.com/apis/site/v2/sports/football/ufl/scoreboard'},
   {id:'mls',        name:'MLS',                    group:'pro',   color:'#1a1a2e',emoji:'⚽',url:'https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard'},
   {id:'nwsl',       name:'NWSL',                   group:'pro',   color:'#c7006b',emoji:'⚽',url:'https://site.api.espn.com/apis/site/v2/sports/soccer/usa.nwsl/scoreboard'},
-  {id:'pga',        name:'PGA Tour',               group:'pro',   color:'#00594f',emoji:'⛳',url:'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard'},
-  // NOTE: F1, Tennis (ATP/WTA), NASCAR — ESPN returns event names only, no competitor data. Custom renderer coming in Phase 13.
+  {id:'pga',        name:'PGA Tour',               group:'pro',   color:'#00594f',emoji:'⛳',url:'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard',isIndividualSport:true},
+  // Motorsport (custom data sources)
+  {id:'nascar',     name:'NASCAR Cup',             group:'motor', color:'#ffd700',emoji:'🏁',fetchFn:'fetchNascarData'},
+  {id:'f1',         name:'Formula 1',              group:'motor', color:'#e10600',emoji:'🏎️',fetchFn:'fetchF1Data'},
   // International Soccer
   {id:'epl',        name:'Premier League',         group:'soccer',color:'#3d195b',emoji:'⚽',url:'https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard'},
   {id:'ucl',        name:'Champions League',       group:'soccer',color:'#1b3f8b',emoji:'⚽',url:'https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.champions/scoreboard'},
@@ -2857,13 +2863,13 @@ const state={
   games:{},
   favTeams:loadFavs(),
   showEnded:false,
-  daysPerSport:{nfl:7,nhl:2,nba:2,mlb:1,ncaamb:2,ncaawb:2,ncaabase:1,ncaasb:1,ncaafb:7,wnba:2,cfl:7,xfl:7,ufl:7,mls:3,nwsl:3,pga:4,epl:3,ucl:4,laliga:3,bundesliga:3,seriea:3,ligue1:3,ncaavb:2,ncaalax:2},
+  daysPerSport:{nfl:7,nhl:2,nba:2,mlb:1,ncaamb:2,ncaawb:2,ncaabase:1,ncaasb:1,ncaafb:7,wnba:2,cfl:7,xfl:7,ufl:7,mls:3,nwsl:3,pga:4,nascar:7,f1:7,epl:3,ucl:4,laliga:3,bundesliga:3,seriea:3,ligue1:3,ncaavb:2,ncaalax:2},
   endedLeagues:new Set(ALL_SPORTS.map(s=>s.id)),
   endedFilter:Object.fromEntries(ALL_SPORTS.map(s=>[s.id,'all'])),
   seasonMeta:{},
   usingMock:false,
   refreshRate:60,
-  display:{abbrSize:18,scoreSize:34,nameSize:11,nameColor:'#3d5a78',tickerSize:14},
+  display:{abbrSize:18,scoreSize:34,nameSize:11,nameColor:'#3d5a78'},
 };
 
 // getSPORTS: returns sports enabled in Settings AND active in sidebar (for scoreboard render)
@@ -3026,20 +3032,16 @@ function refreshSportToggles(){buildSportToggles();}
 //  DISPLAY SETTINGS
 // =====================
 function applyDisplay(){
-  const abbrEl=document.getElementById('sl-abbr'),scoreEl=document.getElementById('sl-score'),nameEl=document.getElementById('sl-name'),colorEl=document.getElementById('nameColorPicker'),tickerEl=document.getElementById('sl-ticker');
+  const abbrEl=document.getElementById('sl-abbr'),scoreEl=document.getElementById('sl-score'),nameEl=document.getElementById('sl-name'),colorEl=document.getElementById('nameColorPicker');
   if(abbrEl){state.display.abbrSize=parseInt(abbrEl.value);document.getElementById('val-abbr').textContent=abbrEl.value+'px';}
   if(scoreEl){state.display.scoreSize=parseInt(scoreEl.value);document.getElementById('val-score').textContent=scoreEl.value+'px';}
   if(nameEl){state.display.nameSize=parseInt(nameEl.value);document.getElementById('val-name').textContent=nameEl.value+'px';}
   if(colorEl){state.display.nameColor=colorEl.value;document.getElementById('nameColorVal').textContent=colorEl.value;document.getElementById('nameColorSwatch').style.background=colorEl.value;}
-  if(tickerEl){state.display.tickerSize=parseInt(tickerEl.value);document.getElementById('val-ticker').textContent=tickerEl.value+'px';}
   const root=document.documentElement;
   root.style.setProperty('--card-abbr-size',state.display.abbrSize+'px');
   root.style.setProperty('--card-score-size',state.display.scoreSize+'px');
   root.style.setProperty('--card-name-size',state.display.nameSize+'px');
   root.style.setProperty('--card-name-color',state.display.nameColor);
-  root.style.setProperty('--ticker-font-size',(state.display.tickerSize||14)+'px');
-  const tickerSection=document.getElementById('ticker-size-section');
-  if(tickerSection) tickerSection.style.display=state.layout==='ticker'?'block':'none';
   settingsSave(saveDisplay);
 }
 
@@ -3067,10 +3069,6 @@ function initDisplayControls(){
   const scoreEl=document.getElementById('sl-score');if(scoreEl){scoreEl.value=state.display.scoreSize;document.getElementById('val-score').textContent=state.display.scoreSize+'px';}
   const nameEl=document.getElementById('sl-name');if(nameEl){nameEl.value=state.display.nameSize;document.getElementById('val-name').textContent=state.display.nameSize+'px';}
   const colorEl=document.getElementById('nameColorPicker');if(colorEl){colorEl.value=state.display.nameColor;document.getElementById('nameColorSwatch').style.background=state.display.nameColor;document.getElementById('nameColorVal').textContent=state.display.nameColor;}
-  const tickerEl=document.getElementById('sl-ticker');if(tickerEl){tickerEl.value=state.display.tickerSize||14;document.getElementById('val-ticker').textContent=(state.display.tickerSize||14)+'px';}
-  document.documentElement.style.setProperty('--ticker-font-size',(state.display.tickerSize||14)+'px');
-  const tickerSection=document.getElementById('ticker-size-section');
-  if(tickerSection) tickerSection.style.display=state.layout==='ticker'?'block':'none';
 }
 
 // =====================
@@ -3154,7 +3152,7 @@ function handleModalOverlay(e){}
 //  SPORTS SETTINGS TAB
 // =====================
 function buildSportsTab(){
-  ['pro','soccer','ncaam','ncaaw'].forEach(group=>{
+  ['pro','motor','soccer','ncaam','ncaaw'].forEach(group=>{
     const c=document.getElementById(`sg-${group}`);if(!c)return;c.innerHTML='';
     ALL_SPORTS.filter(s=>s.group===group).forEach(sport=>{
       const on=state.enabledSports.has(sport.id);
@@ -3201,16 +3199,14 @@ function buildHistoricalUrl(sport,daysAgo){
 
 function parseGame(ev,sport){
   const comp=ev.competitions?.[0],status=ev.status,statusType=status?.type?.name||'STATUS_SCHEDULED',periodDesc=status?.type?.shortDetail||'';
-  const isIndividual = sport.id==='pga';
+  const isIndividual = !!(sport.isIndividualSport);
   const teams=(comp?.competitors||[]).map(c=>({
     abbr:c.team?.abbreviation||c.athlete?.shortName||'???',
     name:c.team?.displayName||c.team?.name||c.athlete?.displayName||'Unknown',
-    score:c.score||'E',
-    color:c.team?.color?`#${c.team.color}`:'#333',
+    score:c.score||'E',color:c.team?.color?`#${c.team.color}`:'#333',
     logo:c.team?.logo||c.athlete?.flag?.href||null,
     homeAway:c.homeAway||'away',winner:c.winner||false,
-    position:c.status?.position||null,
-    thru:c.status?.thru||null,
+    position:c.status?.position||null,thru:c.status?.thru||null,
   }));
   let stats=[];
   try{stats=(comp?.leaders||[]).slice(0,3).map(l=>({label:l.abbreviation||l.name,value:l.leaders?.[0]?.displayValue||'–'}));}catch(e){}
@@ -3261,6 +3257,14 @@ const MOCK={
 };
 
 async function fetchSport(sport){
+  // Custom data sources (NASCAR, F1) use their own fetch function
+  if(sport.fetchFn){
+    const fn = window[sport.fetchFn];
+    if(typeof fn === 'function'){
+      try{ return await fn(sport, null); }catch(e){ console.warn(sport.id,'custom fetch error',e); return []; }
+    }
+    return [];
+  }
   try{
     const ctrl=new AbortController();setTimeout(()=>ctrl.abort(),7000);
     const res=await fetch(sport.url,{signal:ctrl.signal});
@@ -3447,9 +3451,12 @@ function renderScoreboard(){
 
 function buildGameCard(g){
   if(g.isIndividual) return buildLeaderboardCard(g);
+  if(g.isNascarLive) return buildNascarCard(g);
+  if(g.isF1Next || g.isF1Last || g.isF1Standings) return buildF1Card(g);
   return state.layout==='ticker'?buildTickerCard(g):buildFullCard(g);
 }
 
+// ── PGA leaderboard card ─────────────────────────────────────────────────────
 function buildLeaderboardCard(g){
   const card=document.createElement('div');
   card.className=`game-card${g.isLive?' live':''}${g.isFinal?' is-final':''}`;
@@ -3485,13 +3492,206 @@ function buildLeaderboardCard(g){
   return card;
 }
 
+// ── NASCAR custom data fetch + card ─────────────────────────────────────────
+async function fetchNascarData(sport, sbConfig){
+  try{
+    const r = await fetch('https://cf.nascar.com/live/feeds/live-feed.json', {signal:AbortSignal.timeout(6000)});
+    if(!r.ok) return [];
+    const d = await r.json();
+    // flag_state: 1=green, 2=yellow, 3=red, 4=debris, 8=warm-up, 9=checkered
+    const flagState = d.flag_state||0;
+    const vehicles = d.vehicles||[];
+    const isLive = vehicles.length > 0 && d.laps_to_go > 0;
+    const isFinal = vehicles.length > 0 && d.laps_to_go === 0;
+    const noRace = vehicles.length === 0 && flagState === 0;
+    if(noRace) return []; // nothing to show
+    const flagEmoji = {1:'🟢',2:'🟡',3:'🔴',4:'🟡',8:'⬜',9:'🏁'}[flagState]||'⬛';
+    // Sort by running_position
+    const sorted = [...vehicles].sort((a,b)=>(a.running_position||99)-(b.running_position||99));
+    const card = {
+      id: 'nascar-live',
+      name: d.run_name || 'NASCAR Race',
+      sportName: sport.name, sportEmoji: sport.emoji, sportColor: sport.color,
+      isLive, isFinal, isScheduled: false, isIndividual: false,
+      isNascarLive: true,
+      flagEmoji, flagState,
+      trackName: d.track_name || '',
+      lapNumber: d.lap_number || 0,
+      lapsInRace: d.laps_in_race || 0,
+      lapsToGo: d.laps_to_go || 0,
+      drivers: sorted.slice(0,10).map(v=>({
+        pos: v.running_position,
+        driver: v.driver?.full_name || (v.driver ? `${v.driver.first_name||''} ${v.driver.last_name||''}`.trim() : 'Unknown'),
+        car: v.vehicle_number || '?',
+        manufacturer: v.vehicle_manufacturer || '',
+        status: v.status || 'Running',
+        delta: v.delta || null,
+        laps: v.laps_completed || 0,
+      })),
+    };
+    return [card];
+  }catch(e){ console.warn('NASCAR fetch error', e); return []; }
+}
+
+function buildNascarCard(g){
+  const card = document.createElement('div');
+  card.className = `game-card${g.isLive?' live':''}${g.isFinal?' is-final':''}`;
+  const lapInfo = g.lapsInRace > 0
+    ? `Lap ${g.lapNumber}/${g.lapsInRace} · ${g.lapsToGo} to go`
+    : '';
+  const statusHtml = g.isLive
+    ? `<div class="status-live"><div class="status-live-dot"></div>${g.flagEmoji} ${lapInfo||'Live'}</div>`
+    : g.isFinal ? `<span class="status-final">🏁 FINAL</span>` : '';
+  const rows = g.drivers.map((d,i)=>{
+    const deltaStr = d.delta && d.pos > 1 ? `<span style="font-size:9px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;">+${typeof d.delta==='number'?d.delta.toFixed(1):d.delta}s</span>` : '';
+    return `<div style="display:flex;align-items:center;gap:6px;padding:2px 0;border-bottom:1px solid var(--border);">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);width:16px;text-align:right;">${d.pos}</span>
+      <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#ffd700;width:22px;">#${d.car}</span>
+      <span style="flex:1;font-size:12px;font-weight:700;color:var(--text-primary);font-family:'Barlow Condensed',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.driver}</span>
+      ${deltaStr}
+    </div>`;
+  }).join('');
+  card.innerHTML = `
+    <div class="card-header">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div style="width:8px;height:8px;border-radius:2px;background:${g.sportColor};flex-shrink:0;"></div>
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);">🏁 ${g.sportName}</span>
+      </div>
+      ${statusHtml}
+    </div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:900;color:var(--text-primary);margin:4px 0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${g.name}">${g.name}</div>
+    <div style="font-size:10px;color:var(--text-dim);margin-bottom:6px;font-family:'Share Tech Mono',monospace;">${g.trackName}</div>
+    <div style="display:flex;flex-direction:column;gap:1px;">${rows}</div>`;
+  return card;
+}
+
+// ── F1 custom data fetch + card ──────────────────────────────────────────────
+async function fetchF1Data(sport, sbConfig){
+  try{
+    const [nextR, lastR, standR] = await Promise.all([
+      fetch('https://api.jolpi.ca/ergast/f1/current/next.json',{signal:AbortSignal.timeout(6000)}).then(r=>r.json()),
+      fetch('https://api.jolpi.ca/ergast/f1/current/last/results.json',{signal:AbortSignal.timeout(6000)}).then(r=>r.json()),
+      fetch('https://api.jolpi.ca/ergast/f1/current/driverStandings.json',{signal:AbortSignal.timeout(6000)}).then(r=>r.json()),
+    ]);
+    const nextRace = nextR?.MRData?.RaceTable?.Races?.[0];
+    const lastRace = lastR?.MRData?.RaceTable?.Races?.[0];
+    const standings = standR?.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings||[];
+    const cards = [];
+    // Card 1: Next race info
+    if(nextRace){
+      const raceDate = new Date(`${nextRace.date}T${nextRace.time||'00:00:00Z'}`);
+      const now = Date.now();
+      const diffMs = raceDate - now;
+      const diffDays = Math.floor(diffMs/86400000);
+      const countdown = diffDays > 0 ? `in ${diffDays}d` : diffMs > 0 ? 'today' : 'starting';
+      cards.push({
+        id:'f1-next', name:`Next: ${nextRace.raceName}`,
+        sportName:sport.name, sportEmoji:sport.emoji, sportColor:sport.color,
+        isLive:false, isFinal:false, isScheduled:true, isIndividual:false,
+        isF1Next:true,
+        circuit: nextRace.Circuit?.circuitName||'',
+        country: nextRace.Circuit?.Location?.country||'',
+        date: nextRace.date, time: nextRace.time,
+        countdown, round: nextRace.round,
+      });
+    }
+    // Card 2: Last race podium
+    if(lastRace?.Results?.length){
+      const top3 = lastRace.Results.slice(0,3).map(r=>({
+        pos: r.position,
+        driver: `${r.Driver.givenName} ${r.Driver.familyName}`,
+        team: r.Constructor.name,
+        time: r.Time?.time || r.status,
+        points: r.points,
+        number: r.Driver.permanentNumber||'',
+      }));
+      cards.push({
+        id:'f1-last', name:`${lastRace.raceName} Result`,
+        sportName:sport.name, sportEmoji:sport.emoji, sportColor:sport.color,
+        isLive:false, isFinal:true, isScheduled:false, isIndividual:false,
+        isF1Last:true,
+        podium: top3,
+      });
+    }
+    // Card 3: Driver standings top 5
+    if(standings.length){
+      const top5 = standings.slice(0,5).map(d=>({
+        pos: d.position,
+        driver: `${d.Driver.givenName} ${d.Driver.familyName}`,
+        team: d.Constructors?.[0]?.name||'',
+        points: d.points,
+        wins: d.wins,
+      }));
+      cards.push({
+        id:'f1-standings', name:'Driver Standings',
+        sportName:sport.name, sportEmoji:sport.emoji, sportColor:sport.color,
+        isLive:false, isFinal:false, isScheduled:false, isIndividual:false,
+        isF1Standings:true,
+        drivers: top5,
+      });
+    }
+    return cards;
+  }catch(e){ console.warn('F1 fetch error', e); return []; }
+}
+
+function buildF1Card(g){
+  const card = document.createElement('div');
+  card.className = `game-card${g.isLive?' live':''}${g.isFinal?' is-final':''}`;
+  const header = `<div class="card-header">
+    <div style="display:flex;align-items:center;gap:6px;">
+      <div style="width:8px;height:8px;border-radius:2px;background:${g.sportColor};flex-shrink:0;"></div>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);">🏎️ ${g.sportName}</span>
+    </div>
+    ${g.isFinal?'<span class="status-final">RESULT</span>':g.isScheduled?'<span class="status-upcoming">UPCOMING</span>':'<span style="font-size:10px;font-family:'Share Tech Mono',monospace;color:var(--text-dim);">STANDINGS</span>'}
+  </div>
+  <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:900;color:var(--text-primary);margin:4px 0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${g.name}</div>`;
+
+  let body = '';
+  if(g.isF1Next){
+    body = `<div style="display:flex;flex-direction:column;gap:4px;font-size:11px;font-family:'Barlow Condensed',sans-serif;">
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span style="color:var(--text-dim);">📍</span>
+        <span style="color:var(--text-primary);font-weight:700;">${g.circuit}</span>
+        <span style="color:var(--text-dim);">${g.country}</span>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span style="color:var(--text-dim);">📅</span>
+        <span style="color:var(--text-primary);font-weight:700;">${g.date}</span>
+        <span style="color:var(--accent-green);font-family:'Share Tech Mono',monospace;font-size:10px;">${g.countdown}</span>
+      </div>
+      <div style="font-size:10px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;">Round ${g.round}</div>
+    </div>`;
+  } else if(g.isF1Last){
+    const medals = ['🥇','🥈','🥉'];
+    body = g.podium.map((d,i)=>`<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:14px;">${medals[i]||d.pos}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.driver}</div>
+        <div style="font-size:9px;color:var(--text-dim);">${d.team}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--accent-green);">+${d.points}pts</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);">${d.time||''}</div>
+      </div>
+    </div>`).join('');
+  } else if(g.isF1Standings){
+    body = g.drivers.map(d=>`<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);width:14px;text-align:right;">${d.pos}</span>
+      <span style="flex:1;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.driver}</span>
+      <span style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--accent-green);font-weight:700;">${d.points}</span>
+      ${d.wins>0?`<span style="font-size:9px;color:#ffd700;font-family:'Share Tech Mono',monospace;">🏆${d.wins}</span>`:''}
+    </div>`).join('');
+  }
+  card.innerHTML = header + `<div style="display:flex;flex-direction:column;gap:1px;">${body}</div>`;
+  return card;
+}
+
 function buildTickerCard(g){
   const card=document.createElement('div');card.className=`game-card${g.isLive?' live':''}${g.isFinal?' is-final':''}`;
   const away=g.teams.find(t=>t.homeAway==='away')||g.teams[0],home=g.teams.find(t=>t.homeAway==='home')||g.teams[1];
   const finalDate = g.isFinal && g.date ? formatDate(g.date) : '';
   const sh=g.isLive?`<div class="status-live"><div class="status-live-dot"></div>${g.periodDesc}</div>`:g.isFinal?`<span class="status-final">FINAL${finalDate?' · '+finalDate:''}</span>`:`<span class="status-upcoming">${formatTime(g.date)}</span>`;
-  card.style.setProperty('--ticker-sport-color', g.sportColor);
-  card.innerHTML=`<div class="ticker-row"><div class="ticker-teams"><span style="font-size:0.9em;opacity:0.7;">${g.sportEmoji}</span> ${away?.abbr||'–'} vs ${home?.abbr||'–'}</div><div class="ticker-score">${away?.score??'–'} – ${home?.score??'–'}</div>${buildNetworkBadges(g.networks)}<div class="ticker-period">${sh}</div></div>`;
+  card.innerHTML=`<div class="ticker-row"><div style="width:6px;height:18px;border-radius:2px;background:${g.sportColor};flex-shrink:0"></div><div class="ticker-teams">${away?.abbr||'–'} vs ${home?.abbr||'–'}</div><div class="ticker-score">${away?.score??'–'} – ${home?.score??'–'}</div>${buildNetworkBadges(g.networks)}<div class="ticker-period">${sh}</div></div>`;
   return card;
 }
 
@@ -4554,7 +4754,6 @@ document.querySelectorAll('.layout-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('.layout-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');state.layout=btn.dataset.layout;renderScoreboard();
-    const ts=document.getElementById('ticker-size-section');if(ts)ts.style.display=state.layout==='ticker'?'block':'none';
   });
 });
 
@@ -4592,12 +4791,10 @@ renderFavSummary();
     setRefreshRate(savedRate);
     loadNcaaFromApi();
     initSidebarScoreboardSelector();
-    // Fetch version from API and display in footer
     fetch(`${API_BASE}/health`).then(r=>r.json()).then(d=>{
       const el=document.getElementById('ssVersion');
       if(el&&d.version) el.textContent=`ScoreStream ${d.version} · ESPN Data`;
     }).catch(()=>{});
-    // Poll stream status every 10s and update scoreboard card badges
     fetchStreamStatus();
     setInterval(fetchStreamStatus, 10000);
     return;
