@@ -342,9 +342,10 @@ def init_db():
         # Migrate existing DBs: add audio columns if missing
         try:
             conn.execute("ALTER TABLE scoreboards ADD COLUMN audio_mode TEXT NOT NULL DEFAULT 'none'")
+        except Exception:
+            pass
         try:
             conn.execute("ALTER TABLE scoreboards ADD COLUMN motor_config TEXT NOT NULL DEFAULT '{}'")
-        except Exception: pass
         except Exception:
             pass
         try:
@@ -876,7 +877,7 @@ def scoreboard_to_dict(r):
     return {
         'id': r['id'], 'name': r['name'], 'slug': r['slug'],
         'sport_config': _json.loads(r['sport_config'] or '{}'),
-        'motor_config': _json.loads(r['motor_config'] or '{}'),
+        'motor_config': _json.loads(r['motor_config'] if 'motor_config' in r.keys() else '{}'),
         'team_config': _json.loads(r['team_config'] or '{}'),
         'display_config': _json.loads(r['display_config'] or '{}'),
         'dispatcharr_channel_id': r['dispatcharr_channel_id'],
