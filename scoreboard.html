@@ -1489,52 +1489,7 @@ function renderEditorStep(sbOverride){
           <div style="background:#0a0e1a;border:1px solid var(--border);border-radius:10px;padding:14px 14px 10px;overflow:hidden;">
             <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:1px;margin-bottom:10px;opacity:0.5;">STREAM OUTPUT · 1920×1080</div>
             <div id="sbCardScaleWrap" style="overflow:hidden;">
-              <div id="sbCardScaleInner" style="display:grid;grid-template-columns:1fr 1fr;gap:9px;transform-origin:top left;transition:transform 0.2s ease;">
-                <div class="game-card live" style="pointer-events:none;">
-                  <div class="card-status">
-                    <div class="status-live"><div class="status-live-dot"></div>3rd · 7:42</div>
-                    <span style="font-size:9px;font-family:'Share Tech Mono',monospace;color:rgba(255,100,50,0.9);letter-spacing:0.5px;">ESPN</span>
-                    <span class="game-period" style="color:#e05555;">🏒 NHL</span>
-                  </div>
-                  <div class="card-body">
-                    <div class="teams-container">
-                      <div class="team-row">
-                        <div style="width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#003087,#00539b);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:9px;color:white;">TOR</div>
-                        <div class="team-name-block"><div class="team-abbr">TOR</div><div class="team-full-name">Toronto Maple Leafs · Away</div></div>
-                        <div class="team-score">2</div>
-                      </div>
-                      <div style="height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:2px 0;"></div>
-                      <div class="team-row winning">
-                        <div style="width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#c8102e,#a00d24);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:9px;color:white;">DET</div>
-                        <div class="team-name-block"><div class="team-abbr">DET</div><div class="team-full-name">Detroit Red Wings · Home</div></div>
-                        <div class="team-score" style="color:white;">4</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="game-card" style="pointer-events:none;">
-                  <div class="card-status">
-                    <span class="status-upcoming">7:30 PM</span>
-                    <span style="font-size:9px;font-family:'Share Tech Mono',monospace;color:rgba(255,180,0,0.9);letter-spacing:0.5px;">TNT</span>
-                    <span class="game-period" style="color:#c9a227;">🏀 NBA</span>
-                  </div>
-                  <div class="card-body">
-                    <div class="teams-container">
-                      <div class="team-row">
-                        <div style="width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#006bb6,#004f8a);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:9px;color:white;">NYK</div>
-                        <div class="team-name-block"><div class="team-abbr">NYK</div><div class="team-full-name">New York Knicks · Away</div></div>
-                        <div class="team-score">–</div>
-                      </div>
-                      <div style="height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:2px 0;"></div>
-                      <div class="team-row">
-                        <div style="width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#ce1141,#a00d32);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:9px;color:white;">MIA</div>
-                        <div class="team-name-block"><div class="team-abbr">MIA</div><div class="team-full-name">Miami Heat · Home</div></div>
-                        <div class="team-score">–</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <div id="sbCardScaleInner" style="display:grid;grid-template-columns:1fr 1fr;gap:9px;transform-origin:top left;transition:transform 0.2s ease;"></div>
             </div>
           </div>
         </div>
@@ -1570,6 +1525,7 @@ function renderEditorStep(sbOverride){
   setTimeout(()=>{
     const sel=document.getElementById('sbEditCardScale');
     if(sel) sbPreviewCardScale(parseFloat(sel.value)/100);
+    setTimeout(buildEditorPreview, 50);
   },0);
   }
   else if(_editorStep===2){
@@ -1918,6 +1874,38 @@ function sbEditorToggleTeam(key, checked){
   // Re-render current sport list to reflect checked state
   const search = document.getElementById('sbTeamSearch')?.value || '';
   sbEditorRenderTeams(search);
+}
+
+function buildEditorPreview(){
+  var inner=document.getElementById('sbCardScaleInner');
+  if(!inner||!_editorDraft) return;
+  inner.innerHTML='';
+  var sc=_editorDraft.sport_config||{};
+  var ids=Object.keys(sc).filter(function(id){return sc[id];});
+  var isF1=ids.indexOf('f1')>=0;
+  var isNascar=ids.indexOf('nascar')>=0;
+  var isPGA=ids.length===1&&ids[0]==='pga';
+  var isMotorOnly=ids.length>0&&ids.every(function(id){return id==='f1'||id==='nascar';});
+
+  if(isMotorOnly&&isF1){
+    var g1=buildF1Card({id:'f1-next',name:'Next: Japanese Grand Prix',sportName:'Formula 1',sportEmoji:'\uD83C\uDFCE\uFE0F',sportColor:'#e10600',isLive:false,isFinal:false,isScheduled:true,isF1Next:true,circuit:'Suzuka Circuit',country:'Japan',date:'2026-04-06',countdown:'in 11d',round:'3'});
+    var g2=buildF1Card({id:'f1-last',name:'Chinese Grand Prix Result',sportName:'Formula 1',sportEmoji:'\uD83C\uDFCE\uFE0F',sportColor:'#e10600',isLive:false,isFinal:true,isScheduled:false,isF1Last:true,podium:[{pos:'1',driver:'Max Verstappen',team:'Red Bull Racing',time:'1:24:34',points:'25'},{pos:'2',driver:'Lewis Hamilton',team:'Mercedes',time:'+8.4s',points:'18'},{pos:'3',driver:'Charles Leclerc',team:'Ferrari',time:'+12.9s',points:'15'}]});
+    g1.style.pointerEvents='none'; g2.style.pointerEvents='none';
+    inner.appendChild(g1); inner.appendChild(g2);
+  } else if(isMotorOnly&&isNascar){
+    var g1=buildNascarCard({id:'nascar-live',name:'Daytona 500',sportName:'NASCAR Cup',sportEmoji:'\uD83C\uDFC1',sportColor:'#ffd700',isLive:true,isFinal:false,isNascarLive:true,flagEmoji:'\uD83D\uDFE2',trackName:'Daytona International Speedway',lapNumber:142,lapsInRace:200,lapsToGo:58,drivers:[{pos:1,driver:'Denny Hamlin',car:'11',delta:null},{pos:2,driver:'Kyle Larson',car:'5',delta:0.8},{pos:3,driver:'Chase Elliott',car:'9',delta:1.2},{pos:4,driver:'Ryan Blaney',car:'12',delta:2.3},{pos:5,driver:'Martin Truex Jr',car:'19',delta:3.1}]});
+    g1.style.pointerEvents='none';
+    inner.appendChild(g1);
+  } else if(isPGA){
+    var g1=buildLeaderboardCard({id:'pga-p1',name:'The Masters Round 2',sportName:'PGA Tour',sportEmoji:'\u26F3',sportColor:'#00594f',isLive:true,isFinal:false,isIndividual:true,periodDesc:'Round 2',date:new Date().toISOString(),teams:[{position:'1',name:'Scottie Scheffler',score:'-12',thru:'18'},{position:'2',name:'Rory McIlroy',score:'-9',thru:'14'},{position:'3',name:'Collin Morikawa',score:'-7',thru:'16'},{position:'T4',name:'Jon Rahm',score:'-6',thru:'18'},{position:'T4',name:'Viktor Hovland',score:'-6',thru:'18'}]});
+    var g2=buildLeaderboardCard({id:'pga-p2',name:'The Masters Round 2',sportName:'PGA Tour',sportEmoji:'\u26F3',sportColor:'#00594f',isLive:false,isFinal:true,isIndividual:true,periodDesc:'',date:new Date().toISOString(),teams:[{position:'6',name:'Brooks Koepka',score:'-5',thru:'F'},{position:'7',name:'H. Matsuyama',score:'-4',thru:'F'},{position:'T8',name:'Tiger Woods',score:'-3',thru:'F'},{position:'T8',name:'D. Johnson',score:'-3',thru:'F'},{position:'10',name:'P. Cantlay',score:'-2',thru:'F'}]});
+    g1.style.pointerEvents='none'; g2.style.pointerEvents='none';
+    inner.appendChild(g1); inner.appendChild(g2);
+  } else {
+    inner.innerHTML='<div class="game-card live" style="pointer-events:none;"><div class="card-status"><div class="status-live"><div class="status-live-dot"></div>3rd \u00B7 7:42</div><span style="font-size:9px;color:rgba(255,100,50,0.9);">ESPN</span><span class="game-period" style="color:#e05555;">\uD83C\uDFD2 NHL</span></div><div class="card-body"><div class="teams-container"><div class="team-row"><div style="width:26px;height:26px;border-radius:6px;background:#003087;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:900;font-size:9px;color:white;">TOR</div><div class="team-name-block"><div class="team-abbr">TOR</div><div class="team-full-name">Toronto \u00B7 Away</div></div><div class="team-score">2</div></div><div style="height:1px;background:var(--border);margin:2px 0;"></div><div class="team-row winning"><div style="width:26px;height:26px;border-radius:6px;background:#c8102e;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:900;font-size:9px;color:white;">DET</div><div class="team-name-block"><div class="team-abbr">DET</div><div class="team-full-name">Detroit \u00B7 Home</div></div><div class="team-score" style="color:white;">4</div></div></div></div></div><div class="game-card" style="pointer-events:none;"><div class="card-status"><span class="status-upcoming">7:30 PM</span><span style="font-size:9px;color:rgba(255,180,0,0.9);">TNT</span><span class="game-period" style="color:#c9a227;">\uD83C\uDFC0 NBA</span></div><div class="card-body"><div class="teams-container"><div class="team-row"><div style="width:26px;height:26px;border-radius:6px;background:#006bb6;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:900;font-size:9px;color:white;">NYK</div><div class="team-name-block"><div class="team-abbr">NYK</div><div class="team-full-name">NY Knicks \u00B7 Away</div></div><div class="team-score">\u2013</div></div><div style="height:1px;background:var(--border);margin:2px 0;"></div><div class="team-row"><div style="width:26px;height:26px;border-radius:6px;background:#ce1141;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:900;font-size:9px;color:white;">MIA</div><div class="team-name-block"><div class="team-abbr">MIA</div><div class="team-full-name">Miami Heat \u00B7 Home</div></div><div class="team-score">\u2013</div></div></div></div></div>';
+  }
+  var sel=document.getElementById('sbEditCardScale');
+  if(sel) sbPreviewCardScale(parseFloat(sel.value)/100);
 }
 
 function sbPreviewCardScale(val){
