@@ -622,6 +622,9 @@ body.stream-mode .game-card.live:hover{border-color:rgba(0,255,136,0.3);}
       <button class="snav-btn" data-section="display" onclick="switchSection('display')">
         <span class="snav-icon">🎨</span><span>Display &amp; Data</span>
       </button>
+      <button class="snav-btn" data-section="displaydefaults" onclick="switchSection('displaydefaults')">
+        <span class="snav-icon">🎛️</span><span>Display Defaults</span>
+      </button>
       <button class="snav-btn" data-section="dispatcharr" onclick="switchSection('dispatcharr')">
         <span class="snav-icon">📡</span><span>Integrations</span>
       </button>
@@ -867,6 +870,97 @@ body.stream-mode .game-card.live:hover{border-color:rgba(0,255,136,0.3);}
          SECTION 5: INTEGRATIONS
     ═══════════════════════════════════════════════════════════ -->
 <!-- SECTION: INTEGRATIONS (Dispatcharr) -->
+    <!-- ═══════════════════════════════════════════════
+         SECTION: DISPLAY DEFAULTS
+    ═══════════════════════════════════════════════ -->
+    <div id="section-displaydefaults" class="settings-section">
+      <div class="settings-section-header">
+        <h2>Display Defaults</h2>
+        <p>Set global defaults for fonts, colors, and card size. Each scoreboard can use these defaults or override them individually.</p>
+      </div>
+
+      <div id="ddLoadingMsg" style="color:var(--text-dim);font-size:13px;padding:20px 0;">Loading defaults...</div>
+      <div id="ddContent" style="display:none;">
+
+        <!-- FONT SIZES -->
+        <div style="margin-bottom:24px;">
+          <div class="modal-section-title" style="margin-bottom:4px;">📝 Default Font Sizes</div>
+          <div class="wiz-sublabel" style="margin-bottom:14px;">Applied to all scoreboards using Default Fonts.</div>
+          <div class="modal-slider-row">
+            <span class="modal-slider-label">Team Abbreviation</span>
+            <input type="range" min="10" max="40" id="ddAbbrSize" oninput="document.getElementById('ddAbbrSizeVal').textContent=this.value+'px';ddPreview()">
+            <span class="modal-slider-val" id="ddAbbrSizeVal">18px</span>
+          </div>
+          <div class="modal-slider-row">
+            <span class="modal-slider-label">Score Size</span>
+            <input type="range" min="18" max="72" id="ddScoreSize" oninput="document.getElementById('ddScoreSizeVal').textContent=this.value+'px';ddPreview()">
+            <span class="modal-slider-val" id="ddScoreSizeVal">34px</span>
+          </div>
+          <div class="modal-slider-row">
+            <span class="modal-slider-label">Team Name Size</span>
+            <input type="range" min="8" max="22" id="ddNameSize" oninput="document.getElementById('ddNameSizeVal').textContent=this.value+'px';ddPreview()">
+            <span class="modal-slider-val" id="ddNameSizeVal">11px</span>
+          </div>
+        </div>
+
+        <!-- COLORS -->
+        <div style="margin-bottom:24px;">
+          <div class="modal-section-title" style="margin-bottom:4px;">🎨 Default Colors</div>
+          <div class="wiz-sublabel" style="margin-bottom:14px;">Applied to all scoreboards using Default Colors.</div>
+          <div class="modal-slider-row" style="grid-template-columns:1fr auto auto;">
+            <span class="modal-slider-label">Name / Subtitle Color</span>
+            <div style="position:relative;width:28px;height:28px;border-radius:6px;overflow:hidden;border:1px solid var(--border);">
+              <div id="ddNameColorSwatch" style="position:absolute;inset:0;background:#3d5a78;"></div>
+              <input type="color" id="ddNameColor" value="#3d5a78"
+                oninput="document.getElementById('ddNameColorSwatch').style.background=this.value;document.getElementById('ddNameColorVal').textContent=this.value;ddPreview()"
+                style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;">
+            </div>
+            <span class="modal-slider-val" id="ddNameColorVal">#3d5a78</span>
+          </div>
+        </div>
+
+        <!-- CARD SIZE -->
+        <div style="margin-bottom:24px;">
+          <div class="modal-section-title" style="margin-bottom:4px;">📐 Default Card Size</div>
+          <div class="wiz-sublabel" style="margin-bottom:14px;">Applied to all scoreboards using Default Card Size.</div>
+          <div class="modal-slider-row">
+            <span class="modal-slider-label">Card Scale</span>
+            <input type="range" min="50" max="200" id="ddCardScale" oninput="document.getElementById('ddCardScaleVal').textContent=Math.round(this.value)+'%';ddPreview()">
+            <span class="modal-slider-val" id="ddCardScaleVal">100%</span>
+          </div>
+          <div class="modal-slider-row">
+            <span class="modal-slider-label">Rotation Timer</span>
+            <input type="range" min="5" max="120" id="ddRotationSecs" oninput="document.getElementById('ddRotationSecsVal').textContent=this.value+'s'">
+            <span class="modal-slider-val" id="ddRotationSecsVal">15s</span>
+          </div>
+          <div style="margin-bottom:12px;">
+            <div class="modal-section-title" style="font-size:11px;margin-bottom:8px;">Default Layout</div>
+            <div style="display:flex;gap:8px;">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;background:var(--bg-secondary);border-radius:8px;border:1px solid var(--border);">
+                <input type="radio" name="ddLayout" value="grid" id="ddLayoutGrid" style="accent-color:var(--accent);">
+                <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;">Grid</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;background:var(--bg-secondary);border-radius:8px;border:1px solid var(--border);">
+                <input type="radio" name="ddLayout" value="fullscreen" id="ddLayoutFull" style="accent-color:var(--accent);">
+                <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;">Fullscreen</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;background:var(--bg-secondary);border-radius:8px;border:1px solid var(--border);">
+                <input type="radio" name="ddLayout" value="ticker" id="ddLayoutTicker" style="accent-color:var(--accent);">
+                <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;">Ticker</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <button class="modal-btn primary" onclick="ddSave()" style="flex:2;">💾 Save Defaults</button>
+          <button class="modal-btn" onclick="ddReset()" style="flex:1;border-color:var(--border);color:var(--text-dim);">Reset</button>
+        </div>
+        <div id="ddSaveResult" style="margin-top:10px;font-size:12px;display:none;"></div>
+
+      </div>
+    </div>
+
     <div id="section-dispatcharr" class="settings-section">
       <div class="settings-section-header">
         <h2>Integrations</h2>
@@ -1409,6 +1503,32 @@ function renderEditorStep(sbOverride){
           <div class="wiz-sublabel">Stored for reference. To change output resolution, update <code style="font-family:monospace;font-size:10px;color:var(--accent);">STREAM_WIDTH</code> / <code style="font-family:monospace;font-size:10px;color:var(--accent);">STREAM_HEIGHT</code> in your Docker stack env vars and restart the stream container.</div>
         </div>
         <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+          <div class="modal-section-title" style="margin-bottom:4px;">🎛️ Display Defaults</div>
+          <div class="wiz-sublabel" style="margin-bottom:12px;">Choose which global defaults this scoreboard inherits.</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;padding:12px 14px;background:var(--bg-secondary);border-radius:10px;border:1px solid var(--border);">
+            <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+              <div>
+                <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--text-primary);">📝 Default Fonts</div>
+                <div style="font-size:10px;color:var(--text-dim);">Abbr, score and name sizes from Display Defaults</div>
+              </div>
+              <div class="small-toggle${_editorDraft.use_default_fonts!==false?' on':''}" id="dd-toggle-fonts" onclick="sbToggleDefault('fonts',this)"></div>
+            </label>
+            <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+              <div>
+                <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--text-primary);">🎨 Default Colors</div>
+                <div style="font-size:10px;color:var(--text-dim);">Name/subtitle color from Display Defaults</div>
+              </div>
+              <div class="small-toggle${_editorDraft.use_default_colors!==false?' on':''}" id="dd-toggle-colors" onclick="sbToggleDefault('colors',this)"></div>
+            </label>
+            <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+              <div>
+                <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--text-primary);">📐 Default Card Size</div>
+                <div style="font-size:10px;color:var(--text-dim);">Scale, layout and rotation from Display Defaults</div>
+              </div>
+              <div class="small-toggle${_editorDraft.use_default_card_size!==false?' on':''}" id="dd-toggle-card-size" onclick="sbToggleDefault('card_size',this)"></div>
+            </label>
+          </div>
+
           <div class="modal-section-title" style="font-size:11px;margin-bottom:10px;letter-spacing:2px;">CARD TYPOGRAPHY</div>
           <div class="modal-slider-row">
             <span class="modal-slider-label" data-tip="Size of the team abbreviation (e.g. LAL, BOS) on stream cards">Abbreviation Size</span>
@@ -1908,6 +2028,139 @@ function buildEditorPreview(){
   if(sel) sbPreviewCardScale(parseFloat(sel.value)/100);
 }
 
+// ── Display Defaults ─────────────────────────────────────────────────────────
+let _displayDefaults = {};
+
+async function loadDisplayDefaults(){
+  try{
+    const r = await fetch(`${API_BASE}/settings/display-defaults`);
+    if(!r.ok) return;
+    const d = await r.json();
+    _displayDefaults = d.defaults || {};
+    ddPopulateUI(_displayDefaults);
+    document.getElementById('ddLoadingMsg').style.display='none';
+    document.getElementById('ddContent').style.display='block';
+  }catch(e){ console.warn('loadDisplayDefaults error',e); }
+}
+
+function ddPopulateUI(def){
+  const s = (id,val) => { const el=document.getElementById(id); if(el) el.value=val; };
+  const t = (id,val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
+  s('ddAbbrSize', def.card_abbr_size||18);  t('ddAbbrSizeVal',(def.card_abbr_size||18)+'px');
+  s('ddScoreSize', def.card_score_size||34); t('ddScoreSizeVal',(def.card_score_size||34)+'px');
+  s('ddNameSize',  def.card_name_size||11);  t('ddNameSizeVal',(def.card_name_size||11)+'px');
+  s('ddCardScale', Math.round((def.stream_card_scale||1.0)*100)); t('ddCardScaleVal',Math.round((def.stream_card_scale||1.0)*100)+'%');
+  s('ddRotationSecs', def.stream_rotation_secs||15); t('ddRotationSecsVal',(def.stream_rotation_secs||15)+'s');
+  const color = def.card_name_color||'#3d5a78';
+  s('ddNameColor', color);
+  const sw=document.getElementById('ddNameColorSwatch'); if(sw) sw.style.background=color;
+  t('ddNameColorVal', color);
+  const layout = def.stream_layout||'grid';
+  const rb = document.querySelector(`input[name="ddLayout"][value="${layout}"]`);
+  if(rb) rb.checked=true;
+}
+
+function ddGetValues(){
+  const gv = id => document.getElementById(id)?.value;
+  const layout = document.querySelector('input[name="ddLayout"]:checked')?.value||'grid';
+  return {
+    card_abbr_size:  parseInt(gv('ddAbbrSize'))||18,
+    card_score_size: parseInt(gv('ddScoreSize'))||34,
+    card_name_size:  parseInt(gv('ddNameSize'))||11,
+    card_name_color: gv('ddNameColor')||'#3d5a78',
+    stream_card_scale: (parseInt(gv('ddCardScale'))||100)/100,
+    stream_rotation_secs: parseInt(gv('ddRotationSecs'))||15,
+    stream_layout: layout,
+  };
+}
+
+function ddPreview(){
+  const vals = ddGetValues();
+  const root = document.documentElement;
+  root.style.setProperty('--card-abbr-size', vals.card_abbr_size+'px');
+  root.style.setProperty('--card-score-size', vals.card_score_size+'px');
+  root.style.setProperty('--card-name-size', vals.card_name_size+'px');
+  root.style.setProperty('--card-name-color', vals.card_name_color);
+}
+
+async function ddSave(){
+  const vals = ddGetValues();
+  // Check how many scoreboards are using each default group
+  const linked = {fonts:[], colors:[], cardSize:[]};
+  (_scoreboards||[]).forEach(sb=>{
+    if(sb.use_default_fonts!==false) linked.fonts.push(sb.name);
+    if(sb.use_default_colors!==false) linked.colors.push(sb.name);
+    if(sb.use_default_card_size!==false) linked.cardSize.push(sb.name);
+  });
+  const allLinked = [...new Set([...linked.fonts,...linked.colors,...linked.cardSize])];
+  if(allLinked.length>0){
+    const msg = `This will update display settings for ${allLinked.length} scoreboard(s):\n${allLinked.join(', ')}\n\nContinue?`;
+    if(!confirm(msg)) return;
+  }
+  try{
+    const r = await fetch(`${API_BASE}/settings/display-defaults`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({defaults: vals})
+    });
+    if(!r.ok) throw new Error();
+    _displayDefaults = vals;
+    const res = document.getElementById('ddSaveResult');
+    res.style.display='block'; res.style.color='var(--accent-green)';
+    res.textContent='✓ Defaults saved. All linked scoreboards will use these settings.';
+    setTimeout(()=>res.style.display='none', 3000);
+    // Apply to current display state
+    applyDisplayDefaults();
+  }catch(e){
+    const res = document.getElementById('ddSaveResult');
+    res.style.display='block'; res.style.color='#f87171';
+    res.textContent='✗ Failed to save. Try again.';
+  }
+}
+
+function ddReset(){
+  ddPopulateUI({card_abbr_size:18,card_score_size:34,card_name_size:11,card_name_color:'#3d5a78',stream_card_scale:1.0,stream_rotation_secs:15,stream_layout:'grid'});
+}
+
+function applyDisplayDefaults(){
+  // Apply defaults to all scoreboards that are using them
+  const def = _displayDefaults;
+  if(!def||!Object.keys(def).length) return;
+  const root = document.documentElement;
+  // For the currently active scoreboard, check which groups it uses defaults for
+  const activeSb = _scoreboards?.find(s=>s.id===_activeSidebarSbId);
+  const useDefFonts = activeSb ? activeSb.use_default_fonts!==false : true;
+  const useDefColors = activeSb ? activeSb.use_default_colors!==false : true;
+  if(useDefFonts){
+    if(def.card_abbr_size)  root.style.setProperty('--card-abbr-size',  def.card_abbr_size+'px');
+    if(def.card_score_size) root.style.setProperty('--card-score-size', def.card_score_size+'px');
+    if(def.card_name_size)  root.style.setProperty('--card-name-size',  def.card_name_size+'px');
+  }
+  if(useDefColors){
+    if(def.card_name_color) root.style.setProperty('--card-name-color', def.card_name_color);
+  }
+}
+
+function sbGetEffectiveDisplayConfig(sb){
+  // Returns the display_config to use for a scoreboard, merging defaults where applicable
+  const def = _displayDefaults||{};
+  const own = sb.display_config||{};
+  const merged = Object.assign({}, own);
+  if(sb.use_default_fonts!==false){
+    if(def.card_abbr_size)  merged.card_abbr_size  = def.card_abbr_size;
+    if(def.card_score_size) merged.card_score_size = def.card_score_size;
+    if(def.card_name_size)  merged.card_name_size  = def.card_name_size;
+  }
+  if(sb.use_default_colors!==false){
+    if(def.card_name_color) merged.card_name_color = def.card_name_color;
+  }
+  if(sb.use_default_card_size!==false){
+    if(def.stream_card_scale)      merged.stream_card_scale      = def.stream_card_scale;
+    if(def.stream_rotation_secs)   merged.stream_rotation_secs   = def.stream_rotation_secs;
+    if(def.stream_layout)          merged.stream_layout          = def.stream_layout;
+  }
+  return merged;
+}
+
 function sbPreviewCardScale(val){
   const scale = parseFloat(val) || 1.0;
   const inner = document.getElementById('sbCardScaleInner');
@@ -2086,7 +2339,7 @@ async function saveSbEditor(){
   if(result){result.style.color='var(--text-dim)';result.textContent='Saving...';}
   const r=await fetch(`${API_BASE}/scoreboards/${_activeSbId}`,{
     method:'PATCH',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({name:_editorDraft.name, sport_config:_editorDraft.sport_config, display_config:_editorDraft.display_config, team_config:_editorDraft.team_config||{}, audio_mode:_editorDraft.audio_mode||'none', audio_source_url:_editorDraft.audio_source_url||'', motor_config:_editorDraft.motor_config||{}})
+    body:JSON.stringify({name:_editorDraft.name, sport_config:_editorDraft.sport_config, display_config:_editorDraft.display_config, team_config:_editorDraft.team_config||{}, audio_mode:_editorDraft.audio_mode||'none', audio_source_url:_editorDraft.audio_source_url||'', motor_config:_editorDraft.motor_config||{},use_default_fonts:_editorDraft.use_default_fonts!==false,use_default_colors:_editorDraft.use_default_colors!==false,use_default_card_size:_editorDraft.use_default_card_size!==false})
   });
   if(r.ok){
     const d=await r.json();
@@ -3131,6 +3384,7 @@ function switchSection(section){
   // Section-specific init
   if(section==='scoreboards') loadScoreboards();
   if(section==='sports') buildSportsTab();
+  if(section==='displaydefaults'){ loadDisplayDefaults(); }
   if(section==='teams'){buildTbTabs();loadTbSport(tbState.activeSport||getSPORTS()[0]?.id);}
   if(section==='dispatcharr') initDsTab();
   if(section==='ncaa') initNcaaSection();
@@ -3473,6 +3727,13 @@ function buildMotorsportEditorPanel(draft){
   const none=!hasF1&&!hasNascar?`<div style="text-align:center;padding:30px;color:var(--text-dim);"><div style="font-size:36px;margin-bottom:10px;">🏎️</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;">No Motorsport Enabled</div><div style="font-size:11px;margin-top:4px;">Go to Settings → Sports Library to enable Formula 1 or NASCAR</div></div>`:'';
   return `<div style="font-size:12px;color:var(--text-dim);margin-bottom:14px;">Configure what this motorsport scoreboard displays:</div>${f1Sec}${nasSec}${none}<div style="font-size:11px;color:var(--text-dim);padding:8px 12px;background:var(--bg-secondary);border-radius:7px;">💡 To add/remove sports go to <strong>Settings → Sports Library → Motorsport</strong></div>`;
 }
+function sbToggleDefault(group, toggleEl){
+  const key = group==='fonts' ? 'use_default_fonts' : group==='colors' ? 'use_default_colors' : 'use_default_card_size';
+  const current = _editorDraft[key]!==false;
+  _editorDraft[key] = !current;
+  toggleEl.classList.toggle('on', !current);
+}
+
 function setMotorConfig(key,val){if(!window._editorDraft)return;if(!window._editorDraft.motor_config)window._editorDraft.motor_config={};window._editorDraft.motor_config[key]=val;}
 function buildGameCard(g){
   if(g.isIndividual) return buildLeaderboardCard(g);
@@ -3528,7 +3789,33 @@ async function fetchNascarData(sport, sbConfig){
     const isLive = vehicles.length > 0 && d.laps_to_go > 0;
     const isFinal = vehicles.length > 0 && d.laps_to_go === 0;
     const noRace = vehicles.length === 0 && flagState === 0;
-    if(noRace) return []; // nothing to show
+    if(noRace){
+      if(!showLast) return [];
+      try{
+        const cr=await fetch(`${API_BASE}/motor/cache/nascar-last`,{signal:AbortSignal.timeout(4000)});
+        if(!cr.ok) return [];
+        const cd=(await cr.json()).data||{};
+        const cachedDrivers=cd.drivers||[];
+        if(!cachedDrivers.length) return [];
+        const chunkSize=8,total=cachedDrivers.length,totalPages=Math.ceil(total/chunkSize);
+        const lastCards=[];
+        for(let i=0;i<total;i+=chunkSize){
+          const chunk=cachedDrivers.slice(i,i+chunkSize);
+          const pageNum=Math.floor(i/chunkSize)+1;
+          lastCards.push({
+            id:`nascar-last-${pageNum}`,
+            name:totalPages>1?`${cd.run_name||'Last Race'} (P${pageNum}/${totalPages})`:`${cd.run_name||'Last Race'} Result`,
+            sportName:sport.name,sportEmoji:sport.emoji,sportColor:sport.color,
+            isLive:false,isFinal:true,isNascarLive:true,
+            flagEmoji:'🏁',flagState:9,
+            trackName:cd.track_name||'',lapNumber:cd.laps_in_race||0,
+            lapsInRace:cd.laps_in_race||0,lapsToGo:0,
+            drivers:chunk,cachedDate:cd.race_date||'',
+          });
+        }
+        return lastCards;
+      }catch(e){ return []; }
+    }
     const flagEmoji = {1:'🟢',2:'🟡',3:'🔴',4:'🟡',8:'⬜',9:'🏁'}[flagState]||'⬛';
     // Sort by running_position
     const sorted = [...vehicles].sort((a,b)=>(a.running_position||99)-(b.running_position||99));
@@ -3561,6 +3848,11 @@ async function fetchNascarData(sport, sbConfig){
         drivers: chunk,
       });
     }
+    if((isFinal||flagState===9)&&allDrivers.length>0){
+      fetch(`${API_BASE}/motor/cache/nascar-last`,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({data:{run_name:d.run_name,track_name:d.track_name,laps_in_race:d.laps_in_race,
+          race_date:new Date().toISOString().slice(0,10),drivers:allDrivers.slice(0,40)}})}).catch(()=>{});
+    }
     return nasCards;
   }catch(e){ console.warn('NASCAR fetch error', e); return []; }
 }
@@ -3592,7 +3884,7 @@ function buildNascarCard(g){
       ${statusHtml}
     </div>
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:var(--card-abbr-size,14px);font-weight:900;color:var(--text-primary);margin:4px 0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${g.name}">${g.name}</div>
-    <div style="font-size:var(--card-name-size,11px);color:var(--text-dim);margin-bottom:4px;font-family:'Share Tech Mono',monospace;">${g.trackName}</div>
+    <div style="font-size:var(--card-name-size,11px);color:var(--text-dim);margin-bottom:4px;font-family:'Share Tech Mono',monospace;">${g.trackName}${g.cachedDate?' · '+g.cachedDate:''}</div>
     <div style="display:flex;flex-direction:column;gap:1px;display:flex;flex-direction:column;">${rows}</div>`;
   return card;
 }
@@ -4845,6 +5137,8 @@ renderFavSummary();
     }).catch(()=>{});
     fetchStreamStatus();
     setInterval(fetchStreamStatus, 10000);
+    // Load display defaults
+    loadDisplayDefaults().then(()=>applyDisplayDefaults());
     return;
   }
 
