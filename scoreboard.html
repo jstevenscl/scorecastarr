@@ -517,9 +517,12 @@ body.stream-mode .game-card.live:hover{border-color:rgba(0,255,136,0.3);}
 <div id="app">
 <aside id="sidebar">
   <div class="sidebar-header">
-    <div class="logo">
-      <div class="logo-icon">&#x1F4E1;</div>
-      <div class="logo-text">Score<span>Stream</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="logo">
+        <div class="logo-icon">&#x1F4E1;</div>
+        <div class="logo-text">Score<span>Stream</span></div>
+      </div>
+      <button onclick="openSettings('display')" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-dim);cursor:pointer;padding:4px 8px;font-size:11px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:0.5px;transition:all 0.15s;" title="Display &amp; Data Settings">&#x2699;&#xFE0F; Display</button>
     </div>
     <div class="logo-sub">Pro Scoreboard</div>
     <div class="live-badge"><div class="live-dot"></div><span>Live Data</span></div>
@@ -562,10 +565,11 @@ body.stream-mode .game-card.live:hover{border-color:rgba(0,255,136,0.3);}
   <div class="sidebar-section" id="endedSection">
     <div class="section-label">Ended Games</div>
     <div class="ended-master-row">
-      <span class="ended-label" data-tip="Fetch and display completed games from prior days. Expand each sport below to control how many days back to show.">&#x1F3C1; Show Final Games</span>
+      <span class="ended-label" data-tip="Fetch and display completed games from prior days. Enable to expand per-sport days-back controls.">&#x1F3C1; Show Final Games</span>
       <div class="big-toggle" id="endedMasterToggle" onclick="toggleEndedMaster()"></div>
     </div>
     <div id="endedControls" style="display:none">
+      <div style="font-size:10px;color:var(--text-dim);padding:4px 0 8px;font-family:'Share Tech Mono',monospace;">Toggle each sport to show finals. Adjust days below.</div>
       <div class="ended-leagues" id="endedLeagueToggles"></div>
     </div>
   </div>
@@ -3384,7 +3388,7 @@ function switchSection(section){
   // Section-specific init
   if(section==='scoreboards') loadScoreboards();
   if(section==='sports') buildSportsTab();
-  if(section==='displaydefaults'){ loadDisplayDefaults(); }
+  if(section==='displaydefaults'){ setTimeout(loadDisplayDefaults, 50); }
   if(section==='teams'){buildTbTabs();loadTbSport(tbState.activeSport||getSPORTS()[0]?.id);}
   if(section==='dispatcharr') initDsTab();
   if(section==='ncaa') initNcaaSection();
