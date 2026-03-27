@@ -3320,6 +3320,25 @@ async function fetchAllScores(){
     await refreshStreamConfig();
   }
   await Promise.all(getAllEnabledSports().map(s=>fetchSport(s)));
+  // Split large PGA leaderboards into paged cards (8 players per card)
+  getAllEnabledSports().filter(s=>s.isIndividualSport).forEach(sport=>{
+    const games = state.games[sport.id]||[];
+    const expanded = [];
+    games.forEach(g=>{
+      if(!g.isIndividual || g.teams.length<=8){ expanded.push(g); return; }
+      const chunkSize=8, total=g.teams.length;
+      const totalPages=Math.ceil(total/chunkSize);
+      for(let i=0;i<total;i+=chunkSize){
+        const pageNum=Math.floor(i/chunkSize)+1;
+        expanded.push(Object.assign({},g,{
+          id:`${g.id}-p${pageNum}`,
+          name: totalPages>1 ? `${g.name} (P${pageNum}/${totalPages})` : g.name,
+          teams: g.teams.slice(i,i+chunkSize),
+        }));
+      }
+    });
+    state.games[sport.id]=expanded;
+  });
   refreshSportToggles();updateTopbar();renderScoreboard();
   const el=document.getElementById('lastUpdate');
   if(el)el.textContent=`Updated: ${new Date().toLocaleTimeString()}${state.usingMock?' (demo)':''}`;
@@ -3488,7 +3507,7 @@ function buildLeaderboardCard(g){
       ${sh}
     </div>
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:var(--card-abbr-size,14px);font-weight:900;letter-spacing:0.5px;color:var(--text-primary);margin:6px 0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${g.name}">${g.name}</div>
-    <div style="display:flex;flex-direction:column;gap:1px;overflow-y:auto;max-height:220px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;">
+    <div style="display:flex;flex-direction:column;gap:1px;display:flex;flex-direction:column;">
       ${rows}
     </div>`;
   return card;
@@ -3512,28 +3531,36 @@ async function fetchNascarData(sport, sbConfig){
     const flagEmoji = {1:'🟢',2:'🟡',3:'🔴',4:'🟡',8:'⬜',9:'🏁'}[flagState]||'⬛';
     // Sort by running_position
     const sorted = [...vehicles].sort((a,b)=>(a.running_position||99)-(b.running_position||99));
-    const card = {
-      id: 'nascar-live',
-      name: d.run_name || 'NASCAR Race',
-      sportName: sport.name, sportEmoji: sport.emoji, sportColor: sport.color,
-      isLive, isFinal, isScheduled: false, isIndividual: false,
-      isNascarLive: true,
-      flagEmoji, flagState,
-      trackName: d.track_name || '',
-      lapNumber: d.lap_number || 0,
-      lapsInRace: d.laps_in_race || 0,
-      lapsToGo: d.laps_to_go || 0,
-      drivers: sorted.map(v=>({
-        pos: v.running_position,
-        driver: v.driver?.full_name || (v.driver ? `${v.driver.first_name||''} ${v.driver.last_name||''}`.trim() : 'Unknown'),
-        car: v.vehicle_number || '?',
-        manufacturer: v.vehicle_manufacturer || '',
-        status: v.status || 'Running',
-        delta: v.delta || null,
-        laps: v.laps_completed || 0,
-      })),
-    };
-    return [card];
+    const allDrivers = sorted.map(v=>({
+      pos: v.running_position,
+      driver: v.driver?.full_name || (v.driver ? `${v.driver.first_name||''} ${v.driver.last_name||''}`.trim() : 'Unknown'),
+      car: v.vehicle_number || '?',
+      manufacturer: v.vehicle_manufacturer || '',
+      status: v.status || 'Running',
+      delta: v.delta || null,
+      laps: v.laps_completed || 0,
+    }));
+    const chunkSize = 8;
+    const nasCards = [];
+    for(let i=0; i<allDrivers.length; i+=chunkSize){
+      const chunk = allDrivers.slice(i, i+chunkSize);
+      const pageNum = Math.floor(i/chunkSize)+1;
+      const totalPages = Math.ceil(allDrivers.length/chunkSize);
+      const baseName = d.run_name || 'NASCAR Race';
+      nasCards.push({
+        id: `nascar-live-${pageNum}`,
+        name: totalPages>1 ? `${baseName} (P${pageNum}/${totalPages})` : baseName,
+        sportName: sport.name, sportEmoji: sport.emoji, sportColor: sport.color,
+        isLive, isFinal, isScheduled: false, isIndividual: false,
+        isNascarLive: true, flagEmoji, flagState,
+        trackName: d.track_name || '',
+        lapNumber: d.lap_number || 0,
+        lapsInRace: d.laps_in_race || 0,
+        lapsToGo: d.laps_to_go || 0,
+        drivers: chunk,
+      });
+    }
+    return nasCards;
   }catch(e){ console.warn('NASCAR fetch error', e); return []; }
 }
 
@@ -3565,7 +3592,7 @@ function buildNascarCard(g){
     </div>
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:var(--card-abbr-size,14px);font-weight:900;color:var(--text-primary);margin:4px 0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${g.name}">${g.name}</div>
     <div style="font-size:var(--card-name-size,11px);color:var(--text-dim);margin-bottom:4px;font-family:'Share Tech Mono',monospace;">${g.trackName}</div>
-    <div style="display:flex;flex-direction:column;gap:1px;overflow-y:auto;max-height:220px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;">${rows}</div>`;
+    <div style="display:flex;flex-direction:column;gap:1px;display:flex;flex-direction:column;">${rows}</div>`;
   return card;
 }
 
@@ -3681,7 +3708,7 @@ function buildF1Card(g){
       </div>
     </div>`).join('');
   } else if(g.isF1Standings){
-    body = `<div style="overflow-y:auto;max-height:220px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;">` + g.drivers.map(d=>`<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);">
+    body = `<div style="display:flex;flex-direction:column;">` + g.drivers.map(d=>`<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);">
       <span style="font-family:'Share Tech Mono',monospace;font-size:var(--card-name-size,11px);color:var(--text-dim);width:14px;text-align:right;">${d.pos}</span>
       <span style="flex:1;font-family:'Barlow Condensed',sans-serif;font-size:var(--card-abbr-size,14px);font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.driver}</span>
       <span style="font-family:'Share Tech Mono',monospace;font-size:var(--card-abbr-size,14px);color:var(--accent-green);font-weight:700;">${d.points}</span>
@@ -5071,7 +5098,9 @@ function renderStreamCanvas() {
     : (window.innerWidth - 28);
 
   // Card approximate height at current scale (header + 2 teams + padding)
-  const cardH = Math.round(130 * scale);
+  // Individual sport cards (leaderboard, F1, NASCAR) are taller
+  const hasIndividualSports = getAllEnabledSports().some(s=>s.isIndividualSport||s.fetchFn);
+  const cardH = Math.round((hasIndividualSports ? 210 : 130) * scale);
   const sectionHeaderH = 36; // league-header height
   const gridGap = 9;
   const pagePad = 28; // padding inside page
