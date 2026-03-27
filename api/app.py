@@ -322,6 +322,9 @@ def init_db():
             slug TEXT NOT NULL UNIQUE,
             sport_config TEXT NOT NULL DEFAULT '{}',
             motor_config TEXT NOT NULL DEFAULT '{}',
+            use_default_fonts INTEGER NOT NULL DEFAULT 1,
+            use_default_colors INTEGER NOT NULL DEFAULT 1,
+            use_default_card_size INTEGER NOT NULL DEFAULT 1,
             team_config TEXT NOT NULL DEFAULT '{}',
             display_config TEXT NOT NULL DEFAULT '{}',
             dispatcharr_channel_id TEXT,
@@ -348,10 +351,22 @@ def init_db():
             conn.execute("ALTER TABLE scoreboards ADD COLUMN motor_config TEXT NOT NULL DEFAULT '{}'")
         except Exception:
             pass
+        for col in ["use_default_fonts INTEGER NOT NULL DEFAULT 1",
+                    "use_default_colors INTEGER NOT NULL DEFAULT 1",
+                    "use_default_card_size INTEGER NOT NULL DEFAULT 1"]:
+            try: conn.execute(f"ALTER TABLE scoreboards ADD COLUMN {col}")
+            except Exception: pass
         try:
             conn.execute('ALTER TABLE scoreboards ADD COLUMN audio_source_url TEXT')
         except Exception:
             pass
+        # Global settings table (display defaults etc)
+        conn.execute('''CREATE TABLE IF NOT EXISTS global_settings(
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )''')
+
         # Motor cache table for NASCAR/F1 results (no external history API)
         conn.execute('''CREATE TABLE IF NOT EXISTS motor_cache(
             key TEXT PRIMARY KEY,
@@ -888,6 +903,9 @@ def scoreboard_to_dict(r):
         'id': r['id'], 'name': r['name'], 'slug': r['slug'],
         'sport_config': _json.loads(r['sport_config'] or '{}'),
         'motor_config': _json.loads(r['motor_config'] if 'motor_config' in r.keys() else '{}'),
+        'use_default_fonts': bool(r['use_default_fonts'] if 'use_default_fonts' in r.keys() else 1),
+        'use_default_colors': bool(r['use_default_colors'] if 'use_default_colors' in r.keys() else 1),
+        'use_default_card_size': bool(r['use_default_card_size'] if 'use_default_card_size' in r.keys() else 1),
         'team_config': _json.loads(r['team_config'] or '{}'),
         'display_config': _json.loads(r['display_config'] or '{}'),
         'dispatcharr_channel_id': r['dispatcharr_channel_id'],
@@ -965,7 +983,7 @@ def scoreboard_update(sid):
         for col in ['name','sport_config','team_config','display_config',
                     'dispatcharr_channel_id','dispatcharr_channel_number',
                     'dispatcharr_group_id','dispatcharr_stream_profile_id','dispatcharr_logo_id',
-                    'audio_mode','audio_source_url','motor_config']:
+                    'audio_mode','audio_source_url','motor_config','use_default_fonts','use_default_colors','use_default_card_size']:
             if col in b:
                 fields.append(f'{col}=?')
                 val = b[col]
@@ -1465,6 +1483,30 @@ def set_config_route():
     return jsonify({'status':'saved'})
 
 # ── Entry ─────────────────────────────────────────────────────────────────────
+# ── Global Settings (display defaults) ──────────────────────────────────────
+@app.route('/settings/display-defaults', methods=['GET'])
+def display_defaults_get():
+    try:
+        with _get_db() as conn:
+            row = conn.execute("SELECT value FROM global_settings WHERE key='display_defaults'").fetchone()
+            defaults = _json.loads(row['value']) if row else {}
+            return jsonify({'defaults': defaults})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/settings/display-defaults', methods=['POST'])
+def display_defaults_set():
+    try:
+        b = request.get_json(force=True) or {}
+        value_str = _json.dumps(b.get('defaults', {}))
+        with _get_db() as conn:
+            conn.execute('''INSERT INTO global_settings(key,value,updated_at) VALUES('display_defaults',?,CURRENT_TIMESTAMP)
+                ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=CURRENT_TIMESTAMP''', (value_str,))
+            conn.commit()
+        return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # ── Motor Cache (NASCAR/F1 result storage) ──────────────────────────────────
 @app.route('/motor/cache/<key>', methods=['GET'])
 def motor_cache_get(key):
