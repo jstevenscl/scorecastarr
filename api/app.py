@@ -321,6 +321,7 @@ def init_db():
             name TEXT NOT NULL,
             slug TEXT NOT NULL UNIQUE,
             sport_config TEXT NOT NULL DEFAULT '{}',
+            motor_config TEXT NOT NULL DEFAULT '{}',
             team_config TEXT NOT NULL DEFAULT '{}',
             display_config TEXT NOT NULL DEFAULT '{}',
             dispatcharr_channel_id TEXT,
@@ -341,6 +342,9 @@ def init_db():
         # Migrate existing DBs: add audio columns if missing
         try:
             conn.execute("ALTER TABLE scoreboards ADD COLUMN audio_mode TEXT NOT NULL DEFAULT 'none'")
+        try:
+            conn.execute("ALTER TABLE scoreboards ADD COLUMN motor_config TEXT NOT NULL DEFAULT '{}'")
+        except Exception: pass
         except Exception:
             pass
         try:
@@ -872,6 +876,7 @@ def scoreboard_to_dict(r):
     return {
         'id': r['id'], 'name': r['name'], 'slug': r['slug'],
         'sport_config': _json.loads(r['sport_config'] or '{}'),
+        'motor_config': _json.loads(r['motor_config'] or '{}'),
         'team_config': _json.loads(r['team_config'] or '{}'),
         'display_config': _json.loads(r['display_config'] or '{}'),
         'dispatcharr_channel_id': r['dispatcharr_channel_id'],
@@ -906,11 +911,12 @@ def scoreboard_create():
         while conn.execute('SELECT id FROM scoreboards WHERE slug=?',(slug,)).fetchone():
             slug = f'{base_slug}-{i}'; i += 1
         conn.execute(
-            'INSERT INTO scoreboards(name,slug,sport_config,team_config,display_config) VALUES(?,?,?,?,?)',
+            'INSERT INTO scoreboards(name,slug,sport_config,team_config,display_config,motor_config) VALUES(?,?,?,?,?,?)',
             (name, slug,
              _json.dumps(b.get('sport_config',{})),
              _json.dumps(b.get('team_config',{})),
-             _json.dumps(b.get('display_config',{}))))
+             _json.dumps(b.get('display_config',{})),
+             _json.dumps(b.get('motor_config',{}))))
         conn.commit()
         row = conn.execute('SELECT * FROM scoreboards WHERE slug=?',(slug,)).fetchone()
     notify_stream_manager()
@@ -948,11 +954,11 @@ def scoreboard_update(sid):
         for col in ['name','sport_config','team_config','display_config',
                     'dispatcharr_channel_id','dispatcharr_channel_number',
                     'dispatcharr_group_id','dispatcharr_stream_profile_id','dispatcharr_logo_id',
-                    'audio_mode','audio_source_url']:
+                    'audio_mode','audio_source_url','motor_config']:
             if col in b:
                 fields.append(f'{col}=?')
                 val = b[col]
-                if col in ('sport_config','team_config','display_config'):
+                if col in ('sport_config','team_config','display_config','motor_config'):
                     val = _json.dumps(val)
                 vals.append(val)
         if 'dispatcharr_profile_ids' in b:
@@ -1015,8 +1021,8 @@ def scoreboard_duplicate(sid):
         while conn.execute('SELECT id FROM scoreboards WHERE slug=?',(slug,)).fetchone():
             slug = f'{base_slug}-{i}'; i += 1
         conn.execute(
-            'INSERT INTO scoreboards(name,slug,sport_config,team_config,display_config) VALUES(?,?,?,?,?)',
-            (new_name, slug, src['sport_config'], src['team_config'], src['display_config']))
+            'INSERT INTO scoreboards(name,slug,sport_config,team_config,display_config,motor_config) VALUES(?,?,?,?,?,?)',
+            (new_name, slug, src['sport_config'], src['team_config'], src['display_config'], src.get('motor_config','{}')))
         conn.commit()
         row = conn.execute('SELECT * FROM scoreboards WHERE slug=?',(slug,)).fetchone()
     notify_stream_manager()
