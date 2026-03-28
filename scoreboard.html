@@ -629,6 +629,9 @@ body.stream-mode .game-card.live:hover{border-color:rgba(0,255,136,0.3);}
       <button class="snav-btn" data-section="displaydefaults" onclick="switchSection('displaydefaults')">
         <span class="snav-icon">🎛️</span><span>Display Defaults</span>
       </button>
+      <button class="snav-btn" data-section="audiolibrary" onclick="switchSection('audiolibrary')">
+        <span class="snav-icon">🎵</span><span>Audio Library</span>
+      </button>
       <button class="snav-btn" data-section="dispatcharr" onclick="switchSection('dispatcharr')">
         <span class="snav-icon">📡</span><span>Integrations</span>
       </button>
@@ -791,6 +794,16 @@ body.stream-mode .game-card.live:hover{border-color:rgba(0,255,136,0.3);}
           <span class="modal-slider-label" data-tip="Size of the full team name shown in small text below the abbreviation (e.g. 'Los Angeles Lakers · Away')">Team Name Size</span>
           <input type="range" min="9" max="16" value="11" id="sl-name" oninput="applyDisplay()">
           <span class="modal-slider-val" id="val-name">11px</span>
+        </div>
+        <div class="modal-slider-row">
+          <span class="modal-slider-label" data-tip="Size of team logo boxes on game cards. Increase for better visibility on TV or mobile.">Team Logo Size</span>
+          <input type="range" min="20" max="64" value="34" id="sl-logo" oninput="applyDisplay()">
+          <span class="modal-slider-val" id="val-logo">34px</span>
+        </div>
+        <div class="modal-slider-row">
+          <span class="modal-slider-label" data-tip="Size of the channel/event name shown at the top of each game card (e.g. tournament name, network).">Channel Name Size</span>
+          <input type="range" min="8" max="20" value="11" id="sl-channel" oninput="applyDisplay()">
+          <span class="modal-slider-val" id="val-channel">11px</span>
         </div>
       </div>
 
@@ -3182,7 +3195,7 @@ const state={
   seasonMeta:{},
   usingMock:false,
   refreshRate:60,
-  display:{abbrSize:18,scoreSize:34,nameSize:11,nameColor:'#3d5a78',tickerSize:14,logoSize:34},
+  display:{abbrSize:18,scoreSize:34,nameSize:11,nameColor:'#3d5a78',tickerSize:14,logoSize:34,channelSize:11},
 };
 
 // getSPORTS: returns sports enabled in Settings AND active in sidebar (for scoreboard render)
@@ -3356,6 +3369,7 @@ function applyDisplay(){
   root.style.setProperty('--card-name-size',state.display.nameSize+'px');
   root.style.setProperty('--card-name-color',state.display.nameColor);
   root.style.setProperty('--team-logo-size',(state.display.logoSize||34)+'px');
+  root.style.setProperty('--channel-name-size',(state.display.channelSize||11)+'px');
   settingsSave(saveDisplay);
 }
 
@@ -3384,6 +3398,8 @@ function initDisplayControls(){
   const nameEl=document.getElementById('sl-name');if(nameEl){nameEl.value=state.display.nameSize;document.getElementById('val-name').textContent=state.display.nameSize+'px';}
   const colorEl=document.getElementById('nameColorPicker');if(colorEl){colorEl.value=state.display.nameColor;document.getElementById('nameColorSwatch').style.background=state.display.nameColor;document.getElementById('nameColorVal').textContent=state.display.nameColor;}
   const logoEl2=document.getElementById('sl-logo');if(logoEl2){logoEl2.value=state.display.logoSize||34;const lv=document.getElementById('val-logo');if(lv)lv.textContent=(state.display.logoSize||34)+'px';}
+  document.documentElement.style.setProperty('--channel-name-size',(state.display.channelSize||11)+'px');
+  const chanEl=document.getElementById('sl-channel');if(chanEl){chanEl.value=state.display.channelSize||11;const cv=document.getElementById('val-channel');if(cv)cv.textContent=(state.display.channelSize||11)+'px';}
   document.documentElement.style.setProperty('--team-logo-size',(state.display.logoSize||34)+'px');
 }
 
@@ -5796,9 +5812,6 @@ function renderNcaaList(){
       <div style="display:flex;gap:6px;flex-shrink:0;">
         <button onclick="openNcaaEditModal(${p.id})" style="padding:5px 11px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-dim);font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">Edit</button>
         <button onclick="deleteNcaaProgram(${p.id},'${(p.display_name||p.full_name).replace(/'/g,"\\'")}',${p.school_id})" style="padding:5px 11px;background:transparent;border:1px solid rgba(255,59,92,0.3);border-radius:6px;color:var(--accent-red);font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">Delete</button>
-      <button class="snav-btn" data-section="audiolibrary" onclick="switchSection('audiolibrary')">
-        <span class="snav-icon">🎵</span><span>Audio Library</span>
-      </button>
       </div>
     </div>`;
   }).join('');
