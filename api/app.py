@@ -1692,6 +1692,80 @@ def motor_cache_set(key):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+@app.route('/motor/nascar/fetch', methods=['GET'])
+def motor_nascar_fetch():
+    """Server-side proxy to fetch NASCAR data that blocks browser requests."""
+    import time
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'application/json',
+        'Referer': 'https://www.nascar.com/',
+        'Origin': 'https://www.nascar.com',
+    }
+    result = {}
+    # Fetch last race results - try race results endpoint
+    try:
+        r = http.get('https://cf.nascar.com/live/feeds/live-feed.json', headers=headers, timeout=8)
+        if r.ok:
+            d = r.json()
+            result['live'] = {
+                'flag_state': d.get('flag_state', 0),
+                'run_name': d.get('run_name', ''),
+                'run_type': d.get('run_type', 0),
+                'track_name': d.get('track_name', ''),
+                'laps_to_go': d.get('laps_to_go', 0),
+                'laps_in_race': d.get('laps_in_race', 0),
+                'lap_number': d.get('lap_number', 0),
+                'race_id': d.get('race_id'),
+                'series_id': d.get('series_id'),
+                'vehicles': [{
+                    'pos': v.get('running_position'),
+                    'car': v.get('vehicle_number', '?'),
+                    'driver': v.get('driver', {}).get('full_name') or (v.get('driver', {}).get('first_name','') + ' ' + v.get('driver', {}).get('last_name','')).strip(),
+                    'manufacturer': v.get('vehicle_manufacturer', ''),
+                    'laps': v.get('laps_completed', 0),
+                    'laps_led': v.get('laps_led', 0),
+                    'delta': v.get('delta'),
+                    'status': v.get('status', 'Running'),
+                    'best_lap_time': v.get('best_lap_time'),
+                    'last_lap_speed': v.get('last_lap_speed'),
+                } for v in sorted(d.get('vehicles', []), key=lambda x: x.get('running_position', 99))]
+            }
+    except Exception as e:
+        result['live_error'] = str(e)
+
+    # Try to get standings from NASCAR cacher
+    standings_urls = [
+        'https://cf.nascar.com/cacher/2026/1/standings/driver-standings.json',
+        'https://cf.nascar.com/cacher/2025/1/standings/driver-standings.json',
+    ]
+    for url in standings_urls:
+        try:
+            r = http.get(url, headers=headers, timeout=8)
+            if r.ok:
+                result['standings'] = r.json()
+                result['standings_url'] = url
+                break
+        except Exception:
+            continue
+
+    # Try to get last race results
+    race_id = result.get('live', {}).get('race_id')
+    if race_id:
+        for rid in [race_id - 1, race_id - 2, race_id]:
+            try:
+                url = f'https://cf.nascar.com/cacher/2026/1/race-results/{rid}.json'
+                r = http.get(url, headers=headers, timeout=8)
+                if r.ok:
+                    result['last_race'] = r.json()
+                    result['last_race_url'] = url
+                    break
+            except Exception:
+                continue
+
+    return jsonify(result)
+
 if __name__ == '__main__':
     init_db()
     log.info('ScoreStream API starting on :5000')
