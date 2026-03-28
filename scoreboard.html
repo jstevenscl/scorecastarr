@@ -1458,7 +1458,8 @@ function openSbEditor(id){
     team_config: (sb.team_config && !Array.isArray(sb.team_config)) ? JSON.parse(JSON.stringify(sb.team_config)) : {},
     display_config: Object.assign({}, sb.display_config||{}),
     audio_mode: sb.audio_mode || 'none',
-    audio_source_url: sb.audio_source_url || ''
+    audio_source_url: sb.audio_source_url || '',
+    audio_playlist_id: sb.audio_playlist_id || null
   };
 
   // Hide list and push wizard
@@ -2076,7 +2077,7 @@ function renderAudioTracks(){
   const el=document.getElementById('audioTrackList'),ct=document.getElementById('audioTrackCount');if(!el)return;
   if(ct)ct.textContent=_audioTracks.length+' track'+(_audioTracks.length!==1?'s':'');
   if(!_audioTracks.length){el.innerHTML='<div style="color:var(--text-dim);padding:20px;text-align:center;font-size:12px;">No tracks yet.</div>';return;}
-  el.innerHTML=_audioTracks.map(function(t){return '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg-secondary);border-radius:8px;border:1px solid var(--border);"><span style="font-size:18px;">&#x1F3B5;</span><div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13px;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+t.display_name+'</div><div style="font-size:10px;color:var(--text-dim);">'+((t.file_size||0)/1024/1024).toFixed(1)+' MB</div></div><audio controls style="height:28px;max-width:120px;" preload="none"><source src="'+API_BASE+'/audio/library/'+t.filename+'"></audio><button onclick="audioDeleteTrack('+t.id+')" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;padding:0 4px;">&#x1F5D1;</button></div>';}).join('');
+  el.innerHTML=_audioTracks.map(function(t){return '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg-secondary);border-radius:8px;border:1px solid var(--border);"><span style="font-size:18px;">&#x1F3B5;</span><div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13px;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+t.display_name+'</div><div style="font-size:10px;color:var(--text-dim);">'+((t.file_size||0)/1024/1024).toFixed(1)+' MB</div></div><audio controls style="height:28px;max-width:120px;" preload="none" id="aud-'+t.id+'"><source src="'+API_BASE+'/audio/library/'+t.filename+'"></audio><button onclick="(function(){var a=document.getElementById(\'aud-'+t.id+'\');if(a.paused){a.play();}else{a.pause();}})();" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:5px;color:var(--text-primary);cursor:pointer;font-size:13px;padding:3px 8px;">▶</button><button onclick="audioDeleteTrack('+t.id+')" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;padding:0 4px;">&#x1F5D1;</button></div>';}).join('');
 }
 function renderAudioPlaylists(){
   const el=document.getElementById('audioPlaylistList');if(!el)return;
@@ -2455,7 +2456,7 @@ async function saveSbEditor(){
   if(result){result.style.color='var(--text-dim)';result.textContent='Saving...';}
   const r=await fetch(`${API_BASE}/scoreboards/${_activeSbId}`,{
     method:'PATCH',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({name:_editorDraft.name, sport_config:_editorDraft.sport_config, display_config:_editorDraft.display_config, team_config:_editorDraft.team_config||{}, audio_mode:_editorDraft.audio_mode||'none', audio_source_url:_editorDraft.audio_source_url||'', motor_config:_editorDraft.motor_config||{},use_default_fonts:_editorDraft.use_default_fonts!==false,use_default_colors:_editorDraft.use_default_colors!==false,use_default_card_size:_editorDraft.use_default_card_size!==false})
+    body:JSON.stringify({name:_editorDraft.name, sport_config:_editorDraft.sport_config, display_config:_editorDraft.display_config, team_config:_editorDraft.team_config||{}, audio_mode:_editorDraft.audio_mode||'none', audio_source_url:_editorDraft.audio_source_url||'', audio_playlist_id:_editorDraft.audio_playlist_id||null, motor_config:_editorDraft.motor_config||{},use_default_fonts:_editorDraft.use_default_fonts!==false,use_default_colors:_editorDraft.use_default_colors!==false,use_default_card_size:_editorDraft.use_default_card_size!==false})
   });
   if(r.ok){
     const d=await r.json();
@@ -5282,6 +5283,9 @@ renderFavSummary();
     const r=await fetch(url,{signal:AbortSignal.timeout(5000)});
     if(r.ok){
       const sb=await r.json();
+      // Store scoreboard so fetchSport can pass motor_config to fetchF1Data/fetchNascarData
+      _scoreboards=[sb];
+      _activeSbId=sb.id;
       // Update topbar title
       const titleEl=document.getElementById('topbarTitle');
       if(titleEl)titleEl.textContent=sb.name||'ScoreStream';
