@@ -2,7 +2,7 @@
 ScoreStream API — Flask backend
 See NCAA_ARCHITECTURE.md for full design decisions.
 """
-import os, sqlite3, logging, threading
+import os, sqlite3, logging, threading, json as _json
 from datetime import datetime, timezone
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
