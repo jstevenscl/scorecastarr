@@ -3922,9 +3922,21 @@ async function fetchNascarData(sport, sbConfig){
       try{
         const cr=await fetch(`${API_BASE}/motor/cache/nascar-last`,{signal:AbortSignal.timeout(4000)});
         if(!cr.ok) return [];
-        const cd=(await cr.json()).data||{};
+        const rawData=(await cr.json()).data||{};
+        const cd=typeof rawData==='string'?JSON.parse(rawData):rawData;
         const cachedDrivers=cd.drivers||[];
-        if(!cachedDrivers.length) return [];
+        if(!cachedDrivers.length){
+          // No cached race data yet — show an info card
+          return [{
+            id:'nascar-no-data', name:'NASCAR Cup Series',
+            sportName:sport.name, sportEmoji:sport.emoji, sportColor:sport.color,
+            isLive:false, isFinal:false, isScheduled:true, isIndividual:false,
+            isNascarInfo:true,
+            message:'Last race results will appear here once a Cup Series race completes. Live standings will show during the race.',
+            track: d.track_name||'Martinsville Speedway',
+            runName: d.run_name||'',
+          }];
+        }
         const chunkSize=8,total=cachedDrivers.length,totalPages=Math.ceil(total/chunkSize);
         const lastCards=[];
         for(let i=0;i<total;i+=chunkSize){
@@ -3976,10 +3988,11 @@ async function fetchNascarData(sport, sbConfig){
         drivers: chunk,
       });
     }
-    if((isFinal||flagState===9)&&allDrivers.length>0){
+    // Only cache Cup Series (series_id=1) race results, not Xfinity/Truck/qualifying
+    if(isFinal && d.series_id===1 && d.run_type===3 && allDrivers.length>0){
       fetch(`${API_BASE}/motor/cache/nascar-last`,{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({data:{run_name:d.run_name,track_name:d.track_name,laps_in_race:d.laps_in_race,
-          race_date:new Date().toISOString().slice(0,10),drivers:allDrivers.slice(0,40)}})}).catch(()=>{});
+          series_id:d.series_id,race_date:new Date().toISOString().slice(0,10),drivers:allDrivers}})}).catch(()=>{});
     }
     return nasCards;
   }catch(e){ console.warn('NASCAR fetch error', e); return []; }
@@ -3988,6 +4001,22 @@ async function fetchNascarData(sport, sbConfig){
 function buildNascarCard(g){
   const card = document.createElement('div');
   card.className = `game-card${g.isLive?' live':''}${g.isFinal?' is-final':''}`;
+  // Info card when no race data available
+  if(g.isNascarInfo){
+    card.innerHTML = `<div class="card-header">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div style="width:8px;height:8px;border-radius:2px;background:${g.sportColor};flex-shrink:0;"></div>
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);">🏁 ${g.sportName}</span>
+      </div>
+      <span class="status-upcoming">UPCOMING</span>
+    </div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:900;color:var(--text-primary);margin:4px 0 6px;">${g.name}</div>
+    <div style="display:flex;flex-direction:column;gap:8px;padding:8px 0;">
+      ${g.track?`<div style="display:flex;gap:6px;align-items:center;"><span style="color:var(--text-dim);">📍</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:var(--card-abbr-size,14px);font-weight:700;color:var(--text-primary);">${g.track}</span></div>`:''}
+      <div style="font-size:var(--card-name-size,11px);color:var(--text-dim);line-height:1.5;">${g.message}</div>
+    </div>`;
+    return card;
+  }
   const lapInfo = g.lapsInRace > 0
     ? `Lap ${g.lapNumber}/${g.lapsInRace} · ${g.lapsToGo} to go`
     : '';
@@ -4033,11 +4062,13 @@ async function fetchF1Data(sport, sbConfig){
     const cards = [];
     // Card 1: Next race info
     if(nextRace&&showNext){
-      const raceDate = new Date(`${nextRace.date}T${nextRace.time||'00:00:00Z'}`);
-      const now = Date.now();
-      const diffMs = raceDate - now;
-      const diffDays = Math.floor(diffMs/86400000);
-      const countdown = diffDays > 0 ? `in ${diffDays}d` : diffMs > 0 ? 'today' : 'starting';
+      // Parse date without timezone shift — treat race date as local date only
+      const [yr,mo,dy] = nextRace.date.split('-').map(Number);
+      const now = new Date(); const today = new Date(now.getFullYear(),now.getMonth(),now.getDate());
+      const raceDay = new Date(yr,mo-1,dy);
+      const diffDays = Math.round((raceDay-today)/86400000);
+      const countdown = diffDays > 1 ? `in ${diffDays}d` : diffDays===1 ? 'tomorrow' : diffDays===0 ? 'today' : 'soon';
+      const timeStr = nextRace.time ? nextRace.time.replace('Z','').substring(0,5)+' UTC' : '';
       cards.push({
         id:'f1-next', name:`Next: ${nextRace.raceName}`,
         sportName:sport.name, sportEmoji:sport.emoji, sportColor:sport.color,
@@ -4045,44 +4076,57 @@ async function fetchF1Data(sport, sbConfig){
         isF1Next:true,
         circuit: nextRace.Circuit?.circuitName||'',
         country: nextRace.Circuit?.Location?.country||'',
-        date: nextRace.date, time: nextRace.time,
+        date: nextRace.date, time: timeStr,
         countdown, round: nextRace.round,
       });
     }
-    // Card 2: Last race podium
+    // Cards 2+: Last race ALL finishers paginated (8 per card)
     if(lastRace?.Results?.length&&showLast){
-      const top3 = lastRace.Results.slice(0,3).map(r=>({
-        pos: r.position,
+      const allResults = lastRace.Results.map(r=>({
+        pos: parseInt(r.position),
         driver: `${r.Driver.givenName} ${r.Driver.familyName}`,
         team: r.Constructor.name,
         time: r.Time?.time || r.status,
         points: r.points,
         number: r.Driver.permanentNumber||'',
+        laps: r.laps,
       }));
-      cards.push({
-        id:'f1-last', name:`${lastRace.raceName} Result`,
-        sportName:sport.name, sportEmoji:sport.emoji, sportColor:sport.color,
-        isLive:false, isFinal:true, isScheduled:false, isIndividual:false,
-        isF1Last:true,
-        podium: top3,
-      });
+      const chunkSize=8, total=allResults.length, totalPages=Math.ceil(total/chunkSize);
+      for(let i=0;i<total;i+=chunkSize){
+        const chunk=allResults.slice(i,i+chunkSize);
+        const pageNum=Math.floor(i/chunkSize)+1;
+        cards.push({
+          id:`f1-last-${pageNum}`,
+          name: totalPages>1 ? `${lastRace.raceName} Result (${pageNum}/${totalPages})` : `${lastRace.raceName} Result`,
+          sportName:sport.name, sportEmoji:sport.emoji, sportColor:sport.color,
+          isLive:false, isFinal:true, isScheduled:false, isIndividual:false,
+          isF1Last:true, raceName:lastRace.raceName, raceDate:lastRace.date,
+          circuit:lastRace.Circuit?.circuitName||'', country:lastRace.Circuit?.Location?.country||'',
+          results: chunk, pageNum, totalPages,
+        });
+      }
     }
-    // Card 3: Driver standings top 5
+    // Cards: Driver standings ALL drivers paginated (8 per card)
     if(standings.length&&showStand){
-      const top10 = standings.slice(0,10).map(d=>({
-        pos: d.position,
+      const allDrivers = standings.map(d=>({
+        pos: parseInt(d.position),
         driver: `${d.Driver.givenName} ${d.Driver.familyName}`,
         team: d.Constructors?.[0]?.name||'',
         points: d.points,
-        wins: d.wins,
+        wins: parseInt(d.wins),
       }));
-      cards.push({
-        id:'f1-standings', name:'Driver Standings',
-        sportName:sport.name, sportEmoji:sport.emoji, sportColor:sport.color,
-        isLive:false, isFinal:false, isScheduled:false, isIndividual:false,
-        isF1Standings:true,
-        drivers: top10,
-      });
+      const chunkSize=8, total=allDrivers.length, totalPages=Math.ceil(total/chunkSize);
+      for(let i=0;i<total;i+=chunkSize){
+        const chunk=allDrivers.slice(i,i+chunkSize);
+        const pageNum=Math.floor(i/chunkSize)+1;
+        cards.push({
+          id:`f1-standings-${pageNum}`,
+          name: totalPages>1 ? `Driver Standings (${pageNum}/${totalPages})` : 'Driver Standings',
+          sportName:sport.name, sportEmoji:sport.emoji, sportColor:sport.color,
+          isLive:false, isFinal:false, isScheduled:false, isIndividual:false,
+          isF1Standings:true, drivers:chunk, pageNum, totalPages,
+        });
+      }
     }
     return cards;
   }catch(e){ console.warn('F1 fetch error', e); return []; }
@@ -4117,14 +4161,16 @@ function buildF1Card(g){
     </div>`;
   } else if(g.isF1Last){
     const medals = ['🥇','🥈','🥉'];
-    body = g.podium.map((d,i)=>`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);">
-      <span style="font-size:var(--card-abbr-size,14px);">${medals[i]||d.pos}</span>
+    const rows = (g.results||g.podium||[]);
+    body = `<div style="font-size:var(--card-name-size,11px);color:var(--text-dim);font-family:'Share Tech Mono',monospace;margin-bottom:4px;">📍 ${g.circuit||''} ${g.raceDate?'· '+g.raceDate:''}</div>` +
+    rows.map((d,i)=>`<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:var(--card-name-size,11px);color:var(--text-dim);width:18px;text-align:right;">${d.pos<=3?['🥇','🥈','🥉'][d.pos-1]:d.pos}</span>
       <div style="flex:1;min-width:0;">
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:var(--card-abbr-size,14px);font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.driver}</div>
         <div style="font-size:var(--card-name-size,11px);color:var(--text-dim);">${d.team}</div>
       </div>
       <div style="text-align:right;">
-        <div style="font-family:'Share Tech Mono',monospace;font-size:var(--card-name-size,11px);color:var(--accent-green);">+${d.points}pts</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:var(--card-name-size,11px);color:var(--accent-green);">${d.points>0?'+'+d.points+'pts':''}</div>
         <div style="font-family:'Share Tech Mono',monospace;font-size:var(--card-name-size,11px);color:var(--text-dim);">${d.time||''}</div>
       </div>
     </div>`).join('');
