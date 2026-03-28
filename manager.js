@@ -224,13 +224,14 @@ function startFfmpeg(slug) {
     });
 
     if (validTracks.length > 0) {
-      // Write ffmpeg concat file - repeat 100x so it loops for hours
+      // Write ffmpeg concat file with all tracks, use stream_loop to loop forever
       const concatPath = path.join(AUDIO_DIR, `loop_${slug}.txt`);
+      // Each entry on its own line — ffmpeg concat format
       const entries = validTracks.map(f => `file '${f}'`).join('\n') + '\n';
-      const looped = (entries).repeat(100);
-      fs.writeFileSync(concatPath, looped);
+      fs.writeFileSync(concatPath, entries);
       audioInput = concatPath;
-      args.push('-f', 'concat', '-safe', '0', '-i', audioInput);
+      // -stream_loop -1 loops the concat list indefinitely through all tracks
+      args.push('-stream_loop', '-1', '-f', 'concat', '-safe', '0', '-i', audioInput);
       console.log(`[manager][${slug}] Audio: ${validTracks.length} tracks from assigned playlist`);
     } else {
       // Fallback: find any non-empty mp3 in AUDIO_DIR
