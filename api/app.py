@@ -429,6 +429,36 @@ def init_db():
         except Exception as e:
             print(f'[api] Built-in audio seed error: {e}')
 
+        # Validate audio library on every startup:
+        # 1. Mark tracks whose files are missing from disk (file_size=0)
+        # 2. Remove ghost track IDs from playlists (IDs that no longer exist in library)
+        try:
+            import json as _jv
+            all_tracks = conn.execute('SELECT id, filename, file_size FROM audio_library').fetchall()
+            all_track_ids = {t['id'] for t in all_tracks}
+            for t in all_tracks:
+                full_path = _os.path.join(AUDIO_DIR, t['filename'])
+                on_disk = _os.path.exists(full_path)
+                if not on_disk and (t['file_size'] or 0) != 0:
+                    conn.execute('UPDATE audio_library SET file_size=0 WHERE id=?', (t['id'],))
+                    print(f'[api] Audio validation: file missing on disk — {t["filename"]}')
+                elif on_disk and (t['file_size'] or 0) == 0:
+                    # File now exists (was re-uploaded) — update size
+                    conn.execute('UPDATE audio_library SET file_size=? WHERE id=?',
+                                 (_os.path.getsize(full_path), t['id']))
+            playlists = conn.execute('SELECT id, name, track_ids FROM audio_playlists').fetchall()
+            for pl in playlists:
+                ids = _jv.loads(pl['track_ids'] or '[]')
+                valid = [i for i in ids if i in all_track_ids]
+                if len(valid) != len(ids):
+                    removed = [i for i in ids if i not in all_track_ids]
+                    conn.execute('UPDATE audio_playlists SET track_ids=? WHERE id=?',
+                                 (_jv.dumps(valid), pl['id']))
+                    print(f'[api] Audio validation: removed ghost IDs {removed} from playlist "{pl["name"]}"')
+            conn.commit()
+        except Exception as e:
+            print(f'[api] Audio validation error: {e}')
+
         # Purge motor cache entries older than 30 days — but preserve nascar-2026-season
         try:
             conn.execute("DELETE FROM motor_cache WHERE key NOT IN ('nascar-2026-season','pga-2026-tournaments') AND updated_at < datetime('now','-30 days')")
