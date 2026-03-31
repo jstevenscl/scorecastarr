@@ -1528,7 +1528,8 @@ def set_config_route():
 # ── Audio Library ────────────────────────────────────────────────────────────
 import os as _os, uuid as _uuid
 
-AUDIO_DIR = _os.path.join(_os.path.dirname(__file__), 'audio_library')
+# Use /audio_library volume (shared with stream container) if mounted, else local fallback
+AUDIO_DIR = '/audio_library' if _os.path.isdir('/audio_library') else _os.path.join(_os.path.dirname(__file__), 'audio_library')
 _os.makedirs(AUDIO_DIR, exist_ok=True)
 
 @app.route('/audio/library/register', methods=['POST'])

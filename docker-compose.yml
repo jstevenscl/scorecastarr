@@ -1,37 +1,4 @@
-version: "3.8"
-# ============================================================
-# ScoreStream — Docker Compose Stack
-#
-# Three services total:
-#   scorestream-web    — nginx (serves UI + HLS + proxies API)
-#   scorestream-api    — Flask API (scoreboards, Dispatcharr)
-#   scorestream-stream — Stream manager (Puppeteer + ffmpeg)
-#                        Automatically streams every scoreboard in the DB.
-#                        No compose changes needed when adding scoreboards.
-#
-# Set SCORESTREAM_TAG in .env:
-#   beta   -> dev builds (default for testing)
-#   latest -> stable release
-# ============================================================
 services:
-  scorestream-web:
-    image: ghcr.io/${GITHUB_OWNER:-jstevenscl}/scorestream-web:${SCORESTREAM_TAG:-beta}
-    container_name: scorestream-web
-    restart: unless-stopped
-    ports:
-      - "${WEB_PORT:-7777}:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./scoreboard.html:/usr/share/nginx/html/index.html:ro
-      - hls_segments:/usr/share/nginx/html/hls:ro
-    networks:
-      - scorestream-net
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
-      interval: 20s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
 
   scorestream-api:
     image: ghcr.io/${GITHUB_OWNER:-jstevenscl}/scorestream-api:${SCORESTREAM_TAG:-beta}
@@ -39,17 +6,26 @@ services:
     restart: unless-stopped
     environment:
       - TZ=${TZ:-America/New_York}
-      - DISPATCHARR_URL=${DISPATCHARR_URL}
-      - DISPATCHARR_USER=${DISPATCHARR_USER}
-      - DISPATCHARR_PASS=${DISPATCHARR_PASS}
       - STREAM_BASE_URL=${STREAM_BASE_URL}
       - STREAM_MANAGER_URL=http://scorestream-stream:3001
-      - CONFIG_PATH=/config/config.json
+      - DISPATCHARR_URL=${DISPATCHARR_URL}
+      - DB_PATH=/config/scorestream.db
     volumes:
-      - ./config:/config
-      - audio_library:/app/audio_library
+      - scorestream_config:/config
+      - scorestream_audio:/audio_library
     networks:
-      - scorestream-net
+      - scorestream_net
+
+  scorestream-web:
+    image: ghcr.io/${GITHUB_OWNER:-jstevenscl}/scorestream-web:${SCORESTREAM_TAG:-beta}
+    container_name: scorestream-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-7777}:80"
+    volumes:
+      - scorestream_hls:/usr/share/nginx/html/hls:ro
+    networks:
+      - scorestream_net
 
   scorestream-stream:
     image: ghcr.io/${GITHUB_OWNER:-jstevenscl}/scorestream-stream:${SCORESTREAM_TAG:-beta}
@@ -59,29 +35,32 @@ services:
       - TZ=${TZ:-America/New_York}
       - STREAM_WIDTH=${STREAM_WIDTH:-1920}
       - STREAM_HEIGHT=${STREAM_HEIGHT:-1080}
-      - STREAM_FPS=${STREAM_FPS:-10}
+      - STREAM_FPS=${STREAM_FPS:-1}
       - WEB_BASE=http://scorestream-web
       - DB_PATH=/config/scorestream.db
       - HLS_DIR=/hls
       - PIPES_DIR=/tmp/pipes
       - MANAGER_PORT=3001
       - HLS_SEGMENT_DURATION=${HLS_SEGMENT_DURATION:-2}
-      - HLS_PLAYLIST_SIZE=${HLS_PLAYLIST_SIZE:-10}
-      - AUDIO_DIR=/audio_library
+      - HLS_PLAYLIST_SIZE=${HLS_PLAYLIST_SIZE:-4}
+      - AUDIO_DIR=/audio
     volumes:
-      - ./config:/config:ro
-      - hls_segments:/hls
-      - audio_library:/audio_library:ro
+      - scorestream_config:/config
+      - scorestream_hls:/hls
+      - scorestream_audio:/audio_library
     networks:
-      - scorestream-net
-    depends_on:
-      - scorestream-web
+      - scorestream_net
     shm_size: 512mb
 
-volumes:
-  hls_segments:
-  audio_library:
-
 networks:
-  scorestream-net:
+  scorestream_net:
+    name: scorestream_net
     driver: bridge
+
+volumes:
+  scorestream_config:
+    name: scorestream_config
+  scorestream_hls:
+    name: scorestream_hls
+  scorestream_audio:
+    name: scorestream_audio

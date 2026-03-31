@@ -160,28 +160,46 @@ const BAKED_AUDIO_DIR = '/audio'; // Kevin MacLeod files baked into stream image
 
 // On startup: copy baked-in tracks into AUDIO_DIR (shared volume) and register in DB
 // This makes them accessible to the API container for the audio library UI
+// Shared audio library volume — API container writes DB entries pointing here
+const SHARED_AUDIO_DIR = '/audio_library';
+
 function seedBuiltinAudio() {
-  if (!fs.existsSync(BAKED_AUDIO_DIR)) return;
-  if (AUDIO_DIR === BAKED_AUDIO_DIR) return; // same dir, nothing to do
+  // Copy baked-in tracks from /audio into the shared /audio_library volume
+  // so the API container can serve them and register them in the DB
+  if (!fs.existsSync(BAKED_AUDIO_DIR)) {
+    console.log('[manager] seedBuiltinAudio: /audio dir not found, skipping');
+    return;
+  }
+  if (!fs.existsSync(SHARED_AUDIO_DIR)) {
+    console.log('[manager] seedBuiltinAudio: /audio_library not mounted, skipping');
+    return;
+  }
   try {
     const mp3s = fs.readdirSync(BAKED_AUDIO_DIR)
       .filter(f => f.endsWith('.mp3') && !f.startsWith('loop') && !f.startsWith('silent'))
       .filter(f => { try { return fs.statSync(path.join(BAKED_AUDIO_DIR, f)).size > 10000; } catch(_) { return false; } });
-    if (!mp3s.length) return;
+    if (!mp3s.length) {
+      console.log('[manager] seedBuiltinAudio: no mp3s found in /audio');
+      return;
+    }
+    console.log(`[manager] seedBuiltinAudio: found ${mp3s.length} tracks in /audio`);
     const db = new Database(DB_PATH, { fileMustExist: true });
     const existingFiles = new Set(db.prepare('SELECT filename FROM audio_library').all().map(r => r.filename));
     const newIds = [];
     for (const mp3 of mp3s) {
-      const dest = path.join(AUDIO_DIR, mp3);
+      // Copy to shared volume so API can serve it
+      const dest = path.join(SHARED_AUDIO_DIR, mp3);
       if (!fs.existsSync(dest)) {
         fs.copyFileSync(path.join(BAKED_AUDIO_DIR, mp3), dest);
+        console.log(`[manager] Copied ${mp3} to ${SHARED_AUDIO_DIR}`);
       }
+      // Register in DB if not already there
       if (!existingFiles.has(mp3)) {
-        const displayName = 'Built-in: ' + mp3.replace('.mp3','').replace(/^\d+-/,'').replace(/-/g,' ').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+        const displayName = 'Built-in: ' + mp3.replace('.mp3','').replace(/^\d+-/,'').replace(/-/g,' ').replace(/_/g,' ').replace(/\b\w/g, ch => ch.toUpperCase());
         const size = fs.statSync(dest).size;
         const result = db.prepare('INSERT INTO audio_library(filename, display_name, file_size) VALUES(?,?,?)').run(mp3, displayName, size);
         newIds.push(result.lastInsertRowid);
-        console.log(`[manager] Registered built-in track: ${displayName}`);
+        console.log(`[manager] Registered: ${displayName} (id=${result.lastInsertRowid})`);
       }
     }
     if (newIds.length > 0) {
@@ -190,7 +208,7 @@ function seedBuiltinAudio() {
         const existing = JSON.parse(globalPl.track_ids || '[]');
         db.prepare('UPDATE audio_playlists SET track_ids=? WHERE id=?')
           .run(JSON.stringify([...existing, ...newIds]), globalPl.id);
-        console.log(`[manager] Added ${newIds.length} built-in tracks to Default playlist`);
+        console.log(`[manager] Added ${newIds.length} tracks to Default playlist`);
       }
     }
     db.close();
