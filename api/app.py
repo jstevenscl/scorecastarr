@@ -394,24 +394,26 @@ def init_db():
         conn.commit()
 
     # Ask stream manager to seed built-in audio files into shared volume + DB
-    # This runs on every API startup — idempotent, skips already-registered files
+    # Retries for up to 60 seconds waiting for stream manager to be ready
     try:
         import threading as _t
         def _seed_audio():
-            import time as _time
-            _time.sleep(3)  # wait for stream manager to be ready
-            try:
-                import urllib.request as _ur
-                req = _ur.Request(
-                    STREAM_MANAGER_URL + '/seed-audio',
-                    data=b'{}', method='POST',
-                    headers={'Content-Type': 'application/json'}
-                )
-                with _ur.urlopen(req, timeout=10) as resp:
-                    result = resp.read()
-                    print(f'[api] seed-audio result: {result.decode()}')
-            except Exception as e:
-                print(f'[api] seed-audio call failed (stream may not be ready): {e}')
+            import time as _time, urllib.request as _ur
+            for attempt in range(12):  # retry every 5s for 60s
+                _time.sleep(5)
+                try:
+                    req = _ur.Request(
+                        STREAM_MANAGER_URL + '/seed-audio',
+                        data=b'{}', method='POST',
+                        headers={'Content-Type': 'application/json'}
+                    )
+                    with _ur.urlopen(req, timeout=10) as resp:
+                        result = resp.read().decode()
+                        print(f'[api] seed-audio OK: {result}')
+                        return  # success — stop retrying
+                except Exception as e:
+                    print(f'[api] seed-audio attempt {attempt+1}/12 failed: {e}')
+            print('[api] seed-audio: gave up after 12 attempts')
         _t.Thread(target=_seed_audio, daemon=True).start()
     except Exception:
         pass
@@ -1552,6 +1554,22 @@ import os as _os, uuid as _uuid
 # Use /audio_library volume (shared with stream container) if mounted, else local fallback
 AUDIO_DIR = '/audio_library' if _os.path.isdir('/audio_library') else _os.path.join(_os.path.dirname(__file__), 'audio_library')
 _os.makedirs(AUDIO_DIR, exist_ok=True)
+
+@app.route('/audio/seed-builtin', methods=['POST'])
+def audio_seed_builtin():
+    """Proxy to stream manager /seed-audio — can be called manually or on startup."""
+    try:
+        import urllib.request as _ur
+        req = _ur.Request(
+            STREAM_MANAGER_URL + '/seed-audio',
+            data=b'{}', method='POST',
+            headers={'Content-Type': 'application/json'}
+        )
+        with _ur.urlopen(req, timeout=15) as resp:
+            result = json.loads(resp.read().decode())
+            return jsonify({'ok': True, 'result': result})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
 @app.route('/audio/library/register', methods=['POST'])
 def audio_library_register():
