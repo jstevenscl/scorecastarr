@@ -1456,10 +1456,8 @@ function openSbEditor(id){
   if(!sb)return;
   _activeSbId=id;
   _editorStep=1;
-  // Ensure playlists are loaded before rendering editor (fixes dropdown showing only Global Default)
-  if(!_audioPlaylists||!_audioPlaylists.length){
-    loadAudioLibrary().catch(()=>{});
-  }
+  // Always reload playlists when editor opens so dropdown shows current state
+  loadAudioLibrary().catch(()=>{});
   // Start draft from saved values
   _editorDraft={
     name: sb.name,
@@ -2108,7 +2106,10 @@ async function audioUploadFiles(files){
   prog.textContent=ok>0?'\u2713 '+ok+' file'+(ok!==1?'s':'')+' uploaded'+(errors.length?' ('+errors.length+' failed)':''):'Upload failed: check file types and size';
   setTimeout(function(){prog.style.display='none';},2500);renderAudioTracks();document.getElementById('audioFileInput').value='';
 }
-async function audioDeleteTrack(id){if(!confirm('Delete this track?'))return;await fetch(`${API_BASE}/audio/library/${id}`,{method:'DELETE'});_audioTracks=_audioTracks.filter(function(t){return t.id!==id;});renderAudioTracks();}
+async function audioDeleteTrack(id){
+  const inPlaylists=(_audioPlaylists||[]).filter(p=>(p.track_ids||[]).includes(id)).map(p=>p.name);
+  const msg=inPlaylists.length?'Track is in playlist(s): '+inPlaylists.join(', ')+'\n\nDelete it from the library and all playlists?':'Delete this track from the audio library?';
+  if(!confirm(msg))return;await fetch(`${API_BASE}/audio/library/${id}`,{method:'DELETE'});_audioTracks=_audioTracks.filter(function(t){return t.id!==id;});renderAudioTracks();}
 function audioNewPlaylist(){
   var modal=document.getElementById('audioNewModal');
   if(!modal){modal=document.createElement('div');modal.id='audioNewModal';

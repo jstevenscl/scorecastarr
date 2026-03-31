@@ -1,7 +1,4 @@
 name: Beta — Build on Dev Push
-# Triggers on every push to the dev branch
-# Publishes bleeding-edge :beta and :beta-<sha> images to GHCR
-
 on:
   push:
     branches:
@@ -35,7 +32,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up QEMU (for multi-arch)
+      - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
@@ -81,19 +78,9 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-stream:beta
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-stream:beta-${{ steps.sha.outputs.short }}
-          cache-from: type=gha,scope=stream
-          cache-to: type=gha,mode=max,scope=stream
-          build-args: |
-            CACHEBUST=${{ github.sha }}
+          no-cache: true
 
       - name: Summary
         run: |
-          echo "### ✅ Beta images pushed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch:** \`dev\` | **SHA:** \`${{ steps.sha.outputs.short }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "ghcr.io/${{ env.IMAGE_NAME }}-api:beta" >> $GITHUB_STEP_SUMMARY
-          echo "ghcr.io/${{ env.IMAGE_NAME }}-web:beta" >> $GITHUB_STEP_SUMMARY
-          echo "ghcr.io/${{ env.IMAGE_NAME }}-stream:beta" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "### Beta images pushed" >> $GITHUB_STEP_SUMMARY
+          echo "SHA: ${{ steps.sha.outputs.short }}" >> $GITHUB_STEP_SUMMARY
