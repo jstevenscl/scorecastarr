@@ -161,21 +161,48 @@ function getAudioConfig(slug) {
   try {
     const db  = new Database(DB_PATH, { fileMustExist: true });
     const row = db.prepare(
-      "SELECT audio_mode, audio_source_url FROM scoreboards WHERE slug = ?"
+      "SELECT audio_mode, audio_source_url, audio_playlist_id FROM scoreboards WHERE slug = ?"
     ).get(slug);
-    db.close();
     if (!row) {
+      db.close();
       console.warn(`[manager][${slug}] getAudioConfig: no DB row found`);
-      return { mode: 'none', url: '' };
+      return { mode: 'none', url: '', tracks: [] };
     }
-    console.log(`[manager][${slug}] audio_mode=${row.audio_mode || 'none'}`);
+    // If playlist mode, resolve track filenames from audio_playlists + audio_library tables
+    let tracks = [];
+    // If no specific playlist assigned, try the global default playlist
+    const playlistId = row.audio_playlist_id || (() => {
+      const globalPl = db.prepare("SELECT id FROM audio_playlists WHERE is_global=1 LIMIT 1").get();
+      return globalPl ? globalPl.id : null;
+    })();
+    if ((row.audio_mode || 'none') === 'playlist' && playlistId) {
+      try {
+        const playlist = db.prepare("SELECT track_ids FROM audio_playlists WHERE id = ?").get(playlistId);
+        if (playlist && playlist.track_ids) {
+          const ids = JSON.parse(playlist.track_ids || '[]');
+          if (ids.length > 0) {
+            const placeholders = ids.map(() => '?').join(',');
+            const libRows = db.prepare(`SELECT id, filename FROM audio_library WHERE id IN (${placeholders})`).all(...ids);
+            tracks = ids.map(id => {
+              const t = libRows.find(r => r.id === id);
+              return t ? path.join(AUDIO_DIR, t.filename) : null;
+            }).filter(Boolean);
+          }
+        }
+      } catch(e) {
+        console.warn(`[manager][${slug}] playlist lookup error: ${e.message}`);
+      }
+    }
+    db.close();
+    console.log(`[manager][${slug}] audio_mode=${row.audio_mode || 'none'} playlist_id=${row.audio_playlist_id} tracks=${tracks.length}`);
     return {
       mode: row.audio_mode || 'none',
-      url:  row.audio_source_url || ''
+      url:  row.audio_source_url || '',
+      tracks,
     };
   } catch (e) {
     console.error(`[manager][${slug}] getAudioConfig error: ${e.message}`);
-    return { mode: 'none', url: '' };
+    return { mode: 'none', url: '', tracks: [] };
   }
 }
 
@@ -194,45 +221,47 @@ function startFfmpeg(slug) {
 
   // Add audio input if configured
   if (audio.mode === 'playlist') {
-    // Built-in royalty-free sports music — find first available non-empty mp3
-    const playlistPath = path.join(AUDIO_DIR, 'playlist.m3u');
     let audioInput = null;
 
-    if (fs.existsSync(playlistPath)) {
+    // Use tracks resolved from the scoreboard's assigned playlist in DB
+    const validTracks = (audio.tracks || []).filter(f => {
+      try { return fs.existsSync(f) && fs.statSync(f).size > 1000; } catch(_) { return false; }
+    });
+
+    if (validTracks.length > 0) {
+      // Write ffmpeg concat file with tracks repeated 200x (~hours of audio)
+      // NOTE: -stream_loop does NOT work with concat demuxer — must repeat in file
+      const concatPath = path.join(AUDIO_DIR, `loop_${slug}.txt`);
+      const singlePass = validTracks.map(f => `file '${f}'`).join('\n') + '\n';
+      fs.writeFileSync(concatPath, singlePass.repeat(200));
+      audioInput = concatPath;
+      args.push('-f', 'concat', '-safe', '0', '-i', audioInput);
+      console.log(`[manager][${slug}] Audio: ${validTracks.length} tracks (x200): ${validTracks.map(f=>f.split('/').pop()).join(', ')}`);
+    } else {
+      // Fallback: use baked-in /audio directory (Kevin MacLeod CC-BY tracks)
+      const DEFAULT_AUDIO_DIR = '/audio';
       try {
-        const lines = fs.readFileSync(playlistPath, 'utf8')
-          .split('\n').map(l => l.trim())
-          .filter(l => l && !l.startsWith('#') && fs.existsSync(l) && fs.statSync(l).size > 1000);
-        if (lines.length > 0) {
-          const concatPath = path.join(AUDIO_DIR, `loop_${slug}.txt`);
-          const entries = lines.map(f => `file '${f}'\n`).join('').repeat(100);
-          fs.writeFileSync(concatPath, entries);
+        const mp3s = fs.readdirSync(DEFAULT_AUDIO_DIR)
+          .filter(f => f.endsWith('.mp3'))
+          .filter(f => { try { return fs.statSync(path.join(DEFAULT_AUDIO_DIR, f)).size > 1000; } catch(_) { return false; } })
+          .sort();
+        if (mp3s.length > 0) {
+          // Build concat file with all default tracks repeated 200x — loop via file repetition
+          // NOTE: -stream_loop does NOT work with concat demuxer
+          const concatPath = path.join(DEFAULT_AUDIO_DIR, `loop_default.txt`);
+          const singleEntry = mp3s.map(f => `file '${path.join(DEFAULT_AUDIO_DIR, f)}'`).join('\n') + '\n';
+          fs.writeFileSync(concatPath, singleEntry.repeat(200));
           audioInput = concatPath;
           args.push('-f', 'concat', '-safe', '0', '-i', audioInput);
-          console.log(`[manager][${slug}] Audio: using ${lines.length} tracks from playlist`);
+          console.log(`[manager][${slug}] Audio: default tracks (x200) from ${DEFAULT_AUDIO_DIR}: ${mp3s.join(', ')}`);
         }
       } catch(e) {
-        console.warn(`[manager][${slug}] Could not read playlist: ${e.message}`);
+        console.warn(`[manager][${slug}] No fallback audio found`);
       }
     }
 
-    // Fallback: find any non-empty mp3 directly
     if (!audioInput) {
-      try {
-        const mp3s = fs.readdirSync(AUDIO_DIR)
-          .filter(f => f.endsWith('.mp3'))
-          .filter(f => fs.statSync(path.join(AUDIO_DIR, f)).size > 1000)
-          .sort();
-        if (mp3s.length > 0) {
-          audioInput = path.join(AUDIO_DIR, mp3s[0]);
-          args.push('-stream_loop', '-1', '-i', audioInput);
-          console.log(`[manager][${slug}] Audio: fallback to ${mp3s[0]}`);
-        }
-      } catch(e) {}
-    }
-
-    if (!audioInput) {
-      console.warn(`[manager][${slug}] No audio files found in ${AUDIO_DIR} — streaming silent`);
+      console.warn(`[manager][${slug}] No audio files found — streaming silent`);
       audio.mode = 'none';
     }
   } else if (audio.mode === 'stream' && audio.url) {
@@ -255,7 +284,6 @@ function startFfmpeg(slug) {
     args.push(
       '-c:a', 'aac', '-b:a', '128k', '-ac', '2',
       '-map', '0:v:0', '-map', '1:a:0',
-      '-shortest',
     );
   } else {
     args.push('-an');  // no audio
