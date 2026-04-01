@@ -4169,24 +4169,6 @@ async function fetchNascarData(sport, sbConfig){
             track: d.track_name||'', runName: d.run_name||'',
           }];
         }
-        const nasMaxR=mc.nascar_max_races||99;
-        const chunkSize=8,total=cachedDrivers.length,totalPages=Math.ceil(total/chunkSize);
-        const lastCards=[];
-        for(let i=0;i<total;i+=chunkSize){
-          const chunk=cachedDrivers.slice(i,i+chunkSize);
-          const pageNum=Math.floor(i/chunkSize)+1;
-          lastCards.push({
-            id:`nascar-last-${pageNum}`,
-            name:totalPages>1?`${cd.run_name||'Last Race'} (P${pageNum}/${totalPages})`:`${cd.run_name||'Last Race'} Result`,
-            sportName:sport.name,sportEmoji:sport.emoji,sportColor:sport.color,
-            isLive:false,isFinal:true,isNascarLive:true,
-            flagEmoji:'🏁',flagState:9,
-            trackName:cd.track_name||'',lapNumber:cd.laps_in_race||0,
-            lapsInRace:cd.laps_in_race||0,lapsToGo:0,
-            drivers:chunk,cachedDate:cd.race_date||'',
-          });
-        }
-        return [...lastCards, ...noRaceCards];
       }catch(e){ return noRaceCards.length?noRaceCards:[]; }
     }
     const flagEmoji = {1:'🟢',2:'🟡',3:'🔴',4:'🟡',8:'⬜',9:'🏁'}[flagState]||'⬛';
@@ -5818,7 +5800,7 @@ function renderStreamCanvas() {
         if (!group||!group.length) return;
         const sample = group[0];
         const sectionName = getMotorSectionName(sport, sample);
-        const maxPerPage = 4;
+        const maxPerPage = 8;
         for (let i = 0; i < group.length; i += maxPerPage) {
           const chunk = group.slice(i, i + maxPerPage);
           allSections.push({ sport, games: chunk, isMotorCard: true, sectionName });

@@ -1895,41 +1895,42 @@ if __name__ == '__main__':
             _time.sleep(6 * 3600)  # Refresh every 6 hours
 
     def _auto_refresh_nascar():
-        """Fetch NASCAR standings and last race from NASCAR APIs."""
+        """Fetch NASCAR standings and last 5 race results from NASCAR APIs."""
         import json as _j
+        from datetime import date as _date
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Accept': 'application/json',
             'Referer': 'https://www.nascar.com/',
             'Origin': 'https://www.nascar.com',
         }
-        # Live feed for current race state
         try:
             r = http.get('https://cf.nascar.com/live/feeds/live-feed.json', headers=headers, timeout=10)
             if not r.ok: return
             live = r.json()
             series_id = live.get('series_id', 0)
             flag_state = live.get('flag_state', 0)
-            run_type = live.get('run_type', 0)
             run_name = live.get('run_name', '')
-            if series_id != 1 or not run_name: return  # Only Cup Series
+            race_id = live.get('race_id')
+            if series_id != 1 or not run_name: return
 
-            # Build last race cache from live feed vehicles
-            vehicles = sorted(live.get('vehicles', []), key=lambda x: x.get('running_position', 99))
-            drivers = [{
-                'pos': v.get('running_position'),
-                'car': '#' + str(v.get('vehicle_number', '?')).lstrip('#'),
-                'driver': (v.get('driver', {}).get('full_name') or
-                           (v.get('driver', {}).get('first_name','') + ' ' +
-                            v.get('driver', {}).get('last_name','')).strip()),
-                'manufacturer': v.get('vehicle_manufacturer', ''),
-                'laps': v.get('laps_completed', 0),
-                'status': v.get('status', 'Running'),
-                'delta': v.get('delta'),
-            } for v in vehicles if v.get('running_position')]
+            def _parse_vehicles(vehicles):
+                return [{
+                    'pos': v.get('running_position'),
+                    'car': '#' + str(v.get('vehicle_number', '?')).lstrip('#'),
+                    'driver': (v.get('driver', {}).get('full_name') or
+                               (v.get('driver', {}).get('first_name','') + ' ' +
+                                v.get('driver', {}).get('last_name','')).strip()),
+                    'manufacturer': v.get('vehicle_manufacturer', ''),
+                    'laps': v.get('laps_completed', 0),
+                    'status': v.get('status', 'Running'),
+                    'delta': v.get('delta'),
+                } for v in sorted(vehicles, key=lambda x: x.get('running_position', 99))
+                  if v.get('running_position')]
 
+            # Build current/last race from live feed
+            drivers = _parse_vehicles(live.get('vehicles', []))
             if drivers:
-                from datetime import date as _date
                 last_data = {
                     'run_name': run_name,
                     'track_name': live.get('track_name', ''),
@@ -1937,6 +1938,7 @@ if __name__ == '__main__':
                     'flag_state': flag_state,
                     'laps_in_race': live.get('laps_in_race', 0),
                     'series_id': series_id,
+                    'race_id': race_id,
                     'drivers': drivers,
                 }
                 with get_db() as conn:
@@ -1945,6 +1947,40 @@ if __name__ == '__main__':
                         ('nascar-last', _j.dumps(last_data))
                     )
                 log.info(f'[auto] NASCAR last race updated: {run_name} ({len(drivers)} drivers)')
+
+            # Fetch last 5 race results by ID and store as history
+            if race_id:
+                history = []
+                for rid in range(race_id, max(race_id - 6, 0), -1):
+                    try:
+                        url = f'https://cf.nascar.com/cacher/2026/1/race-results/{rid}.json'
+                        rr = http.get(url, headers=headers, timeout=8)
+                        if not rr.ok: continue
+                        rd = rr.json()
+                        vehicles = rd if isinstance(rd, list) else rd.get('vehicles', rd.get('results', []))
+                        if not vehicles: continue
+                        race_name = rd.get('run_name','') if isinstance(rd, dict) else ''
+                        track = rd.get('track_name','') if isinstance(rd, dict) else ''
+                        race_date = rd.get('race_date','') if isinstance(rd, dict) else ''
+                        parsed = _parse_vehicles(vehicles) if isinstance(vehicles[0], dict) else []
+                        if parsed:
+                            history.append({
+                                'race_id': rid,
+                                'run_name': race_name or run_name,
+                                'track_name': track,
+                                'race_date': race_date,
+                                'flag_state': 9,
+                                'drivers': parsed,
+                            })
+                        if len(history) >= 5: break
+                    except Exception: continue
+                if history:
+                    with get_db() as conn:
+                        conn.execute(
+                            "INSERT OR REPLACE INTO motor_cache(key,data,updated_at) VALUES(?,?,datetime('now'))",
+                            ('nascar-history', _j.dumps({'races': history, 'updated': str(_date.today())}))
+                        )
+                    log.info(f'[auto] NASCAR history updated: {len(history)} races')
 
             # Standings
             for url in [
