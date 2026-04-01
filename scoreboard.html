@@ -3892,7 +3892,19 @@ function sbToggleDefault(group, toggleEl){
   toggleEl.classList.toggle('on', !current);
 }
 
-function setMotorConfig(key,val){if(!window._editorDraft)return;if(!window._editorDraft.motor_config)window._editorDraft.motor_config={};window._editorDraft.motor_config[key]=val;}
+function setMotorConfig(key,val){
+  if(!window._editorDraft)return;
+  if(!window._editorDraft.motor_config)window._editorDraft.motor_config={};
+  window._editorDraft.motor_config[key]=val;
+  const sbId=_activeSidebarSbId||_activeSbId;
+  if(sbId){
+    fetch(`${API_BASE}/scoreboards/${sbId}`,{method:'PATCH',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({motor_config:window._editorDraft.motor_config})
+    }).then(r=>r.json()).then(d=>{
+      if(d.ok){const sb=_scoreboards.find(s=>s.id===sbId);if(sb)sb.motor_config=Object.assign({},window._editorDraft.motor_config);}
+    }).catch(()=>{});
+  }
+}
 function buildGameCard(g){
   if(g.isIndividual||g.isPGAHistory||g.isPGALive) return buildLeaderboardCard(g);
   if(g.isNascarLive||g.isNascarStandings||g.isNascarLast||g.isNascarInfo) return buildNascarCard(g);
@@ -4103,6 +4115,7 @@ async function fetchNascarData(sport, sbConfig){
         for(let i=0;i<total;i+=chunkSize){
           const chunk=cachedDrivers.slice(i,i+chunkSize);
           const pageNum=Math.floor(i/chunkSize)+1;
+          if(pageNum>nasMaxR) continue;
           lastCards.push({
             id:`nascar-last-${pageNum}`,
             name:totalPages>1?`${cd.run_name||'Last Race'} (P${pageNum}/${totalPages})`:`${cd.run_name||'Last Race'} Result`,
@@ -4280,6 +4293,7 @@ async function fetchF1Data(sport, sbConfig){
       for(let i=0;i<total;i+=chunkSize){
         const chunk=allResults.slice(i,i+chunkSize);
         const pageNum=Math.floor(i/chunkSize)+1;
+        if(pageNum>(mc&&mc.f1_max_races||3)) continue;
         cards.push({
           id:`f1-last-${pageNum}`,
           name: totalPages>1 ? `${lastRace.raceName} Result (${pageNum}/${totalPages})` : `${lastRace.raceName} Result`,
@@ -5727,7 +5741,7 @@ function renderStreamCanvas() {
       motorCards.forEach(g => {
         let type = 'other';
         if (g.isNascarStandings || g.isF1Standings) type = 'standings';
-        else if (g.isNascarLast && !g.isLive) type = 'last';
+        else if ((g.isNascarLast || g.isNascarLive) && g.isFinal) type = 'last';
         else if (g.isF1Last) type = 'last';
         else if (g.isF1Next || g.isNascarInfo) type = 'next';
         else if (g.isPGAHistory || g.isPGALive) {
