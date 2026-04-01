@@ -4175,7 +4175,6 @@ async function fetchNascarData(sport, sbConfig){
         for(let i=0;i<total;i+=chunkSize){
           const chunk=cachedDrivers.slice(i,i+chunkSize);
           const pageNum=Math.floor(i/chunkSize)+1;
-          if(pageNum>nasMaxR) continue;
           lastCards.push({
             id:`nascar-last-${pageNum}`,
             name:totalPages>1?`${cd.run_name||'Last Race'} (P${pageNum}/${totalPages})`:`${cd.run_name||'Last Race'} Result`,
@@ -4353,7 +4352,6 @@ async function fetchF1Data(sport, sbConfig){
       for(let i=0;i<total;i+=chunkSize){
         const chunk=allResults.slice(i,i+chunkSize);
         const pageNum=Math.floor(i/chunkSize)+1;
-        if(pageNum>(mc&&mc.f1_max_races||3)) continue;
         cards.push({
           id:`f1-last-${pageNum}`,
           name: totalPages>1 ? `${lastRace.raceName} Result (${pageNum}/${totalPages})` : `${lastRace.raceName} Result`,
