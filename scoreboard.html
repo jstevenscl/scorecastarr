@@ -3758,9 +3758,14 @@ function getMotorSectionName(sport, sampleCard) {
   }
   if (sampleCard.isF1Next || sampleCard.isNascarInfo) return `${sport.name} — Upcoming`;
   if (sampleCard.isPGAHistory || sampleCard.isPGALive) {
-    const tName = (sampleCard.name||'').split(' (')[0];
-    const status = sampleCard.isComplete ? 'Final' : sampleCard.isLive ? 'Live' : 'In Progress';
-    return `${sport.name} — ${tName} (${status})`;
+    const tName = (sampleCard.name||'').replace(/ \(\d+\/\d+\)$/,'').split(' (')[0];
+    const tDate = sampleCard.tournamentDate||'';
+    const todayISO = new Date().toISOString().slice(0,10);
+    const status = sampleCard.isComplete ? 'Final'
+      : (tDate && tDate > todayISO) ? 'Upcoming'
+      : sampleCard.isLive ? 'Live' : 'In Progress';
+    const dateStr = tDate ? ' · ' + new Date(tDate+'T12:00:00').toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'}) : '';
+    return `${sport.name} — ${tName}${dateStr} (${status})`;
   }
   return sport.name;
 }
@@ -3877,8 +3882,7 @@ function buildMotorsportEditorPanel(draft){
   const nasMaxRaces=mc.nascar_max_races||3,f1MaxRaces=mc.f1_max_races||3,pgaMaxEventsUI=mc.pga_max_events||3;
   const row=(val,key,color,title,sub)=>`<label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 12px;background:var(--bg-secondary);border-radius:7px;margin-bottom:6px;width:100%;box-sizing:border-box;"><input type="checkbox" ${val?'checked':''} onchange="setMotorConfig('${key}',this.checked)" style="width:15px;height:15px;flex-shrink:0;accent-color:${color};"><div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--text-primary);">${title}</div><div style="font-size:11px;color:var(--text-dim);">${sub}</div></div></label>`;
   const countSel=(val,key,color,label)=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg-secondary);border-radius:7px;margin-bottom:6px;"><div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--text-primary);">${label}</div></div><div style="display:flex;gap:4px;">${[1,2,3,5,10].map(n=>`<button onclick="setMotorConfig('${key}',${n})" style="padding:3px 8px;border-radius:4px;border:1px solid ${n===val?color:'var(--border)'};background:${n===val?color:'var(--bg-card)'};color:${n===val?'#000':'var(--text-primary)'};font-size:12px;font-weight:700;cursor:pointer;font-family:'Share Tech Mono',monospace;">${n}</button>`).join('')}</div></div>`;
-  const f1Sec=hasF1?`<div style="margin-bottom:16px;padding:16px;background:var(--bg-card);border:1px solid #e10600;border-radius:10px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="font-size:18px;">🏎️</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;letter-spacing:1px;color:#e10600;">FORMULA 1</span><span style="font-size:9px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;margin-left:4px;">via Jolpica API · Free</span></div>${row(f1Next,'f1_next_race','#e10600','📅 Next Race','Circuit, country, date and countdown')}${row(f1Last,'f1_last_race','#e10600','🏆 Last Race Podium','Top 3 finishers with team, time and points')}${row(f1Stand,'f1_standings','#e10600','📊 Driver Standings','Top 5 drivers with points and wins')}
-    ${row(hasF1,'f1_race_history','#e10600','📋 Race History','All completed races — top 5 per race')}</div>`:'';
+  const f1Sec=hasF1?`<div style="margin-bottom:16px;padding:16px;background:var(--bg-card);border:1px solid #e10600;border-radius:10px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="font-size:18px;">🏎️</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;letter-spacing:1px;color:#e10600;">FORMULA 1</span><span style="font-size:9px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;margin-left:4px;">via Jolpica API · Free</span></div>${row(f1Next,'f1_next_race','#e10600','📅 Next Race','Circuit, country, date and countdown')}${row(f1Last,'f1_last_race','#e10600','🏆 Last Race Results','Full finishing order pages')}${row(f1Stand,'f1_standings','#e10600','📊 Driver Standings','Championship standings')}${countSel(f1MaxRaces,'f1_max_races','#e10600','📋 Past Races to Show')}</div>`:'';
   const nasSec=hasNascar?`<div style="margin-bottom:16px;padding:16px;background:var(--bg-card);border:1px solid #ffd700;border-radius:10px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="font-size:18px;">🏁</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;letter-spacing:1px;color:#ffd700;">NASCAR CUP</span><span style="font-size:9px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;margin-left:4px;">via NASCAR Live Feed</span></div>${row(nasLive,'nascar_live','#ffd700','🟢 Live Race Leaderboard','Real-time top 10 during active races')}${row(nasLast,'nascar_last','#ffd700','🏁 Last Race Result','Final finishing order from last race')}${row(nasStand,'nascar_standings','#ffd700','📊 Driver Standings','Season points standings')}${countSel(nasMaxRaces,'nascar_max_races','#ffd700','📋 Past Races to Show')}</div>`:'';
   const hasPGA=(_editorDraft.sport_config||{})['pga'];
   const pgaSec=hasPGA?`<div style="margin-bottom:16px;padding:16px;background:var(--bg-card);border:1px solid #00594f;border-radius:10px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="font-size:18px;">⛳</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;letter-spacing:1px;color:#00594f;">PGA TOUR</span></div>${countSel(pgaMaxEventsUI,'pga_max_events','#00594f','📋 Past Tournaments to Show')}</div>`:'';
@@ -3917,7 +3921,7 @@ function buildLeaderboardCard(g){
   const card=document.createElement('div');
   card.className=`game-card${g.isLive?' live':''}${g.isFinal?' is-final':''}`;
   const sh=g.isPGAHistory
-    ?(g.isComplete?`<span class="status-final">FINAL</span>`:`<span class="status-live"><div class="status-live-dot"></div>IN PROGRESS</span>`)
+    ?(g.isComplete?`<span class="status-final">FINAL</span>`:g.tournamentDate&&g.tournamentDate>new Date().toISOString().slice(0,10)?`<span class="status-upcoming">UPCOMING</span>`:`<span class="status-live"><div class="status-live-dot"></div>IN PROGRESS</span>`)
     :g.isLive
     ?`<div class="status-live"><div class="status-live-dot"></div>${g.periodDesc}</div>`
     :g.isFinal?`<span class="status-final">FINAL</span>`
@@ -4110,6 +4114,7 @@ async function fetchNascarData(sport, sbConfig){
             track: d.track_name||'', runName: d.run_name||'',
           }];
         }
+        const nasMaxR=mc.nascar_max_races||99;
         const chunkSize=8,total=cachedDrivers.length,totalPages=Math.ceil(total/chunkSize);
         const lastCards=[];
         for(let i=0;i<total;i+=chunkSize){
