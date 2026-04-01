@@ -3899,27 +3899,32 @@ function sbToggleDefault(group, toggleEl){
 }
 
 function setMotorConfig(key,val){
-  // Get the active scoreboard ID from editor or sidebar
-  const sbId=_activeSidebarSbId||_activeSbId||(_editorDraft&&window._editingSbId);
+  const sbId=_activeSidebarSbId||_activeSbId||window._editingSbId;
   if(!sbId) return;
-  // Update editorDraft if open
+  const sb=_scoreboards&&_scoreboards.find(s=>s.id===sbId);
+  const currentMc=Object.assign({}, sb ? sb.motor_config||{} : {});
+  currentMc[key]=val;
+  if(sb) sb.motor_config=Object.assign({},currentMc);
   if(window._editorDraft){
     if(!window._editorDraft.motor_config) window._editorDraft.motor_config={};
-    window._editorDraft.motor_config[key]=val;
+    window._editorDraft.motor_config=Object.assign({},currentMc);
   }
-  // Get current motor_config from in-memory scoreboard
-  const sb=_scoreboards&&_scoreboards.find(s=>s.id===sbId);
-  const currentMc=Object.assign({}, sb ? sb.motor_config||{} : {}, window._editorDraft?.motor_config||{});
-  currentMc[key]=val;
-  // Save to DB
+  // Update button styles directly without re-rendering
+  document.querySelectorAll('button[onclick*="setMotorConfig"]').forEach(btn=>{
+    const oc=btn.getAttribute('onclick')||'';
+    const km=oc.match(/setMotorConfig\('([^']+)',(\d+)\)/);
+    if(!km) return;
+    const bKey=km[1], bVal=parseInt(km[2]);
+    if(bKey!==key) return;
+    const colors={'nascar_max_races':'#ffd700','f1_max_races':'#e10600','pga_max_events':'#00594f'};
+    const col=colors[key]||'#ffd700';
+    const sel=bVal===val;
+    btn.style.background=sel?col:'var(--bg-card)';
+    btn.style.border='1px solid '+(sel?col:'var(--border)');
+    btn.style.color=sel?'#000':'var(--text-primary)';
+  });
   fetch(`${API_BASE}/scoreboards/${sbId}`,{method:'PATCH',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({motor_config:currentMc})
-  }).then(r=>r.json()).then(d=>{
-    // Update in-memory scoreboard
-    if(sb) sb.motor_config=Object.assign({},currentMc);
-    if(window._editorDraft) window._editorDraft.motor_config=Object.assign({},currentMc);
-    // Re-render step 2 to update button highlights
-    if(typeof renderEditorStep==='function') renderEditorStep();
   }).catch(e=>console.warn('setMotorConfig error:',e));
 }
 function buildGameCard(g){
