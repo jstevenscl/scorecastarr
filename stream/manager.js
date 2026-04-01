@@ -39,7 +39,7 @@ const SCREENSHOT_MS= Math.round(1000 / FPS);
 // At 1fps, SEG_DURATION=2: each segment = 2s. 6 segments = 12s of buffer.
 // Live ffmpeg takes ~3-4s to write its first segment, so 6 gives plenty of
 // headroom before VLC exhausts pre-roll and needs live segments.
-const PREROLL_SEGMENTS = 6;
+const PREROLL_SEGMENTS = 10;
 
 // ── State ───────────────────────────────────────────────────────────────────
 const streams = new Map();
