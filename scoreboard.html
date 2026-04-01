@@ -1458,6 +1458,7 @@ function openSbEditor(id){
   _editorStep=1;
   // Always reload playlists when editor opens so dropdown shows current state
   loadAudioLibrary().catch(()=>{});
+  window._editingSbId = id;
   // Start draft from saved values
   _editorDraft={
     name: sb.name,
@@ -3897,22 +3898,53 @@ function sbToggleDefault(group, toggleEl){
 }
 
 function setMotorConfig(key,val){
-  if(!window._editorDraft)return;
-  if(!window._editorDraft.motor_config)window._editorDraft.motor_config={};
-  window._editorDraft.motor_config[key]=val;
-  const sbId=_activeSidebarSbId||_activeSbId;
-  if(sbId){
-    fetch(`${API_BASE}/scoreboards/${sbId}`,{method:'PATCH',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({motor_config:window._editorDraft.motor_config})
-    }).then(r=>r.json()).then(d=>{
-      // Update local scoreboard object with saved motor_config
-      const sb=_scoreboards.find(s=>s.id===sbId);
-      if(sb) sb.motor_config=Object.assign({},window._editorDraft.motor_config);
-      // Re-render motor settings UI to update button highlights
-      const motorEl=document.getElementById('sbMotorSettings');
-      if(motorEl&&typeof buildMotorSettingsHTML==='function') motorEl.innerHTML=buildMotorSettingsHTML();
-    }).catch(()=>{});
+  // Get the active scoreboard ID from editor or sidebar
+  const sbId=_activeSidebarSbId||_activeSbId||(_editorDraft&&window._editingSbId);
+  if(!sbId) return;
+  // Update editorDraft if open
+  if(window._editorDraft){
+    if(!window._editorDraft.motor_config) window._editorDraft.motor_config={};
+    window._editorDraft.motor_config[key]=val;
   }
+  // Get current motor_config from in-memory scoreboard
+  const sb=_scoreboards&&_scoreboards.find(s=>s.id===sbId);
+  const currentMc=Object.assign({}, sb ? sb.motor_config||{} : {}, window._editorDraft?.motor_config||{});
+  currentMc[key]=val;
+  // Save to DB
+  fetch(`${API_BASE}/scoreboards/${sbId}`,{method:'PATCH',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({motor_config:currentMc})
+  }).then(r=>r.json()).then(d=>{
+    // Update in-memory scoreboard
+    if(sb) sb.motor_config=Object.assign({},currentMc);
+    if(window._editorDraft) window._editorDraft.motor_config=Object.assign({},currentMc);
+    // Re-render the motor settings section to update button highlights
+    const motorEl=document.getElementById('sbMotorSettings');
+    if(motorEl){
+      // Find the scoreboard and re-render motor settings
+      const activeSb=_scoreboards&&_scoreboards.find(s=>s.id===sbId);
+      if(activeSb && typeof renderSbEditorStep==='function') {
+        const inner=motorEl.querySelector('.motor-inner');
+        if(inner) inner.innerHTML='';
+      }
+      // Force re-render by updating button styles directly
+      motorEl.querySelectorAll('button[onclick*="nascar_max_races"],button[onclick*="f1_max_races"],button[onclick*="pga_max_events"]').forEach(btn=>{
+        const onclk=btn.getAttribute('onclick')||'';
+        const numMatch=onclk.match(/,(\d+)\)/);
+        if(numMatch){
+          const btnVal=parseInt(numMatch[1]);
+          const keyMatch=onclk.match(/'([^']+)'/);
+          const btnKey=keyMatch&&keyMatch[1];
+          const isSel=btnVal===val&&btnKey===key;
+          // Get the color from the button's current selected style or default
+          const selColor = btn.closest('[style*="border:1px solid"]')
+            ? btn.closest('[style*="border:1px solid"]').style.borderColor : '#ffd700';
+          btn.style.border=`1px solid ${isSel?selColor:'var(--border)'}`;
+          btn.style.background=isSel?selColor:'var(--bg-card)';
+          btn.style.color=isSel?'#000':'var(--text-primary)';
+        }
+      });
+    }
+  }).catch(e=>console.warn('setMotorConfig error:',e));
 }
 function buildGameCard(g){
   if(g.isIndividual||g.isPGAHistory||g.isPGALive) return buildLeaderboardCard(g);
