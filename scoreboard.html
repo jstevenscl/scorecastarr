@@ -3752,13 +3752,22 @@ function updateTopbar(){
 
 function getMotorSectionName(sport, sampleCard) {
   if (!sampleCard) return sport.name;
-  if (sampleCard.isLive || sampleCard.isNascarLive) return `${sport.name} — Live`;
   if (sampleCard.isNascarStandings || sampleCard.isF1Standings) return `${sport.name} — Driver Standings`;
-  if (sampleCard.isNascarLast || sampleCard.isF1Last) {
-    const raceName = (sampleCard.name||'').split(' (')[0].replace(/ Result$/,'').replace(/ \(\d+\/\d+\)$/,'');
-    return `${sport.name} — ${raceName}${sampleCard.raceDate?' · '+sampleCard.raceDate:''}`;
+  if (sampleCard.isNascarLast || sampleCard.isNascarLive) {
+    const raceName = (sampleCard.name||'').replace(/ \(\d+\/\d+\)$/,'').replace(/ Result$/,'').split(' (')[0].trim();
+    const raceDate = sampleCard.raceDate||'';
+    const dateStr = raceDate ? ' · '+new Date(raceDate+'T12:00:00').toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'}) : '';
+    if (sampleCard.isFinal || sampleCard.flagState===9 || sampleCard.lapsToGo===0) {
+      return `${sport.name} — ${raceName} Final${dateStr}`;
+    }
+    return `${sport.name} — ${raceName} Live`;
+  }
+  if (sampleCard.isF1Last) {
+    const raceName = (sampleCard.name||'').replace(/ \(\d+\/\d+\)$/,'').replace(/ Result$/,'').split(' (')[0].trim();
+    return `${sport.name} — ${raceName} Final${sampleCard.raceDate?' · '+sampleCard.raceDate:''}`;
   }
   if (sampleCard.isF1Next || sampleCard.isNascarInfo) return `${sport.name} — Upcoming`;
+  if (sampleCard.isLive) return `${sport.name} — Live`;
   if (sampleCard.isPGAHistory || sampleCard.isPGALive) {
     const tName = (sampleCard.name||'').replace(/ \(\d+\/\d+\)$/,'').split(' (')[0];
     const tDate = sampleCard.tournamentDate||'';
@@ -3766,7 +3775,7 @@ function getMotorSectionName(sport, sampleCard) {
     const status = sampleCard.isComplete ? 'Final'
       : (tDate && tDate > todayISO) ? 'Upcoming'
       : sampleCard.isLive ? 'Live' : 'In Progress';
-    const dateStr = tDate ? ' · ' + new Date(tDate+'T12:00:00').toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'}) : '';
+    const dateStr = tDate ? ' · '+new Date(tDate+'T12:00:00').toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'}) : '';
     return `${sport.name} — ${tName}${dateStr} (${status})`;
   }
   return sport.name;
@@ -3992,7 +4001,20 @@ async function fetchPGAData(sport, sbConfig){
         let pgaShown=0;
         tournaments.forEach(t=>{
           // Skip future events with no scores yet
-          if(!t.is_complete && t.date > todayStr2 && !(t.players||[]).some(p=>p.r1)) return;
+          // Show upcoming tournaments as a single info card instead of skipping
+          if(!t.is_complete && t.date > todayStr2 && !(t.players||[]).some(p=>p.r1)){
+            cards.push({
+              id:`pga-upcoming-${t.date}`,
+              name: t.name,
+              sportName:sport.name, sportEmoji:sport.emoji, sportColor:sport.color,
+              isPGAHistory:true, isPGALive:false,
+              isComplete:false, isLive:false,
+              tournamentDate: t.date,
+              players:[],
+              pageNum:1, totalPages:1,
+            });
+            return;
+          }
           // Limit completed tournaments to pgaMax
           if(t.is_complete && pgaShown>=pgaMax) return;
           if(t.is_complete) pgaShown++;
