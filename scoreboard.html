@@ -757,6 +757,7 @@ body.stream-mode .card-header{padding:4px 10px;}
         </div>
         <div class="wiz-field">
           <div class="wiz-label">Channel Logo <span style="font-size:10px;color:var(--text-dim);font-weight:400;">(optional — leave blank to keep existing)</span></div>
+          <div id="qu_currentLogo" style="display:none;align-items:center;gap:4px;margin-bottom:6px;font-size:12px;color:var(--text-secondary);"></div>
           <div id="qu_logoGallery" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;"></div>
           <div style="display:flex;gap:6px;align-items:center;">
             <label style="padding:5px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;color:var(--text-secondary);letter-spacing:1px;white-space:nowrap;flex-shrink:0;">
@@ -3688,6 +3689,18 @@ function openQuickUpdate(id){
   document.getElementById('qu_logoUrl').value='';
   document.getElementById('qu_logoPreview').style.display='none';
   document.getElementById('quResult').style.display='none';
+  // Show currently applied logo if one is saved
+  const currentLogoDiv=document.getElementById('qu_currentLogo');
+  if(currentLogoDiv){
+    if(sb.dispatcharr_logo_url||sb.dispatcharr_logo_id){
+      const logoThumb=sb.dispatcharr_logo_url?`<img src="${sb.dispatcharr_logo_url}" style="height:28px;border-radius:4px;vertical-align:middle;margin-right:6px;" onerror="this.style.display='none'">`:'';
+      const logoIdTxt=sb.dispatcharr_logo_id?`<span style="font-family:'Share Tech Mono',monospace;">ID ${sb.dispatcharr_logo_id}</span>`:'';
+      currentLogoDiv.innerHTML=`<span style="color:var(--text-dim);font-size:11px;">Current: </span>${logoThumb}${logoIdTxt}`;
+      currentLogoDiv.style.display='flex';
+    } else {
+      currentLogoDiv.style.display='none';
+    }
+  }
   // Render bundled logo gallery dynamically (avoids template-literal-in-static-HTML issue)
   const gallery=document.getElementById('qu_logoGallery');
   if(gallery){
