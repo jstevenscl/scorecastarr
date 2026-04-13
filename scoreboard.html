@@ -3839,7 +3839,7 @@ async function executeQuickUpdate(){
         const ld=d.logo_debug;
         if(ld.logo_id) msg+=ld.reused_existing?` | Logo: reused existing (ID ${ld.logo_id})`:(` | Logo ID: ${ld.logo_id}`);
         else if(ld.upload_error) msg+=` | Logo error: ${ld.upload_error}`;
-        else if(ld.skipped) msg+=` | Logo: ${ld.skip_reason}`;
+        else if(ld.retry_error) msg+=` | Logo retry failed: ${ld.retry_error}`;
         else if(ld.search_error) msg+=` | Logo search error: ${ld.search_error}`;
         else if(ld.upload_status) msg+=` | Logo upload: ${ld.upload_status} — ${String(ld.upload_response||'').slice(0,120)}`;
       }
