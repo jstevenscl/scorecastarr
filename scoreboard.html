@@ -757,12 +757,10 @@ body.stream-mode .card-header{padding:4px 10px;}
         </div>
         <div class="wiz-field">
           <div class="wiz-label">Channel Logo <span style="font-size:10px;color:var(--text-dim);font-weight:400;">(optional — leave blank to keep existing)</span></div>
-          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;">
-            ${['blue','cyan','green','lime','mono','multicolor','orange','pink','purple','red','teal','yellow'].map(k=>`<img src="/logos/glow_${k}.png" title="${k}" onclick="pickBuiltinLogo('${k}','qu_logoPreviewWrap','qu_logoUrl')" style="width:30px;height:30px;object-fit:contain;cursor:pointer;border-radius:5px;border:2px solid var(--border);padding:2px;background:var(--bg-card);" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"/>`).join('')}
-          </div>
+          <div id="qu_logoGallery" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;"></div>
           <div style="display:flex;gap:6px;align-items:center;">
             <label style="padding:5px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;color:var(--text-secondary);letter-spacing:1px;white-space:nowrap;flex-shrink:0;">
-              📁 File
+              &#x1F4C1; File
               <input type="file" accept="image/*" style="display:none;" onchange="uploadLocalLogo(this,'qu_logoPreviewWrap','qu_logoUrl','qu_logoUploadResult')">
             </label>
             <input class="wiz-input" id="qu_logoUrl" placeholder="https://example.com/logo.png" style="flex:1;" oninput="quLogoPreview()">
@@ -3690,6 +3688,12 @@ function openQuickUpdate(id){
   document.getElementById('qu_logoUrl').value='';
   document.getElementById('qu_logoPreview').style.display='none';
   document.getElementById('quResult').style.display='none';
+  // Render bundled logo gallery dynamically (avoids template-literal-in-static-HTML issue)
+  const gallery=document.getElementById('qu_logoGallery');
+  if(gallery){
+    const keys=['blue','cyan','green','lime','mono','multicolor','orange','pink','purple','red','teal','yellow'];
+    gallery.innerHTML=keys.map(k=>`<img src="/logos/glow_${k}.png" title="${k}" onclick="pickBuiltinLogo('${k}','qu_logoPreviewWrap','qu_logoUrl')" style="width:30px;height:30px;object-fit:contain;cursor:pointer;border-radius:5px;border:2px solid var(--border);padding:2px;background:var(--bg-card);" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">`).join('');
+  }
   document.getElementById('quSaveBtn').disabled=false;
   document.getElementById('quSaveBtn').textContent='💾 Save Changes';
   quLoadGroups();
