@@ -3834,10 +3834,17 @@ async function executeQuickUpdate(){
     const d=await r.json();
     if(r.ok){
       resultEl.style.color='var(--accent-green)';
-      resultEl.textContent=`✅ Channel updated: ${d.channel_name}${d.channel_number?' (Ch '+d.channel_number+')':''}`;
+      let msg=`✅ Channel updated: ${d.channel_name}${d.channel_number?' (Ch '+d.channel_number+')':''}`;
+      if(d.logo_debug&&Object.keys(d.logo_debug).length){
+        const ld=d.logo_debug;
+        if(ld.logo_id) msg+=` | Logo ID: ${ld.logo_id}`;
+        else if(ld.upload_status) msg+=` | Logo upload: ${ld.upload_status} — ${JSON.stringify(ld.upload_response).slice(0,120)}`;
+        else if(ld.upload_error) msg+=` | Logo error: ${ld.upload_error}`;
+      }
+      resultEl.textContent=msg;
       btn.textContent='✅ Done';
       if(d.scoreboard){const idx=_scoreboards.findIndex(s=>s.id===_activeSbId);if(idx>=0)_scoreboards[idx]=d.scoreboard;}
-      setTimeout(()=>{closeQuickUpdate();renderSbCards();},1500);
+      setTimeout(()=>{closeQuickUpdate();renderSbCards();},3000);
     }else{
       resultEl.style.color='var(--accent-red)';
       resultEl.textContent='❌ '+(d.error||'Update failed');
