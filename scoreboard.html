@@ -756,11 +756,21 @@ body.stream-mode .card-header{padding:4px 10px;}
           <select class="wiz-input" id="qu_streamProf" style="width:100%;"><option value="">— loading... —</option></select>
         </div>
         <div class="wiz-field">
-          <div class="wiz-label">Logo URL <span style="font-size:10px;color:var(--text-dim);font-weight:400;">(optional — leave blank to keep existing)</span></div>
-          <div style="display:flex;gap:6px;align-items:center;">
-            <input class="wiz-input" id="qu_logoUrl" placeholder="https://example.com/logo.png" style="flex:1;" oninput="quLogoPreview()">
-            <img id="qu_logoPreview" src="" style="height:32px;border-radius:4px;display:none;" onerror="this.style.display='none'">
+          <div class="wiz-label">Channel Logo <span style="font-size:10px;color:var(--text-dim);font-weight:400;">(optional — leave blank to keep existing)</span></div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;">
+            ${['blue','cyan','green','lime','mono','multicolor','orange','pink','purple','red','teal','yellow'].map(k=>`<img src="/logos/glow_${k}.png" title="${k}" onclick="pickBuiltinLogo('${k}','qu_logoPreviewWrap','qu_logoUrl')" style="width:30px;height:30px;object-fit:contain;cursor:pointer;border-radius:5px;border:2px solid var(--border);padding:2px;background:var(--bg-card);" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"/>`).join('')}
           </div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <label style="padding:5px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;color:var(--text-secondary);letter-spacing:1px;white-space:nowrap;flex-shrink:0;">
+              📁 File
+              <input type="file" accept="image/*" style="display:none;" onchange="uploadLocalLogo(this,'qu_logoPreviewWrap','qu_logoUrl','qu_logoUploadResult')">
+            </label>
+            <input class="wiz-input" id="qu_logoUrl" placeholder="https://example.com/logo.png" style="flex:1;" oninput="quLogoPreview()">
+            <div id="qu_logoPreviewWrap" style="flex-shrink:0;">
+              <img id="qu_logoPreview" src="" style="height:32px;border-radius:4px;display:none;" onerror="this.style.display='none'">
+            </div>
+          </div>
+          <div id="qu_logoUploadResult" style="font-size:11px;color:var(--accent-red);margin-top:4px;"></div>
         </div>
         <div id="quResult" style="display:none;margin:12px 0;font-size:13px;"></div>
         <div style="display:flex;gap:8px;margin-top:20px;">
@@ -3969,25 +3979,33 @@ function renderWizardStep(){
     setTimeout(wizPopulateStreamProfiles,100);
   }
   else if(_wizardStep===5){
-    // Logo step
+    const _builtinLogos=['blue','cyan','green','lime','mono','multicolor','orange','pink','purple','red','teal','yellow'];
     body.innerHTML=`
       <div class="wiz-field">
         <div class="wiz-label">Channel Logo</div>
         <div class="wiz-sublabel" style="margin-bottom:12px;">Optional. Assign a logo that appears in Dispatcharr and on IPTV clients.</div>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+        <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:16px;">
           <div id="wiz_logoPreview" style="width:80px;height:80px;border-radius:10px;border:1px solid var(--border);background:var(--bg-secondary);display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;">
-            ${_wizardData.logoId?'🖼️':'📡'}
+            ${_wizardData.logoUrl?`<img src="${_wizardData.logoUrl}" style="width:76px;height:76px;object-fit:contain;border-radius:8px;">`:'📡'}
           </div>
-          <div style="flex:1;min-width:200px;">
-            <div class="wiz-sublabel" style="margin-bottom:8px;">Enter a public image URL for the logo:</div>
-            <div style="display:flex;gap:6px;">
-              <input class="wiz-input" id="wiz_logoUrl" placeholder="https://example.com/logo.png" style="flex:1;" value="${_wizardData.logoUrl||''}">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:11px;font-weight:700;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">ScoreStream Logos</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+              ${_builtinLogos.map(k=>`<img src="/logos/glow_${k}.png" title="${k}" onclick="pickBuiltinLogo('${k}','wiz_logoPreview','wiz_logoUrl')" style="width:36px;height:36px;object-fit:contain;cursor:pointer;border-radius:6px;border:2px solid var(--border);padding:2px;background:var(--bg-card);transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"/>`).join('')}
+            </div>
+            <div style="font-size:11px;font-weight:700;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Custom Logo</div>
+            <div style="display:flex;gap:6px;margin-bottom:6px;">
+              <label style="padding:6px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;color:var(--text-secondary);letter-spacing:1px;white-space:nowrap;">
+                📁 Upload File
+                <input type="file" accept="image/*" style="display:none;" onchange="uploadLocalLogo(this,'wiz_logoPreview','wiz_logoUrl','wiz_logoResult')">
+              </label>
+              <input class="wiz-input" id="wiz_logoUrl" placeholder="https://example.com/logo.png" style="flex:1;" value="${_wizardData.logoUrl||''}" oninput="_wizardData.logoUrl=this.value">
               <button class="modal-btn" onclick="wizPreviewLogo()" style="padding:8px 10px;">Preview</button>
             </div>
-            <div class="wiz-sublabel" style="margin-top:6px;">Leave blank to skip logo assignment. You can set it later in Dispatcharr directly.</div>
+            <div class="wiz-sublabel">Leave blank to skip. You can set it later in Dispatcharr directly.</div>
           </div>
         </div>
-        <div id="wiz_logoResult" style="font-size:11px;margin-top:4px;"></div>
+        <div id="wiz_logoResult" style="font-size:11px;margin-top:4px;color:var(--accent-red);"></div>
       </div>`;
   }
   else if(_wizardStep===6){
@@ -4044,6 +4062,38 @@ function wizPreviewLogo(){
   preview.innerHTML=`<img src="${url}" style="width:76px;height:76px;object-fit:contain;border-radius:8px;" onerror="this.parentElement.innerHTML='❌';document.getElementById('wiz_logoResult').textContent='Could not load image';">`;
   _wizardData.logoUrl=url;
   result.textContent='';
+}
+
+// Pick a bundled ScoreStream logo (wizard or quick-update)
+function pickBuiltinLogo(key,previewId,urlInputId){
+  const url=window.location.origin+'/logos/glow_'+key+'.png';
+  const inp=document.getElementById(urlInputId);
+  if(inp){inp.value=url;inp.dispatchEvent(new Event('input'));}
+  const prev=document.getElementById(previewId);
+  if(prev) prev.innerHTML=`<img src="${url}" style="width:76px;height:76px;object-fit:contain;border-radius:8px;">`;
+  if(urlInputId==='wiz_logoUrl') _wizardData.logoUrl=url;
+}
+
+// Upload a local logo file → POST to /api/upload-logo → fill URL field
+async function uploadLocalLogo(inputEl,previewId,urlInputId,resultId){
+  const file=inputEl.files[0];if(!file)return;
+  const res=document.getElementById(resultId);
+  if(res) res.textContent='Uploading…';
+  const fd=new FormData();fd.append('file',file);
+  try{
+    const r=await fetch(`${API_BASE}/upload-logo`,{method:'POST',body:fd});
+    const d=await r.json();
+    if(r.ok&&d.url){
+      const inp=document.getElementById(urlInputId);
+      if(inp){inp.value=d.url;inp.dispatchEvent(new Event('input'));}
+      const prev=document.getElementById(previewId);
+      if(prev) prev.innerHTML=`<img src="${d.url}" style="width:76px;height:76px;object-fit:contain;border-radius:8px;">`;
+      if(urlInputId==='wiz_logoUrl') _wizardData.logoUrl=d.url;
+      if(res) res.textContent='';
+    }else{
+      if(res) res.textContent='Upload failed: '+(d.error||'unknown error');
+    }
+  }catch(e){if(res) res.textContent='Upload error: '+e.message;}
 }
 
 // Step navigation — collect form values before moving
