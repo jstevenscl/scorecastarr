@@ -1558,14 +1558,14 @@ body.stream-mode .card-header{padding:4px 10px;}
           Scale text in the app interface. Sliders apply when you release the mouse (avoids the page jumping while you drag) and <strong>save automatically</strong> to your browser. The <em>Save System Theme</em> button only pushes the configuration to the server database (for survival across browser cache clears).
         </div>
         <div class="modal-slider-row">
-          <span class="modal-slider-label" data-tip="Scales all text in the settings UI, topbar, and sidebar uniformly via CSS zoom on #app and #settingsPage. Use the Sidebar / Topbar sliders below for finer control.">Base Font Size (everything)</span>
+          <span class="modal-slider-label" data-tip="Scales all app UI globally — settings pages, navigation, and the main scoreboard sidebar. Use the sliders below to fine-tune individual areas on top of this.">Global UI Scale</span>
           <input type="range" min="12" max="20" value="15" step="1" id="sysThemeFontSize" style="width:100%;"
             oninput="document.getElementById('sysThemeFontSizeVal').textContent=this.value+'px'"
             onchange="applySystemTheme()">
           <span class="modal-slider-val" id="sysThemeFontSizeVal">15px</span>
         </div>
         <div class="modal-slider-row">
-          <span class="modal-slider-label" data-tip="Scales the left sidebar of the main scoreboard.html view (sport toggles, section labels, refresh button). Stacks with Base Font Size.">Sidebar Font Scale</span>
+          <span class="modal-slider-label" data-tip="Adds extra zoom to the main scoreboard's left sidebar only (sport toggles, section labels, refresh button). Stacks on top of Global UI Scale.">Scoreboard Sidebar Scale</span>
           <input type="range" min="0.8" max="1.6" value="1.0" step="0.05" id="sysThemeSidebarScale" style="width:100%;"
             oninput="document.getElementById('sysThemeSidebarScaleVal').textContent=parseFloat(this.value).toFixed(2)+'×'"
             onchange="applySystemTheme()">
