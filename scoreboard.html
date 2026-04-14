@@ -6482,7 +6482,8 @@ function _normNascarMfr(m){
   return s;
 }
 // Expand abbreviated NASCAR driver names (e.g. "T. Reddick" → "Tyler Reddick")
-// Keys are normalized lowercase: spaces stripped around dot, trailing junk removed.
+// Keys are normalized lowercase: spaces stripped around dots, NO trailing-dot removal
+// (preserving "jr." so "R. Stenhouse Jr." → key "r.stenhouse jr." matches correctly).
 const _NASCAR_DRIVERS={
   // ── Cup Series ──────────────────────────────────────────────────────────────
   'r.blaney':'Ryan Blaney',
@@ -6504,7 +6505,7 @@ const _NASCAR_DRIVERS={
   'b.wallace':'Bubba Wallace',
   'd.wallace':'Bubba Wallace','d.wallace jr.':'Bubba Wallace','d.wallace jr':'Bubba Wallace',
   'd.suarez':'Daniel Suarez','d.suárez':'Daniel Suarez',
-  'r.stenhouse':'Ricky Stenhouse Jr.','r.stenhouse jr.':'Ricky Stenhouse Jr.',
+  'r.stenhouse':'Ricky Stenhouse Jr.','r.stenhouse jr.':'Ricky Stenhouse Jr.','r.stenhouse jr':'Ricky Stenhouse Jr.',
   'c.buescher':'Chris Buescher',
   'm.mcdowell':'Michael McDowell',
   'c.briscoe':'Chase Briscoe',
@@ -6520,9 +6521,10 @@ const _NASCAR_DRIVERS={
   'j.haley':'Justin Haley',
   'z.smith':'Zane Smith',
   'j.nemechek':'John Hunter Nemechek',
+  'j.hunter nemechek':'John Hunter Nemechek',
   's.van gisbergen':'Shane van Gisbergen',
   'k.grala':'Kaz Grala',
-  'b.mcleod':'BJ McLeod',
+  'b.j.mcleod':'BJ McLeod','b.mcleod':'BJ McLeod',
   'b.jones':'Brandon Jones',
   'd.ragan':'David Ragan',
   'c.ware':'Cody Ware',
@@ -6533,7 +6535,15 @@ const _NASCAR_DRIVERS={
   'n.sanchez':'Nick Sanchez',
   'r.ellis':'Ryan Ellis',
   's.creed':'Sheldon Creed',
-  'j.hunter nemechek':'John Hunter Nemechek',
+  // Missing Cup drivers added:
+  'r.herbst':'Riley Herbst',
+  'c.custer':'Cole Custer',
+  't.hill':'Timmy Hill',
+  'j.love':'Jesse Love',
+  'j.johnson':'Jimmie Johnson',
+  'c.mears':'Casey Mears',
+  'j.j.yeley':'JJ Yeley','j.yeley':'JJ Yeley',
+  'a.alfredo':'Anthony Alfredo',
   // ── NOAPS (Xfinity) ─────────────────────────────────────────────────────────
   'j.allgaier':'Justin Allgaier',
   'c.smith':'Chandler Smith',
@@ -6543,9 +6553,17 @@ const _NASCAR_DRIVERS={
   'j.clements':'Jeremy Clements',
   'a.allmendinger':'A.J. Allmendinger',
   'b.perkins':'Blaine Perkins',
-  'j.alfredo':'Anthony Alfredo',
-  'l.herbst':'Leland Herbst',
-  'm.bell':'Matt Bell',
+  'p.retzlaff':'Parker Retzlaff',
+  'r.caruth':'Rajah Caruth',
+  'j.anderson':'Jordan Anderson',
+  'c.kvapil':'Carson Kvapil',
+  'k.sieg':'Kyle Sieg',
+  'j.burton':'Jeb Burton',
+  'w.sawalich':'William Sawalich',
+  'c.day':'Corey Day',
+  'b.poole':'Brennan Poole',
+  'm.snider':'Myatt Snider',
+  'b.crews':'Brent Crews',
   // ── Trucks ───────────────────────────────────────────────────────────────────
   'b.rhodes':'Ben Rhodes',
   'c.heim':'Corey Heim',
@@ -6554,17 +6572,29 @@ const _NASCAR_DRIVERS={
   'g.enfinger':'Grant Enfinger',
   'j.sauter':'Johnny Sauter',
   't.gray':'Tanner Gray',
-  'n.taylor':'Nico Hocevar',
-  'j.wood':'Grant Wood',
+  't.ankrum':'Tyler Ankrum',
+  'b.queen':'Brenden Queen',
+  'k.honeycutt':'Kaden Honeycutt',
+  's.friesen':'Stewart Friesen',
+  'f.muniz':'Frankie Muniz',
+  'd.dye':'Daniel Dye',
+  's.boyd':'Spencer Boyd',
+  'l.riggs':'Layne Riggs',
+  'j.garcia':'Jake Garcia',
+  'd.sutton':'Dawson Sutton',
+  'n.leitz':'Nick Leitz',
+  't.pastrana':'Travis Pastrana',
+  'd.hemric':'Daniel Hemric',
+  'g.ruggiero':'Giovanni Ruggiero',
 };
 function _normNascarDriver(name){
   if(!name) return name;
   // Strip trailing car-number artifacts: "Connor Zilisch #" or "Connor Zilisch #77"
   name = name.replace(/\s*#\d*\s*$/, '').trim();
   if(!name.includes('.')) return name;
-  // Normalize key: lowercase, remove spaces around the dot, remove trailing dot
-  // so "T. Reddick", "T.Reddick", "T .Reddick" all resolve the same way
-  const k = name.toLowerCase().replace(/\s*\.\s*/g, '.').replace(/\.\s*$/, '').trim();
+  // Normalize key: lowercase, remove spaces around dots only — do NOT strip trailing dot
+  // so "R. Stenhouse Jr." → "r.stenhouse jr." which correctly matches the table key
+  const k = name.toLowerCase().replace(/\s*\.\s*/g, '.').trim();
   return _NASCAR_DRIVERS[k] || name;
 }
 function buildNascarCard(g){
