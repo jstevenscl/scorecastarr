@@ -4847,10 +4847,11 @@ function setNameColor(c){
   applyDisplay();
 }
 
-function initDisplayControls(){
+function initDisplayControls(fromSettingsPanel=false){
   loadDisplay();
-  // In stream mode the renderer has empty localStorage — override from display_config
-  if(_activeStreamDisplayConfig){
+  // In stream mode the renderer has empty localStorage — override from display_config.
+  // Skip this when called from the settings UI so global defaults show correctly.
+  if(_activeStreamDisplayConfig && !fromSettingsPanel){
     const dc=_activeStreamDisplayConfig;
     if(dc.card_abbr_size  != null) state.display.abbrSize  = dc.card_abbr_size;
     if(dc.card_score_size != null) state.display.scoreSize = dc.card_score_size;
@@ -4969,7 +4970,7 @@ function switchSection(section){
   if(section==='teams'){buildTbTabs();loadTbSport(tbState.activeSport||getSPORTS()[0]?.id);}
   if(section==='dispatcharr') initDsTab();
   if(section==='ncaa') initNcaaSection();
-  if(section==='display') initDisplayControls();
+  if(section==='display') initDisplayControls(true);
   if(section==='ticker') onSectionTicker();
   if(section==='systemtheme') initSystemTheme();
 }
@@ -8635,6 +8636,7 @@ function selectSidebarScoreboard(slug){
     }
     // Restore global localStorage favorites
     if(_allSportsFavTeams !== null){ state.favTeams=_allSportsFavTeams; _allSportsFavTeams=null; }
+    else{ state.favTeams=loadFavs(); } // page refreshed while on custom sb — reload from storage
     buildSportToggles();
     renderScoreboard();
   }else{
