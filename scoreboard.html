@@ -1396,7 +1396,12 @@ body.stream-mode .card-header{padding:4px 10px;}
           style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--bg-secondary);">
           <div style="padding:16px;text-align:center;color:var(--text-dim);font-size:12px;">Loading channels...</div>
         </div>
-        <!-- Selected channel info -->
+        <!-- Selection count + clear -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:7px;">
+          <span id="tickerSelectionCount" style="font-size:12px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;">No channels selected</span>
+          <button onclick="_tickerSelectedChannelIds.clear();renderTickerChannelList();_updateTickerSelectionCount();" style="padding:3px 9px;background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--text-dim);font-family:'Barlow Condensed',sans-serif;font-size:11px;cursor:pointer;">Clear</button>
+        </div>
+        <!-- Single-channel profile info (shown only when 1 channel selected) -->
         <div id="tickerChannelProfileInfo" style="display:none;margin-top:8px;padding:8px 12px;background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.15);border-radius:7px;font-size:12px;color:var(--text-secondary);font-family:'Share Tech Mono',monospace;"></div>
       </div>
 
@@ -7879,11 +7884,20 @@ async function loadTickerConfig(){
     if(_ctCb) _ctCb.checked=!!(cfg.custom_text_enabled);
     const _ctTa=document.getElementById('tickerCustomText');
     if(_ctTa&&cfg.custom_text) _ctTa.value=cfg.custom_text;
-    // Channel
-    if(cfg.channel_id){
-      _tickerSelectedChannelId=cfg.channel_id;
-      const sel=document.getElementById('tickerChannelSelect');
-      if(sel){sel.value=cfg.channel_id;onTickerChannelChange();}
+    // Channel selection — support both channel_ids array and legacy channel_id
+    const savedIds=cfg.channel_ids||(cfg.channel_id?[cfg.channel_id]:[]);
+    if(savedIds.length){
+      _tickerSelectedChannelIds=new Set(savedIds.map(Number));
+      renderTickerChannelList();
+      _updateTickerSelectionCount();
+      if(_tickerSelectedChannelIds.size===1){
+        const chId=[..._tickerSelectedChannelIds][0];
+        let sel=document.getElementById('tickerChannelSelect');
+        if(!sel){sel=document.createElement('select');sel.id='tickerChannelSelect';sel.style.display='none';document.body.appendChild(sel);}
+        sel.innerHTML=`<option value="${chId}">${chId}</option>`;
+        sel.value=String(chId);
+        onTickerChannelChange();
+      }
     }
     updateTickerStatusUI(cfg);
   }catch(e){}
@@ -7927,13 +7941,12 @@ function renderTickerChannelList(){
     listEl.innerHTML='<div style="padding:14px;text-align:center;color:var(--text-dim);font-size:12px;">No channels match</div>';
     return;
   }
-  const saved=parseInt(document.getElementById('tickerChannelSelect')?.value||'0')||_tickerSelectedChannelId||0;
   listEl.innerHTML=filtered.map(ch=>{
     const num=ch.channel_number?` <span style="color:var(--text-dim);font-size:11px;">(${Math.floor(ch.channel_number)})</span>`:'';
     const grp=ch.channel_group_name?` <span style="color:var(--text-dim);font-size:10px;">· ${ch.channel_group_name}</span>`:'';
-    const checked=saved===ch.id?'checked':'';
+    const checked=_tickerSelectedChannelIds.has(ch.id)?'checked':'';
     return `<label style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background=''">
-      <input type="radio" name="tickerChannel" value="${ch.id}" ${checked} onchange="onTickerChannelRadio(${ch.id})" style="cursor:pointer;accent-color:var(--accent);">
+      <input type="checkbox" value="${ch.id}" ${checked} onchange="onTickerChannelCheck(${ch.id},this.checked)" style="cursor:pointer;accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;">
       <span style="flex:1;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--text-primary);">${ch.name}${num}${grp}</span>
     </label>`;
   }).join('');
@@ -7943,20 +7956,31 @@ function filterTickerChannels(){
   renderTickerChannelList();
 }
 
-let _tickerSelectedChannelId=0;
+let _tickerSelectedChannelIds=new Set();
 
-function onTickerChannelRadio(chId){
-  _tickerSelectedChannelId=chId;
-  // Keep hidden select in sync for getTickerConfig()
-  let sel=document.getElementById('tickerChannelSelect');
-  if(!sel){
-    sel=document.createElement('select');
-    sel.id='tickerChannelSelect';sel.style.display='none';
-    document.body.appendChild(sel);
+function onTickerChannelCheck(chId, checked){
+  if(checked) _tickerSelectedChannelIds.add(chId);
+  else _tickerSelectedChannelIds.delete(chId);
+  _updateTickerSelectionCount();
+  // Show profile info only when exactly 1 channel is selected
+  if(_tickerSelectedChannelIds.size===1){
+    // Sync hidden select so onTickerChannelChange still works
+    let sel=document.getElementById('tickerChannelSelect');
+    if(!sel){sel=document.createElement('select');sel.id='tickerChannelSelect';sel.style.display='none';document.body.appendChild(sel);}
+    sel.innerHTML=`<option value="${chId}">${chId}</option>`;
+    sel.value=String(chId);
+    onTickerChannelChange();
+  } else {
+    const infoEl=document.getElementById('tickerChannelProfileInfo');
+    if(infoEl) infoEl.style.display='none';
+    _tickerSelectedProfileCommand='';
   }
-  sel.innerHTML=`<option value="${chId}">${chId}</option>`;
-  sel.value=String(chId);
-  onTickerChannelChange();
+}
+
+function _updateTickerSelectionCount(){
+  const n=_tickerSelectedChannelIds.size;
+  const el=document.getElementById('tickerSelectionCount');
+  if(el) el.textContent=n===0?'No channels selected':`${n} channel${n===1?'':'s'} selected`;
 }
 
 function updateTickerStatusUI(cfg){
@@ -8153,7 +8177,7 @@ function updateTickerPreview(){
   txt.style.fontSize=scaledFont+'px';
   const _customOn=document.getElementById('tickerCustomEnabled')?.checked;
   const _customTxt=document.getElementById('tickerCustomText')?.value?.trim()||'';
-  txt.textContent=(_customOn&&_customTxt)?_customTxt:_tickerSampleText;
+  txt.textContent=_customOn?(_customTxt||_tickerCustomSampleText):_tickerSampleText;
   // Animate scroll
   if(_tickerPreviewAnim){cancelAnimationFrame(_tickerPreviewAnim);_tickerPreviewAnim=null;}
   if(speed===0){
@@ -8551,7 +8575,7 @@ function getTickerConfig(){
   const favs={};
   TICKER_SPORTS.forEach(sp=>{if(document.getElementById('tspfav-'+sp.id)?.classList.contains('active'))favs[sp.id]=true;});
   return{
-    channel_id:_tickerSelectedChannelId||parseInt(document.getElementById('tickerChannelSelect')?.value)||null,
+    channel_ids:[..._tickerSelectedChannelIds],
     font_size:parseInt(document.getElementById('tickerFontSize')?.value)||28,
     position:_tickerPos,
     scroll_speed:parseInt(document.getElementById('tickerScrollSpeed')?.value)||0,
@@ -8594,23 +8618,25 @@ function resetTickerDefaults(){
   // Clear custom text
   const _ctCbR=document.getElementById('tickerCustomEnabled');if(_ctCbR)_ctCbR.checked=false;
   const _ctTaR=document.getElementById('tickerCustomText');if(_ctTaR)_ctTaR.value='';
+  // Clear channel selection
+  _tickerSelectedChannelIds.clear();renderTickerChannelList();_updateTickerSelectionCount();
   // Save cleared config
   fetch(`${API_BASE}/ticker/config`,{
     method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({font_size:28,position:'bottom',scroll_speed:150,bg_opacity:0.75,sports:[],favorites_only:{},sport_teams:{},channel_id:_tickerSelectedChannelId||null,custom_text_enabled:false,custom_text:''})
+    body:JSON.stringify({font_size:28,position:'bottom',scroll_speed:150,bg_opacity:0.75,sports:[],favorites_only:{},sport_teams:{},channel_ids:[],custom_text_enabled:false,custom_text:''})
   });
   showTickerResult('Settings reset to defaults.',true);
 }
 
 async function enableTickerOverlay(){
   const cfg=getTickerConfig();
-  if(!cfg.channel_id){showTickerResult('Select a Dispatcharr channel first.',false);return;}
+  if(!cfg.channel_ids.length){showTickerResult('Select at least one Dispatcharr channel.',false);return;}
   if(!cfg.sports.length&&!cfg.custom_text_enabled){showTickerResult('Select at least one sport source, or enable custom text.',false);return;}
   if(cfg.custom_text_enabled&&!cfg.custom_text){showTickerResult('Enter custom text before enabling.',false);return;}
-  if(_tickerSelectedProfileCommand&&!_tickerSelectedProfileCommand.includes('ffmpeg')){
+  if(cfg.channel_ids.length===1&&_tickerSelectedProfileCommand&&!_tickerSelectedProfileCommand.includes('ffmpeg')){
     showTickerResult('Selected channel does not use an FFmpeg stream profile. Ticker overlay requires FFmpeg.',false);return;
   }
-  showTickerResult('Enabling...',true);
+  showTickerResult(`Enabling on ${cfg.channel_ids.length} channel${cfg.channel_ids.length>1?'s':''}...`,true);
   try{
     await fetch(`${API_BASE}/ticker/config`,{
       method:'POST',headers:{'Content-Type':'application/json'},
@@ -8618,11 +8644,14 @@ async function enableTickerOverlay(){
     });
     const r=await fetch(`${API_BASE}/ticker/enable`,{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(cfg),signal:AbortSignal.timeout(20000)
+      body:JSON.stringify(cfg),signal:AbortSignal.timeout(60000)
     });
     const d=await r.json();
     if(r.ok&&d.ok){
-      showTickerResult('Ticker enabled — profile "'+d.ticker_profile_name+'" created and assigned.',true);
+      const ok=d.enabled||0, fail=d.failed||0;
+      let msg=`Ticker enabled on ${ok} channel${ok>1?'s':''}.`;
+      if(fail>0) msg+=` ${fail} failed — check that those channels have FFmpeg profiles.`;
+      showTickerResult(msg,fail===0);
       loadTickerConfig();
     }else{showTickerResult('Error: '+(d.error||JSON.stringify(d)),false);}
   }catch(e){showTickerResult('Error: '+e.message,false);}
@@ -8630,19 +8659,25 @@ async function enableTickerOverlay(){
 
 async function disableTickerOverlay(){
   const cfg=getTickerConfig();
-  if(!cfg.channel_id){showTickerResult('Select the channel to disable first.',false);return;}
-  showTickerResult('Disabling...',true);
-  try{
-    const r=await fetch(`${API_BASE}/ticker/disable`,{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({channel_id:cfg.channel_id}),signal:AbortSignal.timeout(20000)
-    });
-    const d=await r.json();
-    if(r.ok&&d.ok){
-      showTickerResult('Ticker disabled — original stream profile restored.'+(d.warnings?.length?' Warnings: '+d.warnings.join(', '):''),true);
-      loadTickerConfig();
-    }else{showTickerResult('Error: '+(d.error||JSON.stringify(d)),false);}
-  }catch(e){showTickerResult('Error: '+e.message,false);}
+  if(!cfg.channel_ids.length){showTickerResult('Select the channel(s) to disable first.',false);return;}
+  showTickerResult(`Disabling on ${cfg.channel_ids.length} channel${cfg.channel_ids.length>1?'s':''}...`,true);
+  let ok=0, fail=0, warnings=[];
+  for(const chId of cfg.channel_ids){
+    try{
+      const r=await fetch(`${API_BASE}/ticker/disable`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({channel_id:chId}),signal:AbortSignal.timeout(20000)
+      });
+      const d=await r.json();
+      if(r.ok&&d.ok){ok++;if(d.warnings?.length)warnings.push(...d.warnings);}
+      else fail++;
+    }catch(e){fail++;}
+  }
+  let msg=`Ticker disabled on ${ok} channel${ok>1?'s':''}.`;
+  if(fail>0) msg+=` ${fail} failed.`;
+  if(warnings.length) msg+=` Warnings: ${warnings.join(', ')}`;
+  showTickerResult(msg,fail===0);
+  loadTickerConfig();
 }
 
 // =====================
