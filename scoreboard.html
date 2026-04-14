@@ -4759,41 +4759,59 @@ function onLeagueDaysChange(sid,v){
 // =====================
 //  SIDEBAR SPORT TOGGLES
 // =====================
+const SIDEBAR_GROUPS=[
+  {key:'pro',    label:'Pro Leagues'},
+  {key:'motor',  label:'Motorsport'},
+  {key:'tennis', label:'Tennis'},
+  {key:'soccer', label:'International Soccer'},
+  {key:'ncaam',  label:"NCAA Men's"},
+  {key:'ncaaw',  label:"NCAA Women's"},
+];
+
 function buildSportToggles(){
   const c=document.getElementById('sport-toggles');c.innerHTML='';
-  // Show all sports enabled in Settings; toggle controls active display
-  ALL_SPORTS.filter(s=>state.enabledSports.has(s.id)).forEach(sport=>{
-    const active=state.activeSports.has(sport.id);
-    const season=state.seasonMeta[sport.id];
-    const isOff=season?.isOff||false;
-    const div=document.createElement('div');
-    div.className=`sport-toggle${active?' active':''}${isOff?' off-season':''}`;
-    div.id=`sport-toggle-${sport.id}`;
-    div.dataset.sport=sport.id;
-    let badge='';
-    if(season&&season.key!=='reg')badge=`<span class="sport-season-badge ${season.key}">${season.label}</span>`;
-    div.innerHTML=`
-      <div class="sport-info">
-        <div class="sport-dot" style="background:${sport.color}"></div>
-        <div><span class="sport-name">${sport.name}</span>${badge}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:5px;">
-        <span class="sport-count" id="count-${sport.id}">–</span>
-        <div class="toggle-switch"></div>
-      </div>`;
-    div.addEventListener('click',()=>{
-      if(state.activeSports.has(sport.id)){
-        state.activeSports.delete(sport.id);
-        div.classList.remove('active');
-      } else {
-        state.activeSports.add(sport.id);
-        div.classList.add('active');
-      }
-      settingsSave(saveActiveSports);
-      if(state.showEnded) buildEndedLeagueToggles();
-      renderScoreboard();
+  SIDEBAR_GROUPS.forEach(group=>{
+    const groupSports=ALL_SPORTS.filter(s=>s.group===group.key&&state.enabledSports.has(s.id));
+    if(!groupSports.length) return;
+    // Group header
+    const hdr=document.createElement('div');
+    hdr.style.cssText='font-family:"Barlow Condensed",sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);padding:8px 2px 4px;margin-top:2px;';
+    hdr.textContent=group.label;
+    c.appendChild(hdr);
+    // Sport toggles within group
+    groupSports.forEach(sport=>{
+      const active=state.activeSports.has(sport.id);
+      const season=state.seasonMeta[sport.id];
+      const isOff=season?.isOff||false;
+      const div=document.createElement('div');
+      div.className=`sport-toggle${active?' active':''}${isOff?' off-season':''}`;
+      div.id=`sport-toggle-${sport.id}`;
+      div.dataset.sport=sport.id;
+      let badge='';
+      if(season&&season.key!=='reg')badge=`<span class="sport-season-badge ${season.key}">${season.label}</span>`;
+      div.innerHTML=`
+        <div class="sport-info">
+          <div class="sport-dot" style="background:${sport.color}"></div>
+          <div><span class="sport-name">${sport.name}</span>${badge}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;">
+          <span class="sport-count" id="count-${sport.id}">–</span>
+          <div class="toggle-switch"></div>
+        </div>`;
+      div.addEventListener('click',()=>{
+        if(state.activeSports.has(sport.id)){
+          state.activeSports.delete(sport.id);
+          div.classList.remove('active');
+        } else {
+          state.activeSports.add(sport.id);
+          div.classList.add('active');
+        }
+        settingsSave(saveActiveSports);
+        if(state.showEnded) buildEndedLeagueToggles();
+        renderScoreboard();
+      });
+      c.appendChild(div);
     });
-    c.appendChild(div);
   });
 }
 
@@ -5925,7 +5943,7 @@ async function fetchPGAData(sport, sbConfig){
     state.seasonMeta[sport.id]={key:'off',label:'Off Season',isOff:true};
     return cards;
   }
-  state.seasonMeta[sport.id]={key:'regular',label:'Regular Season',isOff:false};
+  state.seasonMeta[sport.id]={key:'reg',label:'Regular Season',isOff:false};
 
   // Load PGA player cache (headshots, flags) — built by GHA workflow
   let pgaPlayerCache={};
@@ -6114,7 +6132,7 @@ async function fetchNascarData(sport, sbConfig){
     state.seasonMeta[sport.id]={key:'off',label:'Off Season',isOff:true};
     return [];
   }
-  state.seasonMeta[sport.id]={key:'regular',label:'Regular Season',isOff:false};
+  state.seasonMeta[sport.id]={key:'reg',label:'Regular Season',isOff:false};
 
   const showLive=mc[`${mcPrefix}_live`]!==false;
   const showLast=mc[`${mcPrefix}_last`]!==false;
@@ -6364,7 +6382,7 @@ async function fetchF1Data(sport, sbConfig){
     state.seasonMeta[sport.id]={key:'off',label:'Off Season',isOff:true};
     return [];
   }
-  state.seasonMeta[sport.id]={key:'regular',label:'Regular Season',isOff:false};
+  state.seasonMeta[sport.id]={key:'reg',label:'Regular Season',isOff:false};
   try{
     const [nextR, lastR, standR] = await Promise.all([
       fetch('https://api.jolpi.ca/ergast/f1/current/next.json',{signal:AbortSignal.timeout(6000)}).then(r=>r.json()),
@@ -7983,7 +8001,7 @@ async function refreshTickerStatusPanel(){
             <div style="font-size:13px;color:var(--text-primary);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.channel_name||'Channel '+t.channel_id}</div>
             <div style="font-size:11px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;margin-top:2px;">Profile #${t.ticker_profile_id} · since ${t.created_at?new Date(t.created_at+'Z').toLocaleTimeString():''}</div>
           </div>
-          <button onclick="disableTickerBySb(${t.scoreboard_id})" style="padding:4px 10px;background:rgba(255,59,92,0.08);border:1px solid var(--accent-red);border-radius:6px;color:var(--accent-red);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.5px;cursor:pointer;white-space:nowrap;flex-shrink:0;">KILL</button>
+          <button onclick="disableTickerByChannel(${t.channel_id})" style="padding:4px 10px;background:rgba(255,59,92,0.08);border:1px solid var(--accent-red);border-radius:6px;color:var(--accent-red);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.5px;cursor:pointer;white-space:nowrap;flex-shrink:0;">KILL</button>
         </div>`).join('');
       // Remove bottom border from last item
       const last=listEl.lastElementChild;
@@ -7992,11 +8010,11 @@ async function refreshTickerStatusPanel(){
   }catch(e){}
 }
 
-async function disableTickerBySb(sbId){
+async function disableTickerByChannel(chId){
   try{
     const r=await fetch(`${API_BASE}/ticker/disable`,{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({scoreboard_id:sbId}),signal:AbortSignal.timeout(20000)
+      body:JSON.stringify({channel_id:chId}),signal:AbortSignal.timeout(20000)
     });
     const d=await r.json();
     if(r.ok&&d.ok){
@@ -8004,6 +8022,12 @@ async function disableTickerBySb(sbId){
     }else{showTickerResult('Error: '+(d.error||JSON.stringify(d)),false);}
   }catch(e){showTickerResult('Error: '+e.message,false);}
   loadTickerConfig();
+}
+
+// Legacy alias (kept for backward compat with any old bookmarked calls)
+async function disableTickerBySb(sbId){
+  // Fall back to disabling by scoreboard_id (may match multiple on old schema)
+  await disableTickerByChannel(sbId);
 }
 
 async function disableAllTickers(){
@@ -8605,11 +8629,13 @@ async function enableTickerOverlay(){
 }
 
 async function disableTickerOverlay(){
+  const cfg=getTickerConfig();
+  if(!cfg.channel_id){showTickerResult('Select the channel to disable first.',false);return;}
   showTickerResult('Disabling...',true);
   try{
     const r=await fetch(`${API_BASE}/ticker/disable`,{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({}),signal:AbortSignal.timeout(20000)
+      body:JSON.stringify({channel_id:cfg.channel_id}),signal:AbortSignal.timeout(20000)
     });
     const d=await r.json();
     if(r.ok&&d.ok){
