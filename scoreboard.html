@@ -1433,6 +1433,18 @@ body.stream-mode .card-header{padding:4px 10px;}
         <div class="sport-grid" id="tsg-ncaaw" style="margin-bottom:14px;"></div>
       </div>
 
+      <!-- Custom Text -->
+      <div style="margin-bottom:20px;">
+        <div class="section-label" style="margin-bottom:4px;">✏ Custom Text</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.5;">Scroll a hardcoded message instead of sport scores — useful for announcements, subscription reminders, or any static text. When enabled, sport sources above are ignored.</div>
+        <label style="display:flex;align-items:center;gap:10px;margin-bottom:10px;cursor:pointer;">
+          <input type="checkbox" id="tickerCustomEnabled" onchange="updateTickerPreview()" style="cursor:pointer;accent-color:var(--accent);width:16px;height:16px;">
+          <span style="font-size:13px;color:var(--text-secondary);font-family:'Barlow Condensed',sans-serif;font-weight:700;">Enable custom text (overrides sport sources)</span>
+        </label>
+        <textarea id="tickerCustomText" rows="3" placeholder="Your subscription expires on 12/31/2026" oninput="updateTickerPreview()"
+          style="width:100%;padding:10px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-family:'Barlow Condensed',sans-serif;font-size:13px;outline:none;resize:vertical;box-sizing:border-box;line-height:1.5;"></textarea>
+      </div>
+
       <!-- Appearance -->
       <div style="margin-bottom:20px;">
         <div class="section-label" style="margin-bottom:14px;">🎨 Appearance</div>
@@ -1514,7 +1526,7 @@ body.stream-mode .card-header{padding:4px 10px;}
       <div style="background:rgba(255,107,0,0.05);border:1px solid rgba(255,107,0,0.2);border-radius:8px;padding:14px;">
         <div style="font-size:11px;font-weight:700;color:#ff6b00;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">⚠ Shared Volume Required</div>
         <div style="font-size:12px;color:var(--text-secondary);line-height:1.7;">
-          Score data is written to <code style="background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:3px;">/ticker/scores.txt</code> by the ScoreStream stream container.
+          Score data is written to <code style="background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:3px;">/ticker/scores_&lt;channel_id&gt;.txt</code> per active ticker by the ScoreStream stream container.
           Both ScoreStream and Dispatcharr must mount the <code style="background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:3px;">scorestream_ticker</code> Docker volume at <code style="background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:3px;">/ticker</code>.
         </div>
       </div>
@@ -5659,6 +5671,10 @@ async function fetchTennisData(sport, sbConfig){
     const r=await fetch(sport.url,{signal:AbortSignal.timeout(7000)});
     if(!r.ok) return [];
     const data=await r.json();
+    // Read ESPN season type for off-season badge (same as standard fetchSport flow)
+    const _tSType=data.leagues?.[0]?.season?.type??data.season?.type??2;
+    const _tSName=data.leagues?.[0]?.season?.displayName??data.season?.displayName??'';
+    state.seasonMeta[sport.id]=getSeasonMeta(_tSType,_tSName);
     const cards=[];
     for(const ev of (data.events||[])){
       const tournamentName=ev.name||'';
@@ -5903,6 +5919,14 @@ async function fetchPGAData(sport, sbConfig){
   const _madeCut=pos=>/^T?\d+$/.test((pos||'').trim());
   const cards = [];
 
+  // Off-season gate: PGA season runs approximately October–August (September is transition break)
+  const _pgaMonth=new Date().getMonth()+1;
+  if(_pgaMonth===9){
+    state.seasonMeta[sport.id]={key:'off',label:'Off Season',isOff:true};
+    return cards;
+  }
+  state.seasonMeta[sport.id]={key:'regular',label:'Regular Season',isOff:false};
+
   // Load PGA player cache (headshots, flags) — built by GHA workflow
   let pgaPlayerCache={};
   const pgaNameToCache={};
@@ -6083,6 +6107,14 @@ async function fetchNascarData(sport, sbConfig){
   let seriesId=1, mcPrefix='nascar', standKey='nascar-2026-season', histKey='nascar-history', lastKey='nascar-last';
   if(sport.id==='nascar-noaps'){ seriesId=2; mcPrefix='noaps'; standKey='nascar-noaps-season'; histKey='nascar-noaps-history'; lastKey='nascar-noaps-last'; }
   else if(sport.id==='nascar-trucks'){  seriesId=3; mcPrefix='trucks';  standKey='nascar-trucks-season';  histKey='nascar-trucks-history';  lastKey='nascar-trucks-last';  }
+
+  // Off-season gate: NASCAR season runs approximately February–November
+  const _nasMonth=new Date().getMonth()+1;
+  if(_nasMonth===12||_nasMonth===1){
+    state.seasonMeta[sport.id]={key:'off',label:'Off Season',isOff:true};
+    return [];
+  }
+  state.seasonMeta[sport.id]={key:'regular',label:'Regular Season',isOff:false};
 
   const showLive=mc[`${mcPrefix}_live`]!==false;
   const showLast=mc[`${mcPrefix}_last`]!==false;
@@ -6326,6 +6358,13 @@ async function fetchF1Data(sport, sbConfig){
   }catch(e){ console.warn('[f1] driver cache unavailable',e); }
   const _f1Hs=name=>{if(!showHeadshots||!name)return null;const n=name.toLowerCase();
     return nameToF1Hs[n]||nameToF1Hs[n.split(' ').pop()]||nameToF1Hs[n.replace(/^[a-z]\.\s*/,'')]||null;};
+  // Off-season gate: F1 season runs approximately March–November/December
+  const _f1Month=new Date().getMonth()+1;
+  if(_f1Month===1||_f1Month===2){
+    state.seasonMeta[sport.id]={key:'off',label:'Off Season',isOff:true};
+    return [];
+  }
+  state.seasonMeta[sport.id]={key:'regular',label:'Regular Season',isOff:false};
   try{
     const [nextR, lastR, standR] = await Promise.all([
       fetch('https://api.jolpi.ca/ergast/f1/current/next.json',{signal:AbortSignal.timeout(6000)}).then(r=>r.json()),
@@ -7817,6 +7856,11 @@ async function loadTickerConfig(){
         if(btn&&count>0) btn.textContent=`✎${count}`;
       });
     }
+    // Custom text
+    const _ctCb=document.getElementById('tickerCustomEnabled');
+    if(_ctCb) _ctCb.checked=!!(cfg.custom_text_enabled);
+    const _ctTa=document.getElementById('tickerCustomText');
+    if(_ctTa&&cfg.custom_text) _ctTa.value=cfg.custom_text;
     // Channel
     if(cfg.channel_id){
       _tickerSelectedChannelId=cfg.channel_id;
@@ -8083,7 +8127,9 @@ function updateTickerPreview(){
   bar.style.background='rgba(0,0,0,'+opacity+')';
   bar.style.padding=Math.round(scaledFont*0.35)+'px '+Math.round(scaledFont*0.5)+'px';
   txt.style.fontSize=scaledFont+'px';
-  txt.textContent=_tickerSampleText;
+  const _customOn=document.getElementById('tickerCustomEnabled')?.checked;
+  const _customTxt=document.getElementById('tickerCustomText')?.value?.trim()||'';
+  txt.textContent=(_customOn&&_customTxt)?_customTxt:_tickerSampleText;
   // Animate scroll
   if(_tickerPreviewAnim){cancelAnimationFrame(_tickerPreviewAnim);_tickerPreviewAnim=null;}
   if(speed===0){
@@ -8489,6 +8535,8 @@ function getTickerConfig(){
     sports,
     favorites_only:favs,
     sport_teams:_tickerTeamSelections,
+    custom_text_enabled:document.getElementById('tickerCustomEnabled')?.checked||false,
+    custom_text:document.getElementById('tickerCustomText')?.value?.trim()||'',
   };
 }
 
@@ -8519,10 +8567,13 @@ function resetTickerDefaults(){
   });
   // Clear team selections
   _tickerTeamSelections={};
+  // Clear custom text
+  const _ctCbR=document.getElementById('tickerCustomEnabled');if(_ctCbR)_ctCbR.checked=false;
+  const _ctTaR=document.getElementById('tickerCustomText');if(_ctTaR)_ctTaR.value='';
   // Save cleared config
   fetch(`${API_BASE}/ticker/config`,{
     method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({font_size:28,position:'bottom',scroll_speed:150,bg_opacity:0.75,sports:[],favorites_only:{},sport_teams:{},channel_id:_tickerSelectedChannelId||null})
+    body:JSON.stringify({font_size:28,position:'bottom',scroll_speed:150,bg_opacity:0.75,sports:[],favorites_only:{},sport_teams:{},channel_id:_tickerSelectedChannelId||null,custom_text_enabled:false,custom_text:''})
   });
   showTickerResult('Settings reset to defaults.',true);
 }
@@ -8530,7 +8581,8 @@ function resetTickerDefaults(){
 async function enableTickerOverlay(){
   const cfg=getTickerConfig();
   if(!cfg.channel_id){showTickerResult('Select a Dispatcharr channel first.',false);return;}
-  if(!cfg.sports.length){showTickerResult('Select at least one sport source.',false);return;}
+  if(!cfg.sports.length&&!cfg.custom_text_enabled){showTickerResult('Select at least one sport source, or enable custom text.',false);return;}
+  if(cfg.custom_text_enabled&&!cfg.custom_text){showTickerResult('Enter custom text before enabling.',false);return;}
   if(_tickerSelectedProfileCommand&&!_tickerSelectedProfileCommand.includes('ffmpeg')){
     showTickerResult('Selected channel does not use an FFmpeg stream profile. Ticker overlay requires FFmpeg.',false);return;
   }
