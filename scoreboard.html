@@ -6090,18 +6090,49 @@ async function fetchNascarData(sport, sbConfig){
   // series_name from cache is authoritative — allows name changes without code deploy
   let seriesDisplayName=sport.name;
 
-  // Load NASCAR driver cache (ESPN CDN headshots) — all series share the same pool
+  // Load NASCAR driver headshots from official NASCAR roster (cf.nascar.com)
+  // nascar-drivers cache now has: {name_map: {key→fullName}, images: {key→{helmet,firesuit}}}
   const nameToNascarHs={};
   try{
     const pcRes=await fetch(`${API_BASE}/motor/cache/nascar-drivers`,{signal:AbortSignal.timeout(3000)});
-    if(pcRes.ok){ const pd=await pcRes.json(); const cache=pd.data||{}; Object.values(cache).forEach(d=>{if(d.name&&d.headshot){nameToNascarHs[d.name.toLowerCase()]=d.headshot;
-      // Also index by last name for abbreviated name lookups ("C. Elliott" → "Chase Elliott")
-      const parts=d.name.split(' '); if(parts.length>=2) nameToNascarHs[parts[parts.length-1].toLowerCase()]=d.headshot;
-    }}); }
-    console.log(`[${sport.id}] driver cache: ${Object.keys(nameToNascarHs).length} entries`);
+    if(pcRes.ok){
+      const pd=await pcRes.json();
+      const cacheData=pd.data||{};
+      if(cacheData.name_map && cacheData.images){
+        // New structure: keyed by normalized abbreviated name
+        for(const [k, imgData] of Object.entries(cacheData.images)){
+          const fullName=cacheData.name_map[k];
+          const url=(imgData.helmet||imgData.firesuit||'').replace(/\s+$/,'');
+          if(fullName && url && !url.includes('default.png')){
+            nameToNascarHs[fullName.toLowerCase()]=url;
+            const parts=fullName.split(' ');
+            if(parts.length>=2) nameToNascarHs[parts[parts.length-1].toLowerCase()]=url;
+          }
+        }
+      } else {
+        // Legacy fallback: old flat {name, headshot} format
+        Object.values(cacheData).forEach(d=>{if(d&&d.name&&d.headshot){
+          nameToNascarHs[d.name.toLowerCase()]=d.headshot;
+          const parts=d.name.split(' '); if(parts.length>=2) nameToNascarHs[parts[parts.length-1].toLowerCase()]=d.headshot;
+        }});
+      }
+    }
+    console.log(`[${sport.id}] driver headshots: ${Object.keys(nameToNascarHs).length} entries`);
   }catch(e){ console.warn(`[${sport.id}] driver cache unavailable`,e); }
-  const _nasHs=name=>{if(!showHeadshots||!name)return null;const n=name.toLowerCase();
-    return nameToNascarHs[n]||nameToNascarHs[n.split(' ').pop()]||nameToNascarHs[n.replace(/^[a-z]\.\s*/,'')]||null;};
+  const _nasHs=name=>{
+    if(!showHeadshots||!name) return null;
+    const n=name.toLowerCase();
+    // 1. Full name match
+    if(nameToNascarHs[n]) return nameToNascarHs[n];
+    // 2. Last name match (handles "T. Reddick" → "reddick" → "Tyler Reddick" URL)
+    const last=n.split(' ').pop();
+    if(nameToNascarHs[last]) return nameToNascarHs[last];
+    // 3. Direct image lookup via normalized key (uses the globally-loaded _nascarDriverImages)
+    const k=n.replace(/\s*#\d*\s*$/,'').replace(/\s*\.\s*/g,'.').trim();
+    const img=_nascarDriverImages[k];
+    if(img){const url=(img.helmet||img.firesuit||'').replace(/\s+$/,'');if(url&&!url.includes('default.png'))return url;}
+    return null;
+  };
   try{
     const r=await fetch('https://cf.nascar.com/live/feeds/live-feed.json',{signal:AbortSignal.timeout(6000)});
     if(!r.ok) return [];
@@ -6484,7 +6515,8 @@ function _normNascarMfr(m){
 // Expand abbreviated NASCAR driver names (e.g. "T. Reddick" → "Tyler Reddick")
 // Keys are normalized lowercase: spaces stripped around dots, NO trailing-dot removal
 // (preserving "jr." so "R. Stenhouse Jr." → key "r.stenhouse jr." matches correctly).
-const _NASCAR_DRIVERS={
+// Static table = overrides + fallback. Dynamic map from nascar-drivers cache is merged in at load.
+let _NASCAR_DRIVERS={
   // ── Cup Series ──────────────────────────────────────────────────────────────
   'r.blaney':'Ryan Blaney',
   'w.byron':'William Byron',
@@ -6587,6 +6619,25 @@ const _NASCAR_DRIVERS={
   'd.hemric':'Daniel Hemric',
   'g.ruggiero':'Giovanni Ruggiero',
 };
+// Driver images from the NASCAR roster API: normalized_key → {id, helmet, firesuit}
+let _nascarDriverImages = {};
+// Merge dynamic map from motor cache into static table (static entries take precedence)
+(async function _loadNascarDriverMap(){
+  try {
+    const r = await fetch(`${API_BASE}/motor/cache/nascar-drivers`, {signal: AbortSignal.timeout(6000)});
+    if(!r.ok) return;
+    const j = await r.json();
+    const d = j.data || {};
+    const dynMap = d.name_map || {};
+    const dynImages = d.images || {};
+    let added = 0;
+    for(const [k, v] of Object.entries(dynMap)){
+      if(!_NASCAR_DRIVERS[k]){ _NASCAR_DRIVERS[k] = v; added++; }
+    }
+    Object.assign(_nascarDriverImages, dynImages);
+    if(added > 0) console.log(`[NASCAR] dynamic driver map merged: +${added} new keys (${Object.keys(_NASCAR_DRIVERS).length} total)`);
+  } catch(e){ /* non-fatal — static table still works */ }
+})();
 function _normNascarDriver(name){
   if(!name) return name;
   // Strip trailing car-number artifacts: "Connor Zilisch #" or "Connor Zilisch #77"
