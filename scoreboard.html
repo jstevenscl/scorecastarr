@@ -8845,7 +8845,6 @@ async function enableTickerOverlay(){
       await refreshTickerStatusPanel();
       _updateTickerSelection();
       updateTickerPreview();
-      loadTickerConfig();
     }else{showTickerResult('Error: '+(d.error||JSON.stringify(d)),false);}
   }catch(e){showTickerResult('Error: '+e.message,false);}
 }
