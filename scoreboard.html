@@ -7960,10 +7960,14 @@ function renderTickerChannelList(){
     const isActive=_tickerActiveChannelIds.has(ch.id);
     const checked=_tickerSelectedChannels.has(ch.id)?'checked':'';
     if(isActive){
+      const lbl=_tickerActiveLabels.get(ch.id)||'';
       // Locked row — ticker already running, must KILL before reconfiguring
-      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);opacity:0.55;cursor:not-allowed;" title="Ticker already active on this channel — KILL it first to reconfigure">
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);opacity:0.6;cursor:not-allowed;" title="Ticker already active on this channel — KILL it first to reconfigure">
         <input type="checkbox" disabled style="width:14px;height:14px;flex-shrink:0;cursor:not-allowed;">
-        <span style="flex:1;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--text-primary);">${ch.name}${num}${grp}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ch.name}${num}${grp}</div>
+          ${lbl?`<div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:600;color:var(--accent);letter-spacing:0.3px;margin-top:1px;">${lbl}</div>`:''}
+        </div>
         <span style="font-size:9px;font-weight:700;letter-spacing:0.5px;color:var(--accent-green);flex-shrink:0;">● LIVE</span>
       </div>`;
     }
@@ -7980,6 +7984,7 @@ function filterTickerChannels(){
 
 let _tickerSelectedChannels=new Map(); // id → channel object
 let _tickerActiveChannelIds=new Set(); // ids of channels with an active ticker right now
+let _tickerActiveLabels=new Map();    // id → ticker_label string (sports or "Custom Text")
 
 function onTickerChannelCheck(chId, checked){
   const ch=_tickerChannels.find(c=>c.id===chId)||{id:chId,name:'Channel '+chId,channel_group_name:'',channel_number:null};
@@ -8064,6 +8069,7 @@ async function refreshTickerStatusPanel(){
     const active=d.active||[];
     // Track which channels have active tickers so the channel list can badge them
     _tickerActiveChannelIds=new Set(active.map(t=>t.channel_id));
+    _tickerActiveLabels=new Map(active.map(t=>[t.channel_id, t.ticker_label||'']));
     renderTickerChannelList();
     _updateTickerSelection();
     if(active.length===0){
@@ -8082,7 +8088,10 @@ async function refreshTickerStatusPanel(){
         <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);" data-sb="${t.scoreboard_id}">
           <div style="flex:1;min-width:0;">
             <div style="font-size:13px;color:var(--text-primary);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.channel_name||'Channel '+t.channel_id}</div>
-            <div style="font-size:11px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;margin-top:2px;">Profile #${t.ticker_profile_id} · since ${t.created_at?new Date(t.created_at+'Z').toLocaleTimeString():''}</div>
+            <div style="font-size:11px;margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              <span style="color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:0.3px;">${t.ticker_label||''}</span>
+              <span style="color:var(--text-dim);font-family:'Share Tech Mono',monospace;">· since ${t.created_at?new Date(t.created_at+'Z').toLocaleTimeString():''}</span>
+            </div>
           </div>
           <button onclick="disableTickerByChannel(${t.channel_id})" style="padding:4px 10px;background:rgba(255,59,92,0.08);border:1px solid var(--accent-red);border-radius:6px;color:var(--accent-red);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.5px;cursor:pointer;white-space:nowrap;flex-shrink:0;">KILL</button>
         </div>`).join('');
