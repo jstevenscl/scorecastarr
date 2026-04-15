@@ -7825,7 +7825,11 @@ const _TICKER_GROUPS=[
 
 async function onSectionTicker(){
   buildTickerSportsGrid();
-  await Promise.all([loadTickerChannels(), loadTickerImportScoreboards()]);
+  // Fetch active ticker status FIRST so _tickerActiveChannelIds is populated
+  // before loadTickerChannels() renders the list — otherwise active channels
+  // won't be locked/greyed out on initial open.
+  await Promise.all([refreshTickerStatusPanel(), loadTickerImportScoreboards()]);
+  await loadTickerChannels();
   await loadTickerConfig();
   updateTickerPreview();
 }
@@ -8086,13 +8090,12 @@ async function refreshTickerStatusPanel(){
       listEl.style.display='block';
       listEl.innerHTML=active.map(t=>{
         const changes=t.param_changes||[];
-        const hasCritical=changes.some(c=>c.startsWith('CRITICAL'));
         const hasWarn=changes.some(c=>c.startsWith('WARNING'));
-        const warnColor=hasCritical?'var(--accent-red)':hasWarn?'#f5a623':'var(--accent)';
-        const warnPill=changes.length?`<span onclick="toggleTickerChanges(${t.channel_id})" style="cursor:pointer;font-size:9px;font-weight:800;color:${warnColor};background:${hasCritical?'rgba(255,59,92,0.1)':hasWarn?'rgba(245,166,35,0.1)':'rgba(0,212,255,0.1)'};border:1px solid ${warnColor};border-radius:4px;padding:1px 5px;letter-spacing:0.3px;flex-shrink:0;" title="FFmpeg param adjustments — click to view">⚙ ${hasCritical?'CRITICAL':hasWarn?'WARN':'INFO'}</span>`:'';
+        const warnColor=hasWarn?'#f5a623':'var(--accent)';
+        const warnPill=changes.length?`<span onclick="toggleTickerChanges(${t.channel_id})" style="cursor:pointer;font-size:9px;font-weight:800;color:${warnColor};background:${hasWarn?'rgba(245,166,35,0.1)':'rgba(0,212,255,0.1)'};border:1px solid ${warnColor};border-radius:4px;padding:1px 5px;letter-spacing:0.3px;flex-shrink:0;" title="FFmpeg param adjustments — click to view">⚙ ${hasWarn?'WARN':'INFO'}</span>`:'';
         const changeRows=changes.map(c=>{
           const[lvl,...rest]=c.split(':');
-          const col=lvl==='CRITICAL'?'var(--accent-red)':lvl==='WARNING'?'#f5a623':'var(--accent)';
+          const col=lvl==='WARNING'?'#f5a623':'var(--accent)';
           return `<div style="display:flex;gap:6px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);align-items:flex-start;">
             <span style="font-size:8px;font-weight:800;color:${col};flex-shrink:0;margin-top:2px;">${lvl}</span>
             <span style="font-size:10px;color:var(--text-secondary);">${rest.join(':').trim()}</span>
@@ -8773,7 +8776,7 @@ async function enableTickerOverlay(){
           const name=chMap.get(r.channel_id)||('Channel '+r.channel_id);
           const rows=r.param_changes.map(c=>{
             const [lvl,...rest]=c.split(':');
-            const color=lvl==='CRITICAL'?'var(--accent-red)':lvl==='WARNING'?'#f5a623':'var(--accent)';
+            const color=lvl==='WARNING'?'#f5a623':'var(--accent)';
             return `<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);align-items:flex-start;">
               <span style="font-size:9px;font-weight:800;color:${color};letter-spacing:0.5px;flex-shrink:0;margin-top:1px;">${lvl}</span>
               <span style="color:var(--text-secondary);font-size:11px;">${rest.join(':').trim()}</span>
