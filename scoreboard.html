@@ -7957,12 +7957,19 @@ function renderTickerChannelList(){
   listEl.innerHTML=filtered.map(ch=>{
     const num=ch.channel_number?` <span style="color:var(--text-dim);font-size:11px;">(${Math.floor(ch.channel_number)})</span>`:'';
     const grp=ch.channel_group_name?` <span style="color:var(--text-dim);font-size:10px;">· ${ch.channel_group_name}</span>`:'';
+    const isActive=_tickerActiveChannelIds.has(ch.id);
     const checked=_tickerSelectedChannels.has(ch.id)?'checked':'';
-    const activeBadge=_tickerActiveChannelIds.has(ch.id)?`<span style="margin-left:auto;font-size:9px;font-weight:700;letter-spacing:0.5px;color:var(--accent-green);flex-shrink:0;" title="Ticker currently active">● LIVE</span>`:'';
+    if(isActive){
+      // Locked row — ticker already running, must KILL before reconfiguring
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);opacity:0.55;cursor:not-allowed;" title="Ticker already active on this channel — KILL it first to reconfigure">
+        <input type="checkbox" disabled style="width:14px;height:14px;flex-shrink:0;cursor:not-allowed;">
+        <span style="flex:1;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--text-primary);">${ch.name}${num}${grp}</span>
+        <span style="font-size:9px;font-weight:700;letter-spacing:0.5px;color:var(--accent-green);flex-shrink:0;">● LIVE</span>
+      </div>`;
+    }
     return `<label style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background=''">
       <input type="checkbox" value="${ch.id}" ${checked} onchange="onTickerChannelCheck(${ch.id},this.checked)" style="cursor:pointer;accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;">
       <span style="flex:1;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--text-primary);">${ch.name}${num}${grp}</span>
-      ${activeBadge}
     </label>`;
   }).join('');
 }
