@@ -1454,7 +1454,7 @@ body.stream-mode .card-header{padding:4px 10px;}
           <input type="checkbox" id="tickerCustomEnabled" onchange="updateTickerPreview()" style="cursor:pointer;accent-color:var(--accent);width:16px;height:16px;">
           <span style="font-size:13px;color:var(--text-secondary);font-family:'Barlow Condensed',sans-serif;font-weight:700;">Enable custom text (overrides sport sources)</span>
         </label>
-        <textarea id="tickerCustomText" rows="3" placeholder="Your subscription expires on 12/31/2026" oninput="updateTickerPreview()"
+        <textarea id="tickerCustomText" rows="3" placeholder="Check out the new scoreboard from ScoreStream on the Sports Group!" oninput="updateTickerPreview()"
           style="width:100%;padding:10px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-family:'Barlow Condensed',sans-serif;font-size:13px;outline:none;resize:vertical;box-sizing:border-box;line-height:1.5;"></textarea>
       </div>
 
@@ -7925,13 +7925,8 @@ async function loadTickerConfig(){
     if(_ctCb) _ctCb.checked=!!(cfg.custom_text_enabled);
     const _ctTa=document.getElementById('tickerCustomText');
     if(_ctTa&&cfg.custom_text) _ctTa.value=cfg.custom_text;
-    // CPU Saver
-    const _csScale=document.getElementById('tickerCpuScale');
-    if(_csScale) _csScale.checked=!!(cfg.cpu_saver_scale);
-    const _csFps=document.getElementById('tickerCpuFps');
-    if(_csFps) _csFps.checked=!!(cfg.cpu_saver_fps);
-    const _csCrf=document.getElementById('tickerCpuCrf');
-    if(_csCrf) _csCrf.checked=!!(cfg.cpu_saver_crf);
+    // CPU Saver — intentionally NOT restored; always defaults to off on open
+    // so users consciously choose these tradeoffs for each new ticker session.
     // Channel selection is intentionally NOT restored — it should always start
     // fresh so users can't accidentally re-enable against a stale selection.
     updateTickerStatusUI(cfg);
@@ -8268,6 +8263,7 @@ function updateScrollLabel(){
 // ---- Ticker Preview ----
 let _tickerPreviewAnim=null;
 const _tickerSampleText='NBA: LAL 108 @ BOS 112 (Q4 2:15)    \u00b7    NHL: NYR 3 @ TOR 4 (3rd 8:42)    \u00b7    MLB: NYY 5 @ LAD 3 (7th)    \u00b7    PGA (Masters): S. Scheffler -12  R. McIlroy -9  J. Spieth -7';
+const _tickerCustomSampleText='Check out the new scoreboard from ScoreStream on the Sports Group!';
 function updateTickerPreview(){
   const bar=document.getElementById('tickerPreviewBar');
   const txt=document.getElementById('tickerPreviewText');
