@@ -8084,17 +8084,36 @@ async function refreshTickerStatusPanel(){
     if(killAllBtn)killAllBtn.style.display=active.length>1?'inline-block':'none';
     if(listEl){
       listEl.style.display='block';
-      listEl.innerHTML=active.map(t=>`
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);" data-sb="${t.scoreboard_id}">
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;color:var(--text-primary);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.channel_name||'Channel '+t.channel_id}</div>
-            <div style="font-size:11px;margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-              <span style="color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:0.3px;">${t.ticker_label||''}</span>
-              <span style="color:var(--text-dim);font-family:'Share Tech Mono',monospace;">· since ${t.created_at?new Date(t.created_at+'Z').toLocaleTimeString():''}</span>
+      listEl.innerHTML=active.map(t=>{
+        const changes=t.param_changes||[];
+        const hasCritical=changes.some(c=>c.startsWith('CRITICAL'));
+        const hasWarn=changes.some(c=>c.startsWith('WARNING'));
+        const warnColor=hasCritical?'var(--accent-red)':hasWarn?'#f5a623':'var(--accent)';
+        const warnPill=changes.length?`<span onclick="toggleTickerChanges(${t.channel_id})" style="cursor:pointer;font-size:9px;font-weight:800;color:${warnColor};background:${hasCritical?'rgba(255,59,92,0.1)':hasWarn?'rgba(245,166,35,0.1)':'rgba(0,212,255,0.1)'};border:1px solid ${warnColor};border-radius:4px;padding:1px 5px;letter-spacing:0.3px;flex-shrink:0;" title="FFmpeg param adjustments — click to view">⚙ ${hasCritical?'CRITICAL':hasWarn?'WARN':'INFO'}</span>`:'';
+        const changeRows=changes.map(c=>{
+          const[lvl,...rest]=c.split(':');
+          const col=lvl==='CRITICAL'?'var(--accent-red)':lvl==='WARNING'?'#f5a623':'var(--accent)';
+          return `<div style="display:flex;gap:6px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);align-items:flex-start;">
+            <span style="font-size:8px;font-weight:800;color:${col};flex-shrink:0;margin-top:2px;">${lvl}</span>
+            <span style="font-size:10px;color:var(--text-secondary);">${rest.join(':').trim()}</span>
+          </div>`;
+        }).join('');
+        const changePanel=changes.length?`<div id="tickerChanges_${t.channel_id}" style="display:none;padding:6px 16px 10px;background:rgba(0,0,0,0.2);border-top:1px solid var(--border);">${changeRows}<div style="font-size:10px;color:var(--text-dim);margin-top:6px;">Original profile restored automatically when KILL is pressed.</div></div>`:'';
+        return `<div style="border-bottom:1px solid var(--border);" data-sb="${t.scoreboard_id}">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;color:var(--text-primary);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.channel_name||'Channel '+t.channel_id}</div>
+              <div style="font-size:11px;margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                <span style="color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:0.3px;">${t.ticker_label||''}</span>
+                ${warnPill}
+                <span style="color:var(--text-dim);font-family:'Share Tech Mono',monospace;">· since ${t.created_at?new Date(t.created_at+'Z').toLocaleTimeString():''}</span>
+              </div>
             </div>
+            <button onclick="disableTickerByChannel(${t.channel_id})" style="padding:4px 10px;background:rgba(255,59,92,0.08);border:1px solid var(--accent-red);border-radius:6px;color:var(--accent-red);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.5px;cursor:pointer;white-space:nowrap;flex-shrink:0;">KILL</button>
           </div>
-          <button onclick="disableTickerByChannel(${t.channel_id})" style="padding:4px 10px;background:rgba(255,59,92,0.08);border:1px solid var(--accent-red);border-radius:6px;color:var(--accent-red);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.5px;cursor:pointer;white-space:nowrap;flex-shrink:0;">KILL</button>
-        </div>`).join('');
+          ${changePanel}
+        </div>`;
+      }).join('');
       // Remove bottom border from last item
       const last=listEl.lastElementChild;
       if(last)last.style.borderBottom='none';
@@ -8666,6 +8685,32 @@ function showTickerResult(msg,ok){
   el.textContent=msg;
 }
 
+function toggleTickerChanges(chId){
+  const el=document.getElementById('tickerChanges_'+chId);
+  if(el) el.style.display=el.style.display==='none'?'block':'none';
+}
+
+function showTickerParamWarning(html){
+  // Show a collapsible amber warning panel listing FFmpeg parameter adjustments
+  let el=document.getElementById('tickerParamWarning');
+  if(!el){
+    el=document.createElement('div');
+    el.id='tickerParamWarning';
+    const ref=document.getElementById('tickerActionResult');
+    if(ref&&ref.parentNode) ref.parentNode.insertBefore(el,ref.nextSibling);
+    else return;
+  }
+  el.style.cssText='margin-top:8px;border:1px solid rgba(245,166,35,0.35);border-radius:8px;background:rgba(245,166,35,0.06);overflow:hidden;';
+  el.innerHTML=`
+    <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.twarn-arrow').textContent=this.nextElementSibling.style.display==='none'?'▶':'▼';"
+         style="display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;user-select:none;">
+      <span style="font-size:13px;">⚠</span>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;color:#f5a623;letter-spacing:0.3px;flex:1;">FFmpeg Profile Adjustments — original restored on KILL</span>
+      <span class="twarn-arrow" style="font-size:10px;color:#f5a623;">▼</span>
+    </div>
+    <div style="padding:0 14px 12px;display:block;">${html}</div>`;
+}
+
 function resetTickerDefaults(){
   // Appearance defaults
   document.getElementById('tickerFontSize').value=28;
@@ -8720,6 +8765,27 @@ async function enableTickerOverlay(){
       let msg=`Ticker enabled on ${ok} channel${ok>1?'s':''}.`;
       if(fail>0) msg+=` ${fail} failed — check that those channels have FFmpeg profiles.`;
       showTickerResult(msg,fail===0);
+      // Show per-channel param change warnings if any adjustments were made
+      const allChanges=(d.results||[]).filter(r=>r.ok&&r.param_changes?.length);
+      if(allChanges.length){
+        const chMap=new Map(_tickerChannels.map(c=>[c.id,c.name]));
+        const warnHtml=allChanges.map(r=>{
+          const name=chMap.get(r.channel_id)||('Channel '+r.channel_id);
+          const rows=r.param_changes.map(c=>{
+            const [lvl,...rest]=c.split(':');
+            const color=lvl==='CRITICAL'?'var(--accent-red)':lvl==='WARNING'?'#f5a623':'var(--accent)';
+            return `<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);align-items:flex-start;">
+              <span style="font-size:9px;font-weight:800;color:${color};letter-spacing:0.5px;flex-shrink:0;margin-top:1px;">${lvl}</span>
+              <span style="color:var(--text-secondary);font-size:11px;">${rest.join(':').trim()}</span>
+            </div>`;
+          }).join('');
+          return `<div style="margin-bottom:8px;">
+            <div style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">⚙ ${name}</div>
+            ${rows}
+          </div>`;
+        }).join('');
+        showTickerParamWarning(warnHtml);
+      }
       // Clear entire config so next batch starts fresh — prevents accidental reuse
       _tickerSelectedChannels.clear();
       TICKER_SPORTS.forEach(sp=>{
@@ -8728,7 +8794,8 @@ async function enableTickerOverlay(){
       });
       const ctCb=document.getElementById('tickerCustomEnabled');if(ctCb)ctCb.checked=false;
       const ctTa=document.getElementById('tickerCustomText');if(ctTa)ctTa.value='';
-      renderTickerChannelList();
+      // Refresh active set so newly-enabled channels immediately show as locked
+      await refreshTickerStatusPanel();
       _updateTickerSelection();
       updateTickerPreview();
       loadTickerConfig();
