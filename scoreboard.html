@@ -1498,6 +1498,35 @@ body.stream-mode .card-header{padding:4px 10px;}
         </div>
       </div>
 
+      <!-- CPU Saver -->
+      <div style="margin-bottom:20px;">
+        <div class="section-label" style="margin-bottom:4px;">⚙ CPU Saver</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;">For CPU-only transcoders. Each option trades a small amount of quality for a significant reduction in encode workload. Scale and FPS options only apply where they help — a 720p source is never upscaled and a 15fps source is never duplicated.</div>
+        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;">
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+            <input type="checkbox" id="tickerCpuScale" onchange="updateTickerPreview()" style="margin-top:2px;accent-color:var(--accent);flex-shrink:0;">
+            <div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--text-primary);">Scale to 720p max <span style="color:var(--accent);font-size:10px;font-weight:600;">~40% less encode work</span></div>
+              <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">Downscales 1080p/4K sources to 1280×720 before overlay and encode. No effect on sources already 720p or below.</div>
+            </div>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+            <input type="checkbox" id="tickerCpuFps" onchange="updateTickerPreview()" style="margin-top:2px;accent-color:var(--accent);flex-shrink:0;">
+            <div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--text-primary);">Cap output at 15 fps <span style="color:var(--accent);font-size:10px;font-weight:600;">~40% less encode work</span></div>
+              <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">Halves the number of frames the encoder processes. Ticker scroll remains smooth. Noticeable on fast-motion content but minimal on news, sports coverage, and talk channels.</div>
+            </div>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+            <input type="checkbox" id="tickerCpuCrf" onchange="updateTickerPreview()" style="margin-top:2px;accent-color:var(--accent);flex-shrink:0;">
+            <div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--text-primary);">Raise CRF 23 → 28 <span style="color:var(--accent);font-size:10px;font-weight:600;">~15% less encode work</span></div>
+              <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">Allows the encoder to skip fine detail work. Subtle quality reduction most visible in high-detail scenes. Pairs well with the scale option since 720p needs less bitrate anyway.</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
       <!-- Live Preview -->
       <div style="margin-bottom:20px;">
         <div class="section-label" style="margin-bottom:10px;">👁 Live Preview</div>
@@ -7896,6 +7925,13 @@ async function loadTickerConfig(){
     if(_ctCb) _ctCb.checked=!!(cfg.custom_text_enabled);
     const _ctTa=document.getElementById('tickerCustomText');
     if(_ctTa&&cfg.custom_text) _ctTa.value=cfg.custom_text;
+    // CPU Saver
+    const _csScale=document.getElementById('tickerCpuScale');
+    if(_csScale) _csScale.checked=!!(cfg.cpu_saver_scale);
+    const _csFps=document.getElementById('tickerCpuFps');
+    if(_csFps) _csFps.checked=!!(cfg.cpu_saver_fps);
+    const _csCrf=document.getElementById('tickerCpuCrf');
+    if(_csCrf) _csCrf.checked=!!(cfg.cpu_saver_crf);
     // Channel selection — support both channel_ids array and legacy channel_id
     const savedIds=cfg.channel_ids||(cfg.channel_id?[cfg.channel_id]:[]);
     if(savedIds.length){
@@ -8678,6 +8714,9 @@ function getTickerConfig(){
     sport_teams:_tickerTeamSelections,
     custom_text_enabled:document.getElementById('tickerCustomEnabled')?.checked||false,
     custom_text:document.getElementById('tickerCustomText')?.value?.trim()||'',
+    cpu_saver_scale:document.getElementById('tickerCpuScale')?.checked||false,
+    cpu_saver_fps:document.getElementById('tickerCpuFps')?.checked||false,
+    cpu_saver_crf:document.getElementById('tickerCpuCrf')?.checked||false,
   };
 }
 
@@ -8737,6 +8776,8 @@ function resetTickerDefaults(){
   // Clear custom text
   const _ctCbR=document.getElementById('tickerCustomEnabled');if(_ctCbR)_ctCbR.checked=false;
   const _ctTaR=document.getElementById('tickerCustomText');if(_ctTaR)_ctTaR.value='';
+  // Clear CPU Saver
+  ['tickerCpuScale','tickerCpuFps','tickerCpuCrf'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
   // Clear channel selection
   _tickerSelectedChannels.clear();renderTickerChannelList();_updateTickerSelection();
   // Save cleared config
