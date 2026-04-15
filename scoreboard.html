@@ -7932,26 +7932,8 @@ async function loadTickerConfig(){
     if(_csFps) _csFps.checked=!!(cfg.cpu_saver_fps);
     const _csCrf=document.getElementById('tickerCpuCrf');
     if(_csCrf) _csCrf.checked=!!(cfg.cpu_saver_crf);
-    // Channel selection — support both channel_ids array and legacy channel_id
-    const savedIds=cfg.channel_ids||(cfg.channel_id?[cfg.channel_id]:[]);
-    if(savedIds.length){
-      _tickerSelectedChannels=new Map();
-      savedIds.forEach(id=>{
-        const n=Number(id);
-        const ch=_tickerChannels.find(c=>c.id===n)||{id:n,name:'Channel '+n,channel_group_name:'',channel_number:null};
-        _tickerSelectedChannels.set(n,ch);
-      });
-      renderTickerChannelList();
-      _updateTickerSelection();
-      if(_tickerSelectedChannels.size===1){
-        const chId=[..._tickerSelectedChannels.keys()][0];
-        let sel=document.getElementById('tickerChannelSelect');
-        if(!sel){sel=document.createElement('select');sel.id='tickerChannelSelect';sel.style.display='none';document.body.appendChild(sel);}
-        sel.innerHTML=`<option value="${chId}">${chId}</option>`;
-        sel.value=String(chId);
-        onTickerChannelChange();
-      }
-    }
+    // Channel selection is intentionally NOT restored — it should always start
+    // fresh so users can't accidentally re-enable against a stale selection.
     updateTickerStatusUI(cfg);
   }catch(e){}
 }
@@ -8841,6 +8823,8 @@ async function enableTickerOverlay(){
       });
       const ctCb=document.getElementById('tickerCustomEnabled');if(ctCb)ctCb.checked=false;
       const ctTa=document.getElementById('tickerCustomText');if(ctTa)ctTa.value='';
+      // Clear CPU Saver toggles
+      ['tickerCpuScale','tickerCpuFps','tickerCpuCrf'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
       // Refresh active set so newly-enabled channels immediately show as locked
       await refreshTickerStatusPanel();
       _updateTickerSelection();
