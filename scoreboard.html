@@ -1377,31 +1377,39 @@ body.stream-mode .card-header{padding:4px 10px;}
       <!-- Dispatcharr channel -->
       <div style="margin-bottom:20px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <div class="section-label">📡 Dispatcharr Channel</div>
+          <div class="section-label">📡 Dispatcharr Channels</div>
           <button onclick="loadTickerChannels()" title="Refresh channel list"
             style="padding:4px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text-dim);cursor:pointer;font-size:13px;line-height:1;">↻ Refresh</button>
         </div>
-        <!-- Search + group filter -->
-        <div style="display:flex;gap:6px;margin-bottom:8px;">
-          <input id="tickerChannelSearch" type="text" placeholder="Search channels..."
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.5;">Check one or more channels to receive this ticker configuration. The green <span style="color:var(--accent-green);">●</span> badge marks channels with a ticker already active.</div>
+        <!-- Search + group filter + select-all -->
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+          <input id="tickerChannelSearch" type="text" placeholder="Search by name or number..."
             oninput="filterTickerChannels()"
             style="flex:1;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-family:'Barlow Condensed',sans-serif;font-size:13px;outline:none;">
           <select id="tickerGroupFilter" onchange="filterTickerChannels()"
-            style="padding:8px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-family:'Barlow Condensed',sans-serif;font-size:12px;outline:none;max-width:140px;">
+            style="padding:8px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-family:'Barlow Condensed',sans-serif;font-size:12px;outline:none;max-width:130px;">
             <option value="">All groups</option>
           </select>
+          <button onclick="selectAllTickerGroup()" title="Select all channels in the filtered group (requires a group to be selected)"
+            style="padding:8px 10px;background:rgba(0,212,255,0.07);border:1px solid rgba(0,212,255,0.3);border-radius:8px;color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.5px;cursor:pointer;white-space:nowrap;">+ All</button>
         </div>
         <!-- Scrollable channel list -->
         <div id="tickerChannelList"
-          style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--bg-secondary);">
+          style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--bg-secondary);">
           <div style="padding:16px;text-align:center;color:var(--text-dim);font-size:12px;">Loading channels...</div>
         </div>
-        <!-- Selection count + clear -->
+        <!-- Selected channels chip panel -->
+        <div id="tickerSelectedChips" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(0,212,255,0.04);border:1px solid rgba(0,212,255,0.15);border-radius:8px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px;">Selected for next enable:</div>
+          <div id="tickerSelectedChipList" style="display:flex;flex-wrap:wrap;gap:5px;"></div>
+        </div>
+        <!-- Count + clear -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:7px;">
           <span id="tickerSelectionCount" style="font-size:12px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;">No channels selected</span>
-          <button onclick="_tickerSelectedChannelIds.clear();renderTickerChannelList();_updateTickerSelectionCount();" style="padding:3px 9px;background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--text-dim);font-family:'Barlow Condensed',sans-serif;font-size:11px;cursor:pointer;">Clear</button>
+          <button onclick="clearTickerSelection()" style="padding:3px 9px;background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--text-dim);font-family:'Barlow Condensed',sans-serif;font-size:11px;cursor:pointer;">Clear</button>
         </div>
-        <!-- Single-channel profile info (shown only when 1 channel selected) -->
+        <!-- Single-channel profile info (shown only when exactly 1 channel selected) -->
         <div id="tickerChannelProfileInfo" style="display:none;margin-top:8px;padding:8px 12px;background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.15);border-radius:7px;font-size:12px;color:var(--text-secondary);font-family:'Share Tech Mono',monospace;"></div>
       </div>
 
@@ -7887,11 +7895,16 @@ async function loadTickerConfig(){
     // Channel selection — support both channel_ids array and legacy channel_id
     const savedIds=cfg.channel_ids||(cfg.channel_id?[cfg.channel_id]:[]);
     if(savedIds.length){
-      _tickerSelectedChannelIds=new Set(savedIds.map(Number));
+      _tickerSelectedChannels=new Map();
+      savedIds.forEach(id=>{
+        const n=Number(id);
+        const ch=_tickerChannels.find(c=>c.id===n)||{id:n,name:'Channel '+n,channel_group_name:'',channel_number:null};
+        _tickerSelectedChannels.set(n,ch);
+      });
       renderTickerChannelList();
-      _updateTickerSelectionCount();
-      if(_tickerSelectedChannelIds.size===1){
-        const chId=[..._tickerSelectedChannelIds][0];
+      _updateTickerSelection();
+      if(_tickerSelectedChannels.size===1){
+        const chId=[..._tickerSelectedChannels.keys()][0];
         let sel=document.getElementById('tickerChannelSelect');
         if(!sel){sel=document.createElement('select');sel.id='tickerChannelSelect';sel.style.display='none';document.body.appendChild(sel);}
         sel.innerHTML=`<option value="${chId}">${chId}</option>`;
@@ -7944,10 +7957,12 @@ function renderTickerChannelList(){
   listEl.innerHTML=filtered.map(ch=>{
     const num=ch.channel_number?` <span style="color:var(--text-dim);font-size:11px;">(${Math.floor(ch.channel_number)})</span>`:'';
     const grp=ch.channel_group_name?` <span style="color:var(--text-dim);font-size:10px;">· ${ch.channel_group_name}</span>`:'';
-    const checked=_tickerSelectedChannelIds.has(ch.id)?'checked':'';
+    const checked=_tickerSelectedChannels.has(ch.id)?'checked':'';
+    const activeBadge=_tickerActiveChannelIds.has(ch.id)?`<span style="margin-left:auto;font-size:9px;font-weight:700;letter-spacing:0.5px;color:var(--accent-green);flex-shrink:0;" title="Ticker currently active">● LIVE</span>`:'';
     return `<label style="display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background=''">
       <input type="checkbox" value="${ch.id}" ${checked} onchange="onTickerChannelCheck(${ch.id},this.checked)" style="cursor:pointer;accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;">
       <span style="flex:1;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--text-primary);">${ch.name}${num}${grp}</span>
+      ${activeBadge}
     </label>`;
   }).join('');
 }
@@ -7956,15 +7971,16 @@ function filterTickerChannels(){
   renderTickerChannelList();
 }
 
-let _tickerSelectedChannelIds=new Set();
+let _tickerSelectedChannels=new Map(); // id → channel object
+let _tickerActiveChannelIds=new Set(); // ids of channels with an active ticker right now
 
 function onTickerChannelCheck(chId, checked){
-  if(checked) _tickerSelectedChannelIds.add(chId);
-  else _tickerSelectedChannelIds.delete(chId);
-  _updateTickerSelectionCount();
-  // Show profile info only when exactly 1 channel is selected
-  if(_tickerSelectedChannelIds.size===1){
-    // Sync hidden select so onTickerChannelChange still works
+  const ch=_tickerChannels.find(c=>c.id===chId)||{id:chId,name:'Channel '+chId,channel_group_name:'',channel_number:null};
+  if(checked) _tickerSelectedChannels.set(chId,ch);
+  else _tickerSelectedChannels.delete(chId);
+  _updateTickerSelection();
+  // Profile info only when exactly 1 channel selected
+  if(_tickerSelectedChannels.size===1){
     let sel=document.getElementById('tickerChannelSelect');
     if(!sel){sel=document.createElement('select');sel.id='tickerChannelSelect';sel.style.display='none';document.body.appendChild(sel);}
     sel.innerHTML=`<option value="${chId}">${chId}</option>`;
@@ -7977,10 +7993,42 @@ function onTickerChannelCheck(chId, checked){
   }
 }
 
-function _updateTickerSelectionCount(){
-  const n=_tickerSelectedChannelIds.size;
-  const el=document.getElementById('tickerSelectionCount');
-  if(el) el.textContent=n===0?'No channels selected':`${n} channel${n===1?'':'s'} selected`;
+function selectAllTickerGroup(){
+  const group=document.getElementById('tickerGroupFilter')?.value;
+  if(!group){return;}
+  const search=(document.getElementById('tickerChannelSearch')?.value||'').toLowerCase();
+  _tickerChannels.filter(ch=>ch.channel_group_name===group&&(!search||(ch.name||'').toLowerCase().includes(search)||String(ch.channel_number||'').includes(search))).forEach(ch=>_tickerSelectedChannels.set(ch.id,ch));
+  renderTickerChannelList();
+  _updateTickerSelection();
+}
+
+function clearTickerSelection(){
+  _tickerSelectedChannels.clear();
+  renderTickerChannelList();
+  _updateTickerSelection();
+}
+
+function removeTickerChannel(chId){
+  _tickerSelectedChannels.delete(chId);
+  renderTickerChannelList();
+  _updateTickerSelection();
+}
+
+function _updateTickerSelection(){
+  const n=_tickerSelectedChannels.size;
+  const countEl=document.getElementById('tickerSelectionCount');
+  if(countEl) countEl.textContent=n===0?'No channels selected':`${n} channel${n===1?'':'s'} selected`;
+  // Chip panel
+  const panel=document.getElementById('tickerSelectedChips');
+  const chipList=document.getElementById('tickerSelectedChipList');
+  if(!panel||!chipList) return;
+  if(n===0){panel.style.display='none';return;}
+  panel.style.display='block';
+  chipList.innerHTML=[..._tickerSelectedChannels.values()].map(ch=>{
+    const num=ch.channel_number?` (${Math.floor(ch.channel_number)})`:'';
+    const live=_tickerActiveChannelIds.has(ch.id)?` <span style="color:var(--accent-green);font-size:9px;" title="Ticker already active">●</span>`:'';
+    return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);border-radius:20px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:var(--text-primary);white-space:nowrap;">${ch.name}${num}${live}<button onclick="removeTickerChannel(${ch.id})" style="background:none;border:none;cursor:pointer;color:var(--text-dim);font-size:11px;padding:0 0 0 3px;line-height:1;" title="Remove">✕</button></span>`;
+  }).join('');
 }
 
 function updateTickerStatusUI(cfg){
@@ -8007,6 +8055,10 @@ async function refreshTickerStatusPanel(){
     const r=await fetch(`${API_BASE}/ticker/status`,{signal:AbortSignal.timeout(10000)});
     const d=await r.json();
     const active=d.active||[];
+    // Track which channels have active tickers so the channel list can badge them
+    _tickerActiveChannelIds=new Set(active.map(t=>t.channel_id));
+    renderTickerChannelList();
+    _updateTickerSelection();
     if(active.length===0){
       if(listEl)listEl.style.display='none';
       if(killAllBtn)killAllBtn.style.display='none';
@@ -8575,7 +8627,7 @@ function getTickerConfig(){
   const favs={};
   TICKER_SPORTS.forEach(sp=>{if(document.getElementById('tspfav-'+sp.id)?.classList.contains('active'))favs[sp.id]=true;});
   return{
-    channel_ids:[..._tickerSelectedChannelIds],
+    channel_ids:[..._tickerSelectedChannels.keys()],
     font_size:parseInt(document.getElementById('tickerFontSize')?.value)||28,
     position:_tickerPos,
     scroll_speed:parseInt(document.getElementById('tickerScrollSpeed')?.value)||0,
@@ -8619,7 +8671,7 @@ function resetTickerDefaults(){
   const _ctCbR=document.getElementById('tickerCustomEnabled');if(_ctCbR)_ctCbR.checked=false;
   const _ctTaR=document.getElementById('tickerCustomText');if(_ctTaR)_ctTaR.value='';
   // Clear channel selection
-  _tickerSelectedChannelIds.clear();renderTickerChannelList();_updateTickerSelectionCount();
+  _tickerSelectedChannels.clear();renderTickerChannelList();_updateTickerSelection();
   // Save cleared config
   fetch(`${API_BASE}/ticker/config`,{
     method:'POST',headers:{'Content-Type':'application/json'},
@@ -8652,6 +8704,17 @@ async function enableTickerOverlay(){
       let msg=`Ticker enabled on ${ok} channel${ok>1?'s':''}.`;
       if(fail>0) msg+=` ${fail} failed — check that those channels have FFmpeg profiles.`;
       showTickerResult(msg,fail===0);
+      // Clear entire config so next batch starts fresh — prevents accidental reuse
+      _tickerSelectedChannels.clear();
+      TICKER_SPORTS.forEach(sp=>{
+        const cb=document.getElementById('tsp-'+sp.id);if(cb){cb.checked=false;onTickerSportToggle(sp.id);}
+        const fav=document.getElementById('tspfav-'+sp.id);if(fav)fav.classList.remove('active');
+      });
+      const ctCb=document.getElementById('tickerCustomEnabled');if(ctCb)ctCb.checked=false;
+      const ctTa=document.getElementById('tickerCustomText');if(ctTa)ctTa.value='';
+      renderTickerChannelList();
+      _updateTickerSelection();
+      updateTickerPreview();
       loadTickerConfig();
     }else{showTickerResult('Error: '+(d.error||JSON.stringify(d)),false);}
   }catch(e){showTickerResult('Error: '+e.message,false);}
