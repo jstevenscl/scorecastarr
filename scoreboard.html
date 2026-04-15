@@ -7961,8 +7961,8 @@ function renderTickerChannelList(){
   listEl.innerHTML=filtered.map(ch=>{
     const num=ch.channel_number?` <span style="color:var(--text-dim);font-size:11px;">(${Math.floor(ch.channel_number)})</span>`:'';
     const grp=ch.channel_group_name?` <span style="color:var(--text-dim);font-size:10px;">· ${ch.channel_group_name}</span>`:'';
-    const isActive=_tickerActiveChannelIds.has(ch.id);
-    const checked=_tickerSelectedChannels.has(ch.id)?'checked':'';
+    const isActive=_tickerActiveChannelIds.has(Number(ch.id));
+    const checked=_tickerSelectedChannels.has(Number(ch.id))?'checked':'';
     if(isActive){
       const lbl=_tickerActiveLabels.get(ch.id)||'';
       // Locked row — ticker already running, must KILL before reconfiguring
@@ -7991,9 +7991,12 @@ let _tickerActiveChannelIds=new Set(); // ids of channels with an active ticker 
 let _tickerActiveLabels=new Map();    // id → ticker_label string (sports or "Custom Text")
 
 function onTickerChannelCheck(chId, checked){
-  const ch=_tickerChannels.find(c=>c.id===chId)||{id:chId,name:'Channel '+chId,channel_group_name:'',channel_number:null};
-  if(checked) _tickerSelectedChannels.set(chId,ch);
-  else _tickerSelectedChannels.delete(chId);
+  const nId=Number(chId);
+  // Hard guard — never add a channel that already has an active ticker
+  if(checked && _tickerActiveChannelIds.has(nId)) return;
+  const ch=_tickerChannels.find(c=>Number(c.id)===nId)||{id:nId,name:'Channel '+nId,channel_group_name:'',channel_number:null};
+  if(checked) _tickerSelectedChannels.set(nId,ch);
+  else _tickerSelectedChannels.delete(nId);
   _updateTickerSelection();
   // Profile info only when exactly 1 channel selected
   if(_tickerSelectedChannels.size===1){
@@ -8013,7 +8016,7 @@ function selectAllTickerGroup(){
   const group=document.getElementById('tickerGroupFilter')?.value;
   if(!group){return;}
   const search=(document.getElementById('tickerChannelSearch')?.value||'').toLowerCase();
-  _tickerChannels.filter(ch=>ch.channel_group_name===group&&(!search||(ch.name||'').toLowerCase().includes(search)||String(ch.channel_number||'').includes(search))).forEach(ch=>_tickerSelectedChannels.set(ch.id,ch));
+  _tickerChannels.filter(ch=>ch.channel_group_name===group&&(!search||(ch.name||'').toLowerCase().includes(search)||String(ch.channel_number||'').includes(search))&&!_tickerActiveChannelIds.has(Number(ch.id))).forEach(ch=>_tickerSelectedChannels.set(Number(ch.id),ch));
   renderTickerChannelList();
   _updateTickerSelection();
 }
@@ -8042,7 +8045,7 @@ function _updateTickerSelection(){
   panel.style.display='block';
   chipList.innerHTML=[..._tickerSelectedChannels.values()].map(ch=>{
     const num=ch.channel_number?` (${Math.floor(ch.channel_number)})`:'';
-    const live=_tickerActiveChannelIds.has(ch.id)?` <span style="color:var(--accent-green);font-size:9px;" title="Ticker already active">●</span>`:'';
+    const live=_tickerActiveChannelIds.has(Number(ch.id))?` <span style="color:var(--accent-green);font-size:9px;" title="Ticker already active">●</span>`:'';
     return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);border-radius:20px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:var(--text-primary);white-space:nowrap;">${ch.name}${num}${live}<button onclick="removeTickerChannel(${ch.id})" style="background:none;border:none;cursor:pointer;color:var(--text-dim);font-size:11px;padding:0 0 0 3px;line-height:1;" title="Remove">✕</button></span>`;
   }).join('');
 }
@@ -8072,7 +8075,7 @@ async function refreshTickerStatusPanel(){
     const d=await r.json();
     const active=d.active||[];
     // Track which channels have active tickers so the channel list can badge them
-    _tickerActiveChannelIds=new Set(active.map(t=>t.channel_id));
+    _tickerActiveChannelIds=new Set(active.map(t=>Number(t.channel_id)));
     _tickerActiveLabels=new Map(active.map(t=>[t.channel_id, t.ticker_label||'']));
     renderTickerChannelList();
     _updateTickerSelection();
