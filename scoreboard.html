@@ -8821,6 +8821,8 @@ async function enableTickerOverlay(){
       const ctTa=document.getElementById('tickerCustomText');if(ctTa)ctTa.value='';
       // Clear CPU Saver toggles
       ['tickerCpuScale','tickerCpuFps','tickerCpuCrf'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
+      // Clear channel search
+      const _srch=document.getElementById('tickerChannelSearch');if(_srch)_srch.value='';
       // Refresh active set so newly-enabled channels immediately show as locked
       await refreshTickerStatusPanel();
       _updateTickerSelection();
