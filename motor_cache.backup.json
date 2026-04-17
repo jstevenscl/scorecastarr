@@ -19721,7 +19721,7 @@
           "pos": 25,
           "driver": "Daniel Dye",
           "car": "#10",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 64,
           "wins": 0,
           "races": 0
@@ -19955,7 +19955,7 @@
           "pos": 51,
           "driver": "Jason Kitzmiller",
           "car": "#97",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 7,
           "wins": 0,
           "races": 0
@@ -24225,7 +24225,7 @@
           "pos": 62,
           "driver": "Daniel Dye",
           "car": "#52",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 0,
           "wins": 0,
           "races": 0
