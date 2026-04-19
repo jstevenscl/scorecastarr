@@ -4059,10 +4059,10 @@
         {
           "name": "RBC Heritage",
           "date": "2026-04-16",
-          "is_complete": false,
-          "is_live": true,
-          "winner": null,
-          "winner_score": null,
+          "is_complete": true,
+          "is_live": false,
+          "winner": "Matt Fitzpatrick",
+          "winner_score": "-19",
           "players": []
         },
         {
