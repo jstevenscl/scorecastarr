@@ -17503,6 +17503,10 @@
         "name": "Brandon Jones",
         "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/3799.vresize.140.140.medium.1.png"
       },
+      "taylor_gray": {
+        "name": "Taylor Gray",
+        "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/4845.vresize.140.140.medium.1.png"
+      },
       "william_sawalich": {
         "name": "William Sawalich",
         "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/4954.vresize.140.140.medium.1.png"
@@ -17510,10 +17514,6 @@
       "rajah_caruth": {
         "name": "Rajah Caruth",
         "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/4900.vresize.140.140.medium.1.png"
-      },
-      "taylor_gray": {
-        "name": "Taylor Gray",
-        "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/4845.vresize.140.140.medium.1.png"
       },
       "ryan_sieg": {
         "name": "Ryan Sieg",
@@ -17527,21 +17527,21 @@
         "name": "Jeb Burton",
         "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/3634.vresize.140.140.medium.1.png"
       },
-      "blaine_perkins": {
-        "name": "Blaine Perkins",
-        "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/4843.vresize.140.140.medium.1.png"
-      },
       "dean_thompson": {
         "name": "Dean Thompson",
         "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/4898.vresize.140.140.medium.1.png"
       },
-      "harrison_burton": {
-        "name": "Harrison Burton",
-        "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/4576.vresize.140.140.medium.1.png"
+      "blaine_perkins": {
+        "name": "Blaine Perkins",
+        "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/4843.vresize.140.140.medium.1.png"
       },
       "jeremy_clements": {
         "name": "Jeremy Clements",
         "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/3586.vresize.140.140.medium.1.png"
+      },
+      "harrison_burton": {
+        "name": "Harrison Burton",
+        "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/4576.vresize.140.140.medium.1.png"
       },
       "josh_bilicki": {
         "name": "Josh Bilicki",
@@ -17551,21 +17551,21 @@
         "name": "Ryan Ellis",
         "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/3631.vresize.140.140.medium.1.png"
       },
-      "nicholas_sanchez": {
-        "name": "Nicholas Sanchez",
-        "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/4899.vresize.140.140.medium.1.png"
-      },
       "josh_williams": {
         "name": "Josh Williams",
         "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/4187.vresize.140.140.medium.1.png"
       },
-      "garrett_smithley": {
-        "name": "Garrett Smithley",
-        "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/4522.vresize.140.140.medium.1.png"
+      "nicholas_sanchez": {
+        "name": "Nicholas Sanchez",
+        "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/4899.vresize.140.140.medium.1.png"
       },
       "joey_gase": {
         "name": "Joey Gase",
         "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/3593.vresize.140.140.medium.1.png"
+      },
+      "garrett_smithley": {
+        "name": "Garrett Smithley",
+        "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/4522.vresize.140.140.medium.1.png"
       },
       "alex_labbe": {
         "name": "Alex Labbe",
@@ -17583,6 +17583,10 @@
         "name": "Myatt Snider",
         "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/4610.vresize.140.140.medium.1.png"
       },
+      "dawson_cram": {
+        "name": "Dawson Cram",
+        "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/4660.vresize.140.140.medium.1.png"
+      },
       "preston_pardus": {
         "name": "Preston Pardus",
         "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/4772.vresize.140.140.medium.1.png"
@@ -17590,10 +17594,6 @@
       "natalie_decker": {
         "name": "Natalie Decker",
         "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/4579.vresize.140.140.medium.1.png"
-      },
-      "dawson_cram": {
-        "name": "Dawson Cram",
-        "headshot": "https://b.fssta.com/uploads/application/nascar/headshots/4660.vresize.140.140.medium.1.png"
       },
       "daniel_dye": {
         "name": "Daniel Dye",
@@ -24374,7 +24374,7 @@
           "driver": "Justin Allgaier",
           "car": "#7",
           "manufacturer": "Chevy",
-          "points": 470,
+          "points": 520,
           "wins": 3,
           "races": 0
         },
@@ -24383,7 +24383,7 @@
           "driver": "Sheldon Creed",
           "car": "#00",
           "manufacturer": "Chevy",
-          "points": 340,
+          "points": 389,
           "wins": 1,
           "races": 0
         },
@@ -24392,7 +24392,7 @@
           "driver": "Jesse Love",
           "car": "#2",
           "manufacturer": "Chevy",
-          "points": 324,
+          "points": 371,
           "wins": 0,
           "races": 0
         },
@@ -24401,53 +24401,53 @@
           "driver": "Corey Day",
           "car": "#17",
           "manufacturer": "Chevy",
-          "points": 304,
+          "points": 344,
           "wins": 0,
           "races": 0
         },
         {
           "pos": 5,
-          "driver": "Carson Kvapil",
-          "car": "#9",
-          "manufacturer": "Chevy",
-          "points": 300,
+          "driver": "Brandon Jones",
+          "car": "#20",
+          "manufacturer": "Toyota",
+          "points": 324,
           "wins": 0,
           "races": 0
         },
         {
           "pos": 6,
-          "driver": "Austin Hill",
-          "car": "#21",
+          "driver": "Sammy Smith",
+          "car": "#8",
           "manufacturer": "Chevy",
-          "points": 293,
-          "wins": 1,
+          "points": 310,
+          "wins": 0,
           "races": 0
         },
         {
           "pos": 7,
-          "driver": "Sammy Smith",
-          "car": "#8",
+          "driver": "Carson Kvapil",
+          "car": "#9",
           "manufacturer": "Chevy",
-          "points": 284,
+          "points": 301,
           "wins": 0,
           "races": 0
         },
         {
           "pos": 8,
-          "driver": "Brandon Jones",
-          "car": "#20",
-          "manufacturer": "Toyota",
-          "points": 275,
-          "wins": 0,
+          "driver": "Austin Hill",
+          "car": "#21",
+          "manufacturer": "Chevy",
+          "points": 296,
+          "wins": 1,
           "races": 0
         },
         {
           "pos": 9,
-          "driver": "Parker Retzlaff",
-          "car": "#99",
-          "manufacturer": "Chevy",
-          "points": 257,
-          "wins": 0,
+          "driver": "Taylor Gray",
+          "car": "#54",
+          "manufacturer": "Toyota",
+          "points": 294,
+          "wins": 1,
           "races": 0
         },
         {
@@ -24455,25 +24455,25 @@
           "driver": "William Sawalich",
           "car": "#18",
           "manufacturer": "Toyota",
-          "points": 254,
+          "points": 271,
           "wins": 1,
           "races": 0
         },
         {
           "pos": 11,
-          "driver": "Rajah Caruth",
-          "car": "#32",
+          "driver": "Parker Retzlaff",
+          "car": "#99",
           "manufacturer": "Chevy",
-          "points": 238,
+          "points": 258,
           "wins": 0,
           "races": 0
         },
         {
           "pos": 12,
-          "driver": "Taylor Gray",
-          "car": "#54",
-          "manufacturer": "Toyota",
-          "points": 230,
+          "driver": "Rajah Caruth",
+          "car": "#32",
+          "manufacturer": "Chevy",
+          "points": 254,
           "wins": 0,
           "races": 0
         },
@@ -24482,7 +24482,7 @@
           "driver": "Ryan Sieg",
           "car": "#39",
           "manufacturer": "Chevy",
-          "points": 202,
+          "points": 229,
           "wins": 0,
           "races": 0
         },
@@ -24491,7 +24491,7 @@
           "driver": "Sam Mayer",
           "car": "#41",
           "manufacturer": "Chevy",
-          "points": 195,
+          "points": 225,
           "wins": 0,
           "races": 0
         },
@@ -24500,43 +24500,43 @@
           "driver": "Brennan Poole",
           "car": "#44",
           "manufacturer": "Chevy",
-          "points": 181,
+          "points": 199,
           "wins": 0,
           "races": 0
         },
         {
           "pos": 16,
-          "driver": "Jeb Burton",
-          "car": "#27",
-          "manufacturer": "Chevy",
-          "points": 163,
+          "driver": "Brent Crews",
+          "car": "#19",
+          "manufacturer": "Toyota",
+          "points": 190,
           "wins": 0,
           "races": 0
         },
         {
           "pos": 17,
-          "driver": "Anthony Alfredo",
-          "car": "#96",
+          "driver": "Jeb Burton",
+          "car": "#27",
           "manufacturer": "Chevy",
-          "points": 158,
+          "points": 189,
           "wins": 0,
           "races": 0
         },
         {
           "pos": 18,
-          "driver": "Brent Crews",
-          "car": "#19",
-          "manufacturer": "Toyota",
-          "points": 155,
+          "driver": "Anthony Alfredo",
+          "car": "#96",
+          "manufacturer": "Chevy",
+          "points": 171,
           "wins": 0,
           "races": 0
         },
         {
           "pos": 19,
-          "driver": "Blaine Perkins",
-          "car": "#31",
-          "manufacturer": "Chevy",
-          "points": 137,
+          "driver": "Dean Thompson",
+          "car": "#26",
+          "manufacturer": "Toyota",
+          "points": 152,
           "wins": 0,
           "races": 0
         },
@@ -24545,34 +24545,34 @@
           "driver": "Patrick Staropoli",
           "car": "#48",
           "manufacturer": "Chevy",
-          "points": 129,
+          "points": 152,
           "wins": 0,
           "races": 0
         },
         {
           "pos": 21,
-          "driver": "Dean Thompson",
-          "car": "#26",
-          "manufacturer": "Toyota",
-          "points": 125,
+          "driver": "Blaine Perkins",
+          "car": "#31",
+          "manufacturer": "Chevy",
+          "points": 151,
           "wins": 0,
           "races": 0
         },
         {
           "pos": 22,
-          "driver": "Harrison Burton",
-          "car": "#24",
-          "manufacturer": "Toyota",
-          "points": 125,
+          "driver": "Jeremy Clements",
+          "car": "#51",
+          "manufacturer": "Chevy",
+          "points": 142,
           "wins": 0,
           "races": 0
         },
         {
           "pos": 23,
-          "driver": "Jeremy Clements",
-          "car": "#51",
-          "manufacturer": "Chevy",
-          "points": 120,
+          "driver": "Harrison Burton",
+          "car": "#24",
+          "manufacturer": "Toyota",
+          "points": 137,
           "wins": 0,
           "races": 0
         },
@@ -24581,7 +24581,7 @@
           "driver": "Lavar Scott",
           "car": "#45",
           "manufacturer": "Chevy",
-          "points": 103,
+          "points": 122,
           "wins": 0,
           "races": 0
         },
@@ -24590,7 +24590,7 @@
           "driver": "Josh Bilicki",
           "car": "#07",
           "manufacturer": "Chevy",
-          "points": 98,
+          "points": 109,
           "wins": 0,
           "races": 0
         },
@@ -24599,30 +24599,39 @@
           "driver": "Kyle Sieg",
           "car": "#28",
           "manufacturer": "Chevy",
-          "points": 89,
+          "points": 101,
           "wins": 0,
           "races": 0
         },
         {
           "pos": 27,
-          "driver": "Austin Green",
-          "car": "#87",
+          "driver": "Ryan Ellis",
+          "car": "#02",
           "manufacturer": "Chevy",
-          "points": 88,
+          "points": 100,
           "wins": 0,
           "races": 0
         },
         {
           "pos": 28,
-          "driver": "Ryan Ellis",
-          "car": "#02",
+          "driver": "Josh Williams",
+          "car": "#92",
           "manufacturer": "Chevy",
-          "points": 85,
+          "points": 98,
           "wins": 0,
           "races": 0
         },
         {
           "pos": 29,
+          "driver": "Austin Green",
+          "car": "#87",
+          "manufacturer": "Chevy",
+          "points": 93,
+          "wins": 0,
+          "races": 0
+        },
+        {
+          "pos": 30,
           "driver": "Nicholas Sanchez",
           "car": "#25",
           "manufacturer": "",
@@ -24631,28 +24640,19 @@
           "races": 0
         },
         {
-          "pos": 30,
-          "driver": "Josh Williams",
-          "car": "#92",
-          "manufacturer": "Chevy",
-          "points": 78,
-          "wins": 0,
-          "races": 0
-        },
-        {
           "pos": 31,
-          "driver": "Garrett Smithley",
-          "car": "#0",
-          "manufacturer": "",
-          "points": 60,
+          "driver": "Joey Gase",
+          "car": "#55",
+          "manufacturer": "Chevy",
+          "points": 70,
           "wins": 0,
           "races": 0
         },
         {
           "pos": 32,
-          "driver": "Joey Gase",
-          "car": "#55",
-          "manufacturer": "Chevy",
+          "driver": "Garrett Smithley",
+          "car": "#0",
+          "manufacturer": "",
           "points": 60,
           "wins": 0,
           "races": 0
@@ -24668,19 +24668,19 @@
         },
         {
           "pos": 34,
-          "driver": "Alex Labbe",
-          "car": "#91",
-          "manufacturer": "",
-          "points": 44,
+          "driver": "Nathan Byrd",
+          "car": "#42",
+          "manufacturer": "Chevy",
+          "points": 48,
           "wins": 0,
           "races": 0
         },
         {
           "pos": 35,
-          "driver": "Nathan Byrd",
-          "car": "#42",
-          "manufacturer": "Chevy",
-          "points": 35,
+          "driver": "Alex Labbe",
+          "car": "#91",
+          "manufacturer": "",
+          "points": 44,
           "wins": 0,
           "races": 0
         },
@@ -24716,7 +24716,7 @@
           "driver": "Mason Maggio",
           "car": "#91",
           "manufacturer": "Chevy",
-          "points": 27,
+          "points": 31,
           "wins": 0,
           "races": 0
         },
@@ -24758,6 +24758,24 @@
         },
         {
           "pos": 44,
+          "driver": "Blake Lothian",
+          "car": "#35",
+          "manufacturer": "Chevy",
+          "points": 16,
+          "wins": 0,
+          "races": 0
+        },
+        {
+          "pos": 45,
+          "driver": "Dawson Cram",
+          "car": "#74",
+          "manufacturer": "Chevy",
+          "points": 11,
+          "wins": 0,
+          "races": 0
+        },
+        {
+          "pos": 46,
           "driver": "Preston Pardus",
           "car": "#50",
           "manufacturer": "",
@@ -24766,16 +24784,7 @@
           "races": 0
         },
         {
-          "pos": 45,
-          "driver": "Blake Lothian",
-          "car": "#35",
-          "manufacturer": "Chevy",
-          "points": 10,
-          "wins": 0,
-          "races": 0
-        },
-        {
-          "pos": 48,
+          "pos": 49,
           "driver": "Natalie Decker",
           "car": "#35",
           "manufacturer": "",
@@ -24784,7 +24793,7 @@
           "races": 0
         },
         {
-          "pos": 49,
+          "pos": 50,
           "driver": "Logan Bearden",
           "car": "#42",
           "manufacturer": "",
@@ -24793,20 +24802,11 @@
           "races": 0
         },
         {
-          "pos": 50,
+          "pos": 51,
           "driver": "Austin J Hill",
           "car": "#30",
           "manufacturer": "",
           "points": 4,
-          "wins": 0,
-          "races": 0
-        },
-        {
-          "pos": 51,
-          "driver": "Dawson Cram",
-          "car": "#74",
-          "manufacturer": "Chevy",
-          "points": 3,
           "wins": 0,
           "races": 0
         },
@@ -24893,6 +24893,15 @@
         },
         {
           "pos": 61,
+          "driver": "Cole Custer",
+          "car": "#0",
+          "manufacturer": "",
+          "points": 0,
+          "wins": 0,
+          "races": 0
+        },
+        {
+          "pos": 62,
           "driver": "Patrick Emerling",
           "car": "#38",
           "manufacturer": "",
@@ -24901,7 +24910,7 @@
           "races": 0
         },
         {
-          "pos": 62,
+          "pos": 63,
           "driver": "Daniel Dye",
           "car": "#52",
           "manufacturer": "",
@@ -24910,18 +24919,9 @@
           "races": 0
         },
         {
-          "pos": 63,
+          "pos": 64,
           "driver": "Chad Finchum",
           "car": "#35",
-          "manufacturer": "",
-          "points": 0,
-          "wins": 0,
-          "races": 0
-        },
-        {
-          "pos": 64,
-          "driver": "Cole Custer",
-          "car": "#0",
           "manufacturer": "",
           "points": 0,
           "wins": 0,
