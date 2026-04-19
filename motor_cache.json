@@ -1,322 +1,16 @@
 {
   "nascar-last": {
     "data": {
-      "run_name": "AdventHealth 400 Busch Pole Qualifying",
+      "run_name": "AdventHealth 400",
       "track_name": "Kansas Speedway",
-      "race_date": "2026-04-18",
-      "flag_state": 1,
-      "laps_in_race": 999,
+      "race_date": "2026-04-19",
+      "flag_state": 8,
+      "laps_in_race": 267,
       "series_id": 1,
       "race_id": 5607,
       "drivers": [
         {
           "pos": 1,
-          "car": "#20",
-          "driver": "Christopher Bell",
-          "manufacturer": "Toyota",
-          "laps": 1,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 2,
-          "car": "#24",
-          "driver": "William Byron",
-          "manufacturer": "Chevy",
-          "laps": 1,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 3,
-          "car": "#47",
-          "driver": "Ricky Stenhouse Jr.",
-          "manufacturer": "Chevy",
-          "laps": 1,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 4,
-          "car": "#97",
-          "driver": "Shane Van Gisbergen",
-          "manufacturer": "Chevy",
-          "laps": 1,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 5,
-          "car": "#71",
-          "driver": "Michael McDowell",
-          "manufacturer": "Chevy",
-          "laps": 1,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 6,
-          "car": "#43",
-          "driver": "Erik Jones",
-          "manufacturer": "Toyota",
-          "laps": 1,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 7,
-          "car": "#3",
-          "driver": "Austin Dillon",
-          "manufacturer": "Chevy",
-          "laps": 1,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 8,
-          "car": "#35",
-          "driver": "Riley Herbst",
-          "manufacturer": "Toyota",
-          "laps": 1,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 9,
-          "car": "#8",
-          "driver": "Kyle Busch",
-          "manufacturer": "Chevy",
-          "laps": 1,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 10,
-          "car": "#67",
-          "driver": "* Corey Heim(i)",
-          "manufacturer": "Toyota",
-          "laps": 1,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 11,
-          "car": "#41",
-          "driver": "Cole Custer",
-          "manufacturer": "Chevy",
-          "laps": 1,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 12,
-          "car": "#4",
-          "driver": "Noah Gragson",
-          "manufacturer": "Ford",
-          "laps": 1,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 13,
-          "car": "#21",
-          "driver": "Josh Berry",
-          "manufacturer": "Ford",
-          "laps": 1,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 14,
-          "car": "#1",
-          "driver": "Ross Chastain",
-          "manufacturer": "Chevy",
-          "laps": 1,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 15,
-          "car": "#42",
-          "driver": "John Hunter Nemechek",
-          "manufacturer": "Toyota",
-          "laps": 1,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 16,
-          "car": "#48",
-          "driver": "Alex Bowman",
-          "manufacturer": "Chevy",
-          "laps": 1,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 17,
-          "car": "#51",
-          "driver": "Cody Ware",
-          "manufacturer": "Chevy",
-          "laps": 1,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 18,
-          "car": "#88",
-          "driver": "Connor Zilisch",
-          "manufacturer": "Chevy",
-          "laps": 1,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 19,
-          "car": "#10",
-          "driver": "Ty Dillon",
-          "manufacturer": "Chevy",
-          "laps": 1,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 20,
-          "car": "#38",
-          "driver": "Zane Smith",
-          "manufacturer": "Ford",
-          "laps": 0,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 21,
-          "car": "#9",
-          "driver": "Chase Elliott",
-          "manufacturer": "Chevy",
-          "laps": 0,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 22,
-          "car": "#2",
-          "driver": "Austin Cindric",
-          "manufacturer": "Ford",
-          "laps": 0,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 23,
-          "car": "#16",
-          "driver": "AJ Allmendinger",
-          "manufacturer": "Chevy",
-          "laps": 0,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 24,
-          "car": "#6",
-          "driver": "Brad Keselowski",
-          "manufacturer": "Ford",
-          "laps": 0,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 25,
-          "car": "#7",
-          "driver": "Daniel Suarez",
-          "manufacturer": "Chevy",
-          "laps": 0,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 26,
-          "car": "#17",
-          "driver": "Chris Buescher",
-          "manufacturer": "Ford",
-          "laps": 0,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 27,
-          "car": "#34",
-          "driver": "Todd Gilliland",
-          "manufacturer": "Ford",
-          "laps": 0,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 28,
-          "car": "#77",
-          "driver": "Carson Hocevar",
-          "manufacturer": "Chevy",
-          "laps": 0,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 29,
-          "car": "#23",
-          "driver": "Bubba Wallace",
-          "manufacturer": "Toyota",
-          "laps": 0,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 30,
-          "car": "#60",
-          "driver": "Ryan Preece",
-          "manufacturer": "Ford",
-          "laps": 0,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 31,
-          "car": "#19",
-          "driver": "Chase Briscoe",
-          "manufacturer": "Toyota",
-          "laps": 0,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 32,
-          "car": "#22",
-          "driver": "Joey Logano",
-          "manufacturer": "Ford",
-          "laps": 0,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 33,
-          "car": "#11",
-          "driver": "Denny Hamlin",
-          "manufacturer": "Toyota",
-          "laps": 0,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 34,
-          "car": "#5",
-          "driver": "Kyle Larson",
-          "manufacturer": "Chevy",
-          "laps": 0,
-          "status": 1,
-          "points": 0
-        },
-        {
-          "pos": 35,
           "car": "#45",
           "driver": "Tyler Reddick",
           "manufacturer": "Toyota",
@@ -325,7 +19,70 @@
           "points": 0
         },
         {
-          "pos": 36,
+          "pos": 2,
+          "car": "#11",
+          "driver": "Denny Hamlin",
+          "manufacturer": "Toyota",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 3,
+          "car": "#54",
+          "driver": "Ty Gibbs",
+          "manufacturer": "Toyota",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 4,
+          "car": "#5",
+          "driver": "Kyle Larson",
+          "manufacturer": "Chevy",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 5,
+          "car": "#19",
+          "driver": "Chase Briscoe",
+          "manufacturer": "Toyota",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 6,
+          "car": "#77",
+          "driver": "Carson Hocevar",
+          "manufacturer": "Chevy",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 7,
+          "car": "#17",
+          "driver": "Chris Buescher",
+          "manufacturer": "Ford",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 8,
+          "car": "#7",
+          "driver": "Daniel Suarez",
+          "manufacturer": "Chevy",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 9,
           "car": "#12",
           "driver": "Ryan Blaney",
           "manufacturer": "Ford",
@@ -334,21 +91,608 @@
           "points": 0
         },
         {
-          "pos": 37,
-          "car": "#54",
-          "driver": "Ty Gibbs",
+          "pos": 10,
+          "car": "#23",
+          "driver": "Bubba Wallace",
           "manufacturer": "Toyota",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 11,
+          "car": "#20",
+          "driver": "Christopher Bell",
+          "manufacturer": "Toyota",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 12,
+          "car": "#60",
+          "driver": "Ryan Preece",
+          "manufacturer": "Ford",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 13,
+          "car": "#9",
+          "driver": "Chase Elliott",
+          "manufacturer": "Chevy",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 14,
+          "car": "#24",
+          "driver": "William Byron",
+          "manufacturer": "Chevy",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 15,
+          "car": "#22",
+          "driver": "Joey Logano",
+          "manufacturer": "Ford",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 16,
+          "car": "#47",
+          "driver": "Ricky Stenhouse Jr.",
+          "manufacturer": "Chevy",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 17,
+          "car": "#97",
+          "driver": "Shane Van Gisbergen",
+          "manufacturer": "Chevy",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 18,
+          "car": "#71",
+          "driver": "Michael McDowell",
+          "manufacturer": "Chevy",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 19,
+          "car": "#43",
+          "driver": "Erik Jones",
+          "manufacturer": "Toyota",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 20,
+          "car": "#3",
+          "driver": "Austin Dillon",
+          "manufacturer": "Chevy",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 21,
+          "car": "#6",
+          "driver": "Brad Keselowski",
+          "manufacturer": "Ford",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 22,
+          "car": "#35",
+          "driver": "Riley Herbst",
+          "manufacturer": "Toyota",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 23,
+          "car": "#8",
+          "driver": "Kyle Busch",
+          "manufacturer": "Chevy",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 24,
+          "car": "#67",
+          "driver": "* Corey Heim(i)",
+          "manufacturer": "Toyota",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 25,
+          "car": "#38",
+          "driver": "Zane Smith",
+          "manufacturer": "Ford",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 26,
+          "car": "#34",
+          "driver": "Todd Gilliland",
+          "manufacturer": "Ford",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 27,
+          "car": "#16",
+          "driver": "AJ Allmendinger",
+          "manufacturer": "Chevy",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 28,
+          "car": "#4",
+          "driver": "Noah Gragson",
+          "manufacturer": "Ford",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 29,
+          "car": "#41",
+          "driver": "Cole Custer",
+          "manufacturer": "Chevy",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 30,
+          "car": "#21",
+          "driver": "Josh Berry",
+          "manufacturer": "Ford",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 31,
+          "car": "#1",
+          "driver": "Ross Chastain",
+          "manufacturer": "Chevy",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 32,
+          "car": "#42",
+          "driver": "John Hunter Nemechek",
+          "manufacturer": "Toyota",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 33,
+          "car": "#48",
+          "driver": "Alex Bowman",
+          "manufacturer": "Chevy",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 34,
+          "car": "#2",
+          "driver": "Austin Cindric",
+          "manufacturer": "Ford",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 35,
+          "car": "#51",
+          "driver": "Cody Ware",
+          "manufacturer": "Chevy",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 36,
+          "car": "#88",
+          "driver": "Connor Zilisch",
+          "manufacturer": "Chevy",
+          "laps": 0,
+          "status": 1,
+          "points": 0
+        },
+        {
+          "pos": 37,
+          "car": "#10",
+          "driver": "Ty Dillon",
+          "manufacturer": "Chevy",
           "laps": 0,
           "status": 1,
           "points": 0
         }
       ]
     },
-    "_updated": "2026-04-18"
+    "_updated": "2026-04-19"
   },
   "nascar-history": {
     "data": {
       "races": [
+        {
+          "run_name": "AdventHealth 400",
+          "track_name": "Kansas Speedway",
+          "race_date": "2026-04-19",
+          "flag_state": 8,
+          "laps_in_race": 267,
+          "series_id": 1,
+          "race_id": 5607,
+          "drivers": [
+            {
+              "pos": 1,
+              "car": "#45",
+              "driver": "Tyler Reddick",
+              "manufacturer": "Toyota",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 2,
+              "car": "#11",
+              "driver": "Denny Hamlin",
+              "manufacturer": "Toyota",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 3,
+              "car": "#54",
+              "driver": "Ty Gibbs",
+              "manufacturer": "Toyota",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 4,
+              "car": "#5",
+              "driver": "Kyle Larson",
+              "manufacturer": "Chevy",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 5,
+              "car": "#19",
+              "driver": "Chase Briscoe",
+              "manufacturer": "Toyota",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 6,
+              "car": "#77",
+              "driver": "Carson Hocevar",
+              "manufacturer": "Chevy",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 7,
+              "car": "#17",
+              "driver": "Chris Buescher",
+              "manufacturer": "Ford",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 8,
+              "car": "#7",
+              "driver": "Daniel Suarez",
+              "manufacturer": "Chevy",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 9,
+              "car": "#12",
+              "driver": "Ryan Blaney",
+              "manufacturer": "Ford",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 10,
+              "car": "#23",
+              "driver": "Bubba Wallace",
+              "manufacturer": "Toyota",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 11,
+              "car": "#20",
+              "driver": "Christopher Bell",
+              "manufacturer": "Toyota",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 12,
+              "car": "#60",
+              "driver": "Ryan Preece",
+              "manufacturer": "Ford",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 13,
+              "car": "#9",
+              "driver": "Chase Elliott",
+              "manufacturer": "Chevy",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 14,
+              "car": "#24",
+              "driver": "William Byron",
+              "manufacturer": "Chevy",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 15,
+              "car": "#22",
+              "driver": "Joey Logano",
+              "manufacturer": "Ford",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 16,
+              "car": "#47",
+              "driver": "Ricky Stenhouse Jr.",
+              "manufacturer": "Chevy",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 17,
+              "car": "#97",
+              "driver": "Shane Van Gisbergen",
+              "manufacturer": "Chevy",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 18,
+              "car": "#71",
+              "driver": "Michael McDowell",
+              "manufacturer": "Chevy",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 19,
+              "car": "#43",
+              "driver": "Erik Jones",
+              "manufacturer": "Toyota",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 20,
+              "car": "#3",
+              "driver": "Austin Dillon",
+              "manufacturer": "Chevy",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 21,
+              "car": "#6",
+              "driver": "Brad Keselowski",
+              "manufacturer": "Ford",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 22,
+              "car": "#35",
+              "driver": "Riley Herbst",
+              "manufacturer": "Toyota",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 23,
+              "car": "#8",
+              "driver": "Kyle Busch",
+              "manufacturer": "Chevy",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 24,
+              "car": "#67",
+              "driver": "* Corey Heim(i)",
+              "manufacturer": "Toyota",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 25,
+              "car": "#38",
+              "driver": "Zane Smith",
+              "manufacturer": "Ford",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 26,
+              "car": "#34",
+              "driver": "Todd Gilliland",
+              "manufacturer": "Ford",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 27,
+              "car": "#16",
+              "driver": "AJ Allmendinger",
+              "manufacturer": "Chevy",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 28,
+              "car": "#4",
+              "driver": "Noah Gragson",
+              "manufacturer": "Ford",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 29,
+              "car": "#41",
+              "driver": "Cole Custer",
+              "manufacturer": "Chevy",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 30,
+              "car": "#21",
+              "driver": "Josh Berry",
+              "manufacturer": "Ford",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 31,
+              "car": "#1",
+              "driver": "Ross Chastain",
+              "manufacturer": "Chevy",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 32,
+              "car": "#42",
+              "driver": "John Hunter Nemechek",
+              "manufacturer": "Toyota",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 33,
+              "car": "#48",
+              "driver": "Alex Bowman",
+              "manufacturer": "Chevy",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 34,
+              "car": "#2",
+              "driver": "Austin Cindric",
+              "manufacturer": "Ford",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 35,
+              "car": "#51",
+              "driver": "Cody Ware",
+              "manufacturer": "Chevy",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 36,
+              "car": "#88",
+              "driver": "Connor Zilisch",
+              "manufacturer": "Chevy",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            },
+            {
+              "pos": 37,
+              "car": "#10",
+              "driver": "Ty Dillon",
+              "manufacturer": "Chevy",
+              "laps": 0,
+              "status": 1,
+              "points": 0
+            }
+          ]
+        },
         {
           "run_name": "AdventHealth 400 Busch Pole Qualifying",
           "track_name": "Kansas Speedway",
@@ -3212,9 +3556,9 @@
           ]
         }
       ],
-      "updated": "2026-04-18"
+      "updated": "2026-04-19"
     },
-    "_updated": "2026-04-18"
+    "_updated": "2026-04-19"
   },
   "nascar-2026-season": {
     "data": {
@@ -3225,7 +3569,7 @@
           "pos": 1,
           "driver": "Tyler Reddick",
           "car": "#45",
-          "manufacturer": "",
+          "manufacturer": "Toyota",
           "points": 386,
           "wins": 4,
           "races": 0
@@ -3234,7 +3578,7 @@
           "pos": 2,
           "driver": "Ryan Blaney",
           "car": "#12",
-          "manufacturer": "",
+          "manufacturer": "Ford",
           "points": 324,
           "wins": 1,
           "races": 0
@@ -3243,7 +3587,7 @@
           "pos": 3,
           "driver": "Denny Hamlin",
           "car": "#11",
-          "manufacturer": "",
+          "manufacturer": "Toyota",
           "points": 300,
           "wins": 1,
           "races": 0
@@ -3252,7 +3596,7 @@
           "pos": 4,
           "driver": "Ty Gibbs",
           "car": "#54",
-          "manufacturer": "",
+          "manufacturer": "Toyota",
           "points": 281,
           "wins": 1,
           "races": 0
@@ -3261,7 +3605,7 @@
           "pos": 5,
           "driver": "Chase Elliott",
           "car": "#9",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 264,
           "wins": 1,
           "races": 0
@@ -3270,7 +3614,7 @@
           "pos": 6,
           "driver": "Kyle Larson",
           "car": "#5",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 260,
           "wins": 0,
           "races": 0
@@ -3279,7 +3623,7 @@
           "pos": 7,
           "driver": "William Byron",
           "car": "#24",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 245,
           "wins": 0,
           "races": 0
@@ -3288,7 +3632,7 @@
           "pos": 8,
           "driver": "Bubba Wallace",
           "car": "#23",
-          "manufacturer": "",
+          "manufacturer": "Toyota",
           "points": 236,
           "wins": 0,
           "races": 0
@@ -3297,7 +3641,7 @@
           "pos": 9,
           "driver": "Christopher Bell",
           "car": "#20",
-          "manufacturer": "",
+          "manufacturer": "Toyota",
           "points": 231,
           "wins": 0,
           "races": 0
@@ -3306,7 +3650,7 @@
           "pos": 10,
           "driver": "Chris Buescher",
           "car": "#17",
-          "manufacturer": "",
+          "manufacturer": "Ford",
           "points": 230,
           "wins": 0,
           "races": 0
@@ -3315,7 +3659,7 @@
           "pos": 11,
           "driver": "Brad Keselowski",
           "car": "#6",
-          "manufacturer": "",
+          "manufacturer": "Ford",
           "points": 229,
           "wins": 0,
           "races": 0
@@ -3324,7 +3668,7 @@
           "pos": 12,
           "driver": "Joey Logano",
           "car": "#22",
-          "manufacturer": "",
+          "manufacturer": "Ford",
           "points": 218,
           "wins": 0,
           "races": 0
@@ -3333,7 +3677,7 @@
           "pos": 13,
           "driver": "Carson Hocevar",
           "car": "#77",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 209,
           "wins": 0,
           "races": 0
@@ -3342,7 +3686,7 @@
           "pos": 14,
           "driver": "Ryan Preece",
           "car": "#60",
-          "manufacturer": "",
+          "manufacturer": "Ford",
           "points": 209,
           "wins": 0,
           "races": 0
@@ -3360,7 +3704,7 @@
           "pos": 16,
           "driver": "Shane Van Gisbergen",
           "car": "#97",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 177,
           "wins": 0,
           "races": 0
@@ -3369,7 +3713,7 @@
           "pos": 17,
           "driver": "Chase Briscoe",
           "car": "#19",
-          "manufacturer": "",
+          "manufacturer": "Toyota",
           "points": 176,
           "wins": 0,
           "races": 0
@@ -3378,7 +3722,7 @@
           "pos": 18,
           "driver": "Austin Cindric",
           "car": "#2",
-          "manufacturer": "",
+          "manufacturer": "Ford",
           "points": 172,
           "wins": 0,
           "races": 0
@@ -3387,7 +3731,7 @@
           "pos": 19,
           "driver": "Michael McDowell",
           "car": "#71",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 171,
           "wins": 0,
           "races": 0
@@ -3396,7 +3740,7 @@
           "pos": 20,
           "driver": "AJ Allmendinger",
           "car": "#16",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 156,
           "wins": 0,
           "races": 0
@@ -3405,7 +3749,7 @@
           "pos": 21,
           "driver": "Ross Chastain",
           "car": "#1",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 153,
           "wins": 0,
           "races": 0
@@ -3414,7 +3758,7 @@
           "pos": 22,
           "driver": "Zane Smith",
           "car": "#38",
-          "manufacturer": "",
+          "manufacturer": "Ford",
           "points": 144,
           "wins": 0,
           "races": 0
@@ -3423,7 +3767,7 @@
           "pos": 23,
           "driver": "Erik Jones",
           "car": "#43",
-          "manufacturer": "",
+          "manufacturer": "Toyota",
           "points": 133,
           "wins": 0,
           "races": 0
@@ -3432,7 +3776,7 @@
           "pos": 24,
           "driver": "Kyle Busch",
           "car": "#8",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 131,
           "wins": 0,
           "races": 0
@@ -3441,7 +3785,7 @@
           "pos": 25,
           "driver": "Josh Berry",
           "car": "#21",
-          "manufacturer": "",
+          "manufacturer": "Ford",
           "points": 128,
           "wins": 0,
           "races": 0
@@ -3450,7 +3794,7 @@
           "pos": 26,
           "driver": "Todd Gilliland",
           "car": "#34",
-          "manufacturer": "",
+          "manufacturer": "Ford",
           "points": 127,
           "wins": 0,
           "races": 0
@@ -3459,7 +3803,7 @@
           "pos": 27,
           "driver": "Austin Dillon",
           "car": "#3",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 124,
           "wins": 0,
           "races": 0
@@ -3477,7 +3821,7 @@
           "pos": 29,
           "driver": "Riley Herbst",
           "car": "#35",
-          "manufacturer": "",
+          "manufacturer": "Toyota",
           "points": 109,
           "wins": 0,
           "races": 0
@@ -3495,7 +3839,7 @@
           "pos": 31,
           "driver": "Noah Gragson",
           "car": "#4",
-          "manufacturer": "",
+          "manufacturer": "Ford",
           "points": 104,
           "wins": 0,
           "races": 0
@@ -3504,7 +3848,7 @@
           "pos": 32,
           "driver": "Ty Dillon",
           "car": "#10",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 95,
           "wins": 0,
           "races": 0
@@ -3513,7 +3857,7 @@
           "pos": 33,
           "driver": "Connor Zilisch",
           "car": "#88",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 84,
           "wins": 0,
           "races": 0
@@ -3522,7 +3866,7 @@
           "pos": 34,
           "driver": "Cole Custer",
           "car": "#41",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 76,
           "wins": 0,
           "races": 0
@@ -3531,7 +3875,7 @@
           "pos": 35,
           "driver": "Cody Ware",
           "car": "#51",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 64,
           "wins": 0,
           "races": 0
@@ -3540,7 +3884,7 @@
           "pos": 36,
           "driver": "Alex Bowman",
           "car": "#48",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 24,
           "wins": 0,
           "races": 0
@@ -3567,7 +3911,7 @@
           "pos": 39,
           "driver": "Austin Hill",
           "car": "#33",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -3576,7 +3920,7 @@
           "pos": 40,
           "driver": "Justin Allgaier",
           "car": "#40",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -3585,7 +3929,7 @@
           "pos": 41,
           "driver": "Jesse Love",
           "car": "#33",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -3621,7 +3965,7 @@
           "pos": 45,
           "driver": "Anthony Alfredo",
           "car": "#62",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -20362,7 +20706,7 @@
           "pos": 58,
           "driver": "Christopher Bell",
           "car": "#62",
-          "manufacturer": "",
+          "manufacturer": "Toyota",
           "points": 0,
           "wins": 1,
           "races": 0
@@ -20371,7 +20715,7 @@
           "pos": 59,
           "driver": "Kyle Busch",
           "car": "#7",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 0,
           "wins": 1,
           "races": 0
@@ -20380,7 +20724,7 @@
           "pos": 60,
           "driver": "Ross Chastain",
           "car": "#45",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -20389,7 +20733,7 @@
           "pos": 61,
           "driver": "Carson Hocevar",
           "car": "#77",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -20416,7 +20760,7 @@
           "pos": 64,
           "driver": "William Sawalich",
           "car": "#1",
-          "manufacturer": "Toyota",
+          "manufacturer": "",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -20425,7 +20769,7 @@
           "pos": 65,
           "driver": "Ty Dillon",
           "car": "#25",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -20434,7 +20778,7 @@
           "pos": 66,
           "driver": "AJ Allmendinger",
           "car": "#10",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -20443,7 +20787,7 @@
           "pos": 67,
           "driver": "Sammy Smith",
           "car": "#7",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -20452,7 +20796,7 @@
           "pos": 68,
           "driver": "Chase Briscoe",
           "car": "#5",
-          "manufacturer": "",
+          "manufacturer": "Toyota",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -20470,7 +20814,7 @@
           "pos": 70,
           "driver": "Michael McDowell",
           "car": "#7",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -20479,7 +20823,7 @@
           "pos": 71,
           "driver": "Taylor Gray",
           "car": "#1",
-          "manufacturer": "Toyota",
+          "manufacturer": "",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -24373,7 +24717,7 @@
           "pos": 1,
           "driver": "Justin Allgaier",
           "car": "#7",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 520,
           "wins": 3,
           "races": 0
@@ -24382,7 +24726,7 @@
           "pos": 2,
           "driver": "Sheldon Creed",
           "car": "#00",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 389,
           "wins": 1,
           "races": 0
@@ -24391,7 +24735,7 @@
           "pos": 3,
           "driver": "Jesse Love",
           "car": "#2",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 371,
           "wins": 0,
           "races": 0
@@ -24400,7 +24744,7 @@
           "pos": 4,
           "driver": "Corey Day",
           "car": "#17",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 344,
           "wins": 0,
           "races": 0
@@ -24409,7 +24753,7 @@
           "pos": 5,
           "driver": "Brandon Jones",
           "car": "#20",
-          "manufacturer": "Toyota",
+          "manufacturer": "",
           "points": 324,
           "wins": 0,
           "races": 0
@@ -24418,7 +24762,7 @@
           "pos": 6,
           "driver": "Sammy Smith",
           "car": "#8",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 310,
           "wins": 0,
           "races": 0
@@ -24427,7 +24771,7 @@
           "pos": 7,
           "driver": "Carson Kvapil",
           "car": "#9",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 301,
           "wins": 0,
           "races": 0
@@ -24436,7 +24780,7 @@
           "pos": 8,
           "driver": "Austin Hill",
           "car": "#21",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 296,
           "wins": 1,
           "races": 0
@@ -24445,7 +24789,7 @@
           "pos": 9,
           "driver": "Taylor Gray",
           "car": "#54",
-          "manufacturer": "Toyota",
+          "manufacturer": "",
           "points": 294,
           "wins": 1,
           "races": 0
@@ -24454,7 +24798,7 @@
           "pos": 10,
           "driver": "William Sawalich",
           "car": "#18",
-          "manufacturer": "Toyota",
+          "manufacturer": "",
           "points": 271,
           "wins": 1,
           "races": 0
@@ -24463,7 +24807,7 @@
           "pos": 11,
           "driver": "Parker Retzlaff",
           "car": "#99",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 258,
           "wins": 0,
           "races": 0
@@ -24472,7 +24816,7 @@
           "pos": 12,
           "driver": "Rajah Caruth",
           "car": "#32",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 254,
           "wins": 0,
           "races": 0
@@ -24481,7 +24825,7 @@
           "pos": 13,
           "driver": "Ryan Sieg",
           "car": "#39",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 229,
           "wins": 0,
           "races": 0
@@ -24490,7 +24834,7 @@
           "pos": 14,
           "driver": "Sam Mayer",
           "car": "#41",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 225,
           "wins": 0,
           "races": 0
@@ -24499,7 +24843,7 @@
           "pos": 15,
           "driver": "Brennan Poole",
           "car": "#44",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 199,
           "wins": 0,
           "races": 0
@@ -24508,7 +24852,7 @@
           "pos": 16,
           "driver": "Brent Crews",
           "car": "#19",
-          "manufacturer": "Toyota",
+          "manufacturer": "",
           "points": 190,
           "wins": 0,
           "races": 0
@@ -24517,7 +24861,7 @@
           "pos": 17,
           "driver": "Jeb Burton",
           "car": "#27",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 189,
           "wins": 0,
           "races": 0
@@ -24526,7 +24870,7 @@
           "pos": 18,
           "driver": "Anthony Alfredo",
           "car": "#96",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 171,
           "wins": 0,
           "races": 0
@@ -24535,7 +24879,7 @@
           "pos": 19,
           "driver": "Dean Thompson",
           "car": "#26",
-          "manufacturer": "Toyota",
+          "manufacturer": "",
           "points": 152,
           "wins": 0,
           "races": 0
@@ -24544,7 +24888,7 @@
           "pos": 20,
           "driver": "Patrick Staropoli",
           "car": "#48",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 152,
           "wins": 0,
           "races": 0
@@ -24553,7 +24897,7 @@
           "pos": 21,
           "driver": "Blaine Perkins",
           "car": "#31",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 151,
           "wins": 0,
           "races": 0
@@ -24562,7 +24906,7 @@
           "pos": 22,
           "driver": "Jeremy Clements",
           "car": "#51",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 142,
           "wins": 0,
           "races": 0
@@ -24571,7 +24915,7 @@
           "pos": 23,
           "driver": "Harrison Burton",
           "car": "#24",
-          "manufacturer": "Toyota",
+          "manufacturer": "",
           "points": 137,
           "wins": 0,
           "races": 0
@@ -24580,7 +24924,7 @@
           "pos": 24,
           "driver": "Lavar Scott",
           "car": "#45",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 122,
           "wins": 0,
           "races": 0
@@ -24589,7 +24933,7 @@
           "pos": 25,
           "driver": "Josh Bilicki",
           "car": "#07",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 109,
           "wins": 0,
           "races": 0
@@ -24598,7 +24942,7 @@
           "pos": 26,
           "driver": "Kyle Sieg",
           "car": "#28",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 101,
           "wins": 0,
           "races": 0
@@ -24607,7 +24951,7 @@
           "pos": 27,
           "driver": "Ryan Ellis",
           "car": "#02",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 100,
           "wins": 0,
           "races": 0
@@ -24616,7 +24960,7 @@
           "pos": 28,
           "driver": "Josh Williams",
           "car": "#92",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 98,
           "wins": 0,
           "races": 0
@@ -24625,7 +24969,7 @@
           "pos": 29,
           "driver": "Austin Green",
           "car": "#87",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 93,
           "wins": 0,
           "races": 0
@@ -24643,7 +24987,7 @@
           "pos": 31,
           "driver": "Joey Gase",
           "car": "#55",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 70,
           "wins": 0,
           "races": 0
@@ -24670,7 +25014,7 @@
           "pos": 34,
           "driver": "Nathan Byrd",
           "car": "#42",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 48,
           "wins": 0,
           "races": 0
@@ -24715,7 +25059,7 @@
           "pos": 39,
           "driver": "Mason Maggio",
           "car": "#91",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 31,
           "wins": 0,
           "races": 0
@@ -24760,7 +25104,7 @@
           "pos": 44,
           "driver": "Blake Lothian",
           "car": "#35",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 16,
           "wins": 0,
           "races": 0
@@ -24769,7 +25113,7 @@
           "pos": 45,
           "driver": "Dawson Cram",
           "car": "#74",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 11,
           "wins": 0,
           "races": 0
@@ -24832,7 +25176,7 @@
           "pos": 54,
           "driver": "Kyle Larson",
           "car": "#88",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 0,
           "wins": 1,
           "races": 0
@@ -24841,7 +25185,7 @@
           "pos": 55,
           "driver": "Connor Zilisch",
           "car": "#1",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 0,
           "wins": 1,
           "races": 0
@@ -24850,7 +25194,7 @@
           "pos": 56,
           "driver": "Shane Van Gisbergen",
           "car": "#9",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 0,
           "wins": 1,
           "races": 0
@@ -24859,7 +25203,7 @@
           "pos": 57,
           "driver": "Chase Briscoe",
           "car": "#19",
-          "manufacturer": "",
+          "manufacturer": "Toyota",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -24868,7 +25212,7 @@
           "pos": 58,
           "driver": "Christopher Bell",
           "car": "#19",
-          "manufacturer": "",
+          "manufacturer": "Toyota",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -24877,7 +25221,7 @@
           "pos": 59,
           "driver": "Ross Chastain",
           "car": "#91",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -24886,7 +25230,7 @@
           "pos": 60,
           "driver": "William Byron",
           "car": "#88",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -24895,7 +25239,7 @@
           "pos": 61,
           "driver": "Cole Custer",
           "car": "#0",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -24940,7 +25284,7 @@
           "pos": 66,
           "driver": "Carson Hocevar",
           "car": "#42",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -24967,7 +25311,7 @@
           "pos": 69,
           "driver": "Cody Ware",
           "car": "#30",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 0,
           "wins": 0,
           "races": 0
