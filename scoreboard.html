@@ -2217,6 +2217,18 @@ function renderEditorStep(sbOverride){
         <div class="wiz-sublabel">Clock displayed on the stream output uses this timezone</div>
       </div>
       <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);">
+        <div class="modal-section-title" style="font-size:11px;margin-bottom:8px;letter-spacing:2px;">COPY DISPLAY SETTINGS FROM ANOTHER SCOREBOARD</div>
+        <div class="wiz-sublabel" style="margin-bottom:10px;">Copies all display settings (fonts, colors, card size, theme) from the selected scoreboard into this one. Your current values will be replaced.</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="sbCopyFromSelect" class="wiz-input" style="flex:1;max-width:260px;">
+            <option value="">— Select a scoreboard —</option>
+            ${_scoreboards.filter(s=>s.id!==(_editorDraft.id||_activeSbId)).map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}
+          </select>
+          <button class="modal-btn" onclick="sbCopyDisplayFrom(document.getElementById('sbCopyFromSelect').value)" style="white-space:nowrap;">Copy Settings</button>
+        </div>
+      </div>
+
+      <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);">
         <div class="modal-section-title" style="margin-bottom:4px;">📺 Stream Output</div>
         <div class="wiz-sublabel" style="margin-bottom:14px;">Per-scoreboard stream display settings.</div>
         <div style="margin-bottom:12px;">
@@ -3709,6 +3721,30 @@ async function loadTbSportData(sid){
   return fetchTeamsForSport(sid);
 }
 
+
+function sbCopyDisplayFrom(sourceId){
+  if(!sourceId) return;
+  const src = _scoreboards.find(s=>s.id===sourceId);
+  if(!src) return;
+  if(!confirm(`Copy all display settings from "${src.name}" into this scoreboard? Your current settings will be replaced.`)) return;
+  // Copy display_config fields only — never touch sports, teams, name, audio, or other non-display fields
+  const DISPLAY_KEYS = [
+    'card_abbr_size','card_score_size','card_title_size','card_name_size','card_name_color',
+    'card_header_size','card_period_size','card_live_color','card_final_color','card_period_color',
+    'motor_label_color','motor_secondary_color',
+    'section_header_size','section_stripe_width','section_header_color',
+    'stream_card_scale','stream_rotation_secs','stream_layout','stream_resolution',
+    'theme_id'
+  ];
+  const srcDc = src.display_config || {};
+  DISPLAY_KEYS.forEach(k=>{ if(srcDc[k]!=null) _editorDraft.display_config[k]=srcDc[k]; else delete _editorDraft.display_config[k]; });
+  // Copy inheritance toggle states
+  _editorDraft.use_default_fonts     = src.use_default_fonts     !== false;
+  _editorDraft.use_default_colors    = src.use_default_colors    !== false;
+  _editorDraft.use_default_card_size = src.use_default_card_size !== false;
+  // Re-render Step 3 to reflect copied values
+  renderEditorStep();
+}
 
 function closeSbEditor(){
   document.getElementById('sbEditorPanel')?.remove();
