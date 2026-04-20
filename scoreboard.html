@@ -2602,6 +2602,8 @@ function renderEditorStep(sbOverride){
   setTimeout(()=>{
     _sbEditThemeId=_editorDraft.display_config?.theme_id||null;
     ddRenderSbThemeSwatches();
+    // Apply scoreboard theme to preview panel only (never :root)
+    setTimeout(_sbApplyPreviewTheme,0);
     const sel=document.getElementById('sbEditCardScale');
     if(sel) sbPreviewCardScale(parseFloat(sel.value)/100);
     const inner=document.getElementById('sbCardScaleInner');
@@ -3711,6 +3713,9 @@ async function loadTbSportData(sid){
 function closeSbEditor(){
   document.getElementById('sbEditorPanel')?.remove();
   document.getElementById('sbStep3FloatPreview')?.remove();
+  // Restore global theme to :root (in case any legacy code wrote to it while editor was open)
+  const _gt=_getThemeById(_activeThemeId)||BUILT_IN_THEMES[0];
+  if(_gt) applyTheme(_gt.vars);
   // Re-enable sidebar nav
   document.querySelectorAll('.snav-btn').forEach(b=>{
     b.style.opacity='';b.style.pointerEvents='';
@@ -4642,9 +4647,25 @@ function ddRenderSbThemeSwatches(){
 }
 function ddSbSelectTheme(id){
   _sbEditThemeId=id;
-  if(id){const t=_getThemeById(id);if(t)applyTheme(t.vars);}
-  else{const t=_getThemeById(_activeThemeId);if(t)applyTheme(t.vars);}
+  // Apply theme vars ONLY to the float preview panel — never to :root (that would skin the whole admin UI)
+  _sbApplyPreviewTheme();
   ddRenderSbThemeSwatches();
+}
+function _sbApplyPreviewTheme(){
+  const previewEl=document.getElementById('sbStep3FloatPreview');
+  if(!previewEl) return;
+  const t=_sbEditThemeId?_getThemeById(_sbEditThemeId):_getThemeById(_activeThemeId);
+  if(!t) return;
+  Object.entries(t.vars).forEach(([k,v])=>previewEl.style.setProperty(k,v));
+  // Derive live-badge colours for the preview container
+  const ar=t.vars['--accent-red']||'#ff3b5c';
+  const hexToRgb=h=>{const s=h.replace('#','');const n=s.length===3?s.split('').map(x=>x+x):s.match(/.{2}/g);return n?n.slice(0,3).map(x=>parseInt(x,16)):null;};
+  const rgb=hexToRgb(ar);
+  if(rgb){
+    previewEl.style.setProperty('--live-badge-bg',`rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.15)`);
+    previewEl.style.setProperty('--live-badge-border',`rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.3)`);
+    previewEl.style.setProperty('--live-badge-pulse',`rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.5)`);
+  }
 }
 
 const ALL_SPORTS=[
