@@ -538,6 +538,10 @@ Quick-apply a complete font + color package. Click a preset tile to load it, the
 
 In the scoreboard editor **Step 3**, each of these groups (Fonts, Colors, Card Size) has a **Default** toggle pill. When the pill is **on**, that group is inherited from these global defaults. Toggle it **off** to unlock the sliders and set custom values for just that scoreboard.
 
+### Copying settings between scoreboards
+
+At the top of Step 3 there is a **Copy Display Settings From Another Scoreboard** section. Select any other scoreboard from the dropdown and click **Copy Settings** to clone its fonts, colors, card size, and theme into the scoreboard you're currently editing. Your current values are replaced. Sports, teams, name, and audio are not affected.
+
 ---
 
 ## 11. Sports Library
