@@ -3724,7 +3724,7 @@ async function loadTbSportData(sid){
 
 function sbCopyDisplayFrom(sourceId){
   if(!sourceId) return;
-  const src = _scoreboards.find(s=>s.id===sourceId);
+  const src = _scoreboards.find(s=>String(s.id)===String(sourceId));
   if(!src) return;
   if(!confirm(`Copy all display settings from "${src.name}" into this scoreboard? Your current settings will be replaced.`)) return;
   // Copy display_config fields only — never touch sports, teams, name, audio, or other non-display fields
