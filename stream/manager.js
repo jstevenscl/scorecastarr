@@ -74,6 +74,52 @@ const PREROLL_SEGMENTS = 10;
 const streams = new Map();
 const prebaked = new Set();
 
+// ── Warm browser pool ────────────────────────────────────────────────────────
+// One shared Chromium process is kept alive for the lifetime of the manager.
+// Each stream gets its own page (tab) — avoids the 20-30s cold-launch penalty
+// on each stream start, especially on ARM where Chromium startup is slow.
+let _warmBrowser     = null;
+let _warmBrowserBusy = false;   // true while launching to prevent races
+
+const CHROMIUM_PATH = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
+const CHROMIUM_ARGS = [
+  '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
+  '--disable-gpu', '--disable-software-rasterizer',
+  `--window-size=${WIDTH},${HEIGHT}`,
+];
+
+async function getWarmBrowser() {
+  // Return existing live browser
+  if (_warmBrowser) {
+    try { await _warmBrowser.pages(); return _warmBrowser; } catch (_) {
+      console.warn('[manager] Warm browser died — relaunching');
+      _warmBrowser = null;
+    }
+  }
+  // Wait if another caller is already launching
+  if (_warmBrowserBusy) {
+    while (_warmBrowserBusy) await new Promise(r => setTimeout(r, 100));
+    if (_warmBrowser) return _warmBrowser;
+  }
+  _warmBrowserBusy = true;
+  try {
+    console.log('[manager] Launching warm browser (shared Chromium instance)');
+    _warmBrowser = await puppeteer.launch({
+      executablePath: CHROMIUM_PATH,
+      headless: true,
+      args: CHROMIUM_ARGS,
+    });
+    _warmBrowser.on('disconnected', () => {
+      console.warn('[manager] Warm browser disconnected — will relaunch on next stream start');
+      _warmBrowser = null;
+    });
+    console.log('[manager] Warm browser ready');
+  } finally {
+    _warmBrowserBusy = false;
+  }
+  return _warmBrowser;
+}
+
 // ── DB ──────────────────────────────────────────────────────────────────────
 function slugExists(slug) {
   try {
@@ -411,17 +457,8 @@ function startFfmpeg(slug) {
 // ── Puppeteer ────────────────────────────────────────────────────────────────
 async function startRenderer(slug) {
   const url = `${WEB_BASE}/?stream&slug=${slug}`;
-  const chromiumPath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
-  console.log(`[manager][${slug}] Launching browser chromium=${chromiumPath} → ${url}`);
-  const browser = await puppeteer.launch({
-    executablePath: chromiumPath,
-    headless: true,
-    args: [
-      '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
-      '--disable-gpu', '--disable-software-rasterizer',
-      `--window-size=${WIDTH},${HEIGHT}`
-    ],
-  });
+  console.log(`[manager][${slug}] Opening page in warm browser → ${url}`);
+  const browser = await getWarmBrowser();
   const page = await browser.newPage();
   // Log console errors from the page to help diagnose JS failures
   page.on('console', msg => {
@@ -539,7 +576,8 @@ async function stopStream(slug) {
       s.ffmpeg.kill('SIGTERM');
     });
   }
-  if (s.browser) { try { await s.browser.close(); } catch (_) {} }
+  // Close the page only — the warm browser stays alive for the next stream start
+  if (s.page) { try { await s.page.close(); } catch (_) {} }
   try { fs.rmSync(frameDir(slug), { recursive: true, force: true }); } catch (_) {}
   streams.delete(slug);
   prebaked.delete(slug);
@@ -767,12 +805,17 @@ async function main() {
   startHttpServer();
   startIdleWatcher();
   startTickerWriter();
-  // Pre-bake on next event-loop tick so the server port is bound first
-  setImmediate(() => prebakeAll());
-  console.log('[manager] Ready — pre-baking HLS in background');
+  // Pre-bake on next event-loop tick so the server port is bound first.
+  // Also warm the browser in parallel — it's ready long before the first stream request.
+  setImmediate(() => {
+    prebakeAll();
+    getWarmBrowser().catch(e => console.error(`[manager] Warm browser pre-launch failed: ${e.message}`));
+  });
+  console.log('[manager] Ready — pre-baking HLS and warming browser in background');
   process.on('SIGTERM', async () => {
     console.log('[manager] Shutting down');
     for (const slug of [...streams.keys()]) await stopStream(slug);
+    if (_warmBrowser) { try { await _warmBrowser.close(); } catch (_) {} }
     process.exit(0);
   });
 }
