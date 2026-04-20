@@ -317,11 +317,16 @@ function prebakeHLS(slug) {
     const tOffset = i * SEG_DURATION;
     try {
       if (useClip) {
-        // Slice SEG_DURATION seconds from the pre-encoded animated clip.
-        // -c copy avoids re-encoding — fast and preserves exact bitrate/profile.
+        // Slice SEG_DURATION seconds from the animated clip at the correct offset.
+        // -ss must be placed AFTER -i (output-side seeking) for mpegts input —
+        // input-side seeking with -c copy produces 0 frames on this ffmpeg build.
         execSync(
-          `ffmpeg -y -loglevel error -ss ${tOffset} -i "${clip}" ` +
-          `-t ${SEG_DURATION} -c copy -f mpegts "${seg}"`,
+          `ffmpeg -y -loglevel error -i "${clip}" ` +
+          `-ss ${tOffset} -t ${SEG_DURATION} ` +
+          `-c:v libx264 -preset ultrafast -pix_fmt yuv420p ` +
+          `-b:v ${VIDEO_BITRATE} -maxrate ${VIDEO_MAXRATE} -bufsize ${VIDEO_BUFSIZE} ` +
+          `-profile:v high -level 4.1 ` +
+          `-f mpegts "${seg}"`,
           { stdio: 'pipe' }
         );
       } else {
