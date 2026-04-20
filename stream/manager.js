@@ -215,73 +215,69 @@ function writeStartingFrame(slug) {
   }
 }
 
-// ── Animated loading clip ────────────────────────────────────────────────────
-// Generates a short animated MPEG-TS clip per slug that is used as the source
-// for pre-baked HLS segments. The clip shows the logo + channel name with a
-// three-dot sequential animation so viewers see movement instead of a frozen
-// frame while the player buffers at startup.
-function loadingClipPath(slug) {
-  return path.join(frameDir(slug), 'loading_clip.ts');
+// ── Animated loading frames ──────────────────────────────────────────────────
+// Generates 4 static JPEG frames — one per dot animation state.
+// prebakeHLS cycles through them (i % 4) when encoding segments so each
+// pre-baked segment shows a different dot state with no ffmpeg expressions,
+// no time-based enable filters, and no clip-file seeking required.
+//
+//   state 0 → blank (pause)
+//   state 1 → .
+//   state 2 → . .
+//   state 3 → . . .  (accent colour)
+function loadingStatePath(slug, state) {
+  return path.join(frameDir(slug), `loading_state_${state}.jpg`);
 }
 
 function writeStartingClip(slug) {
-  const dest  = loadingClipPath(slug);
   const label = slug.replace(/-/g, ' ').toUpperCase();
   ensureDir(frameDir(slug));
   const logoPath = fs.existsSync(BUNDLED_LOGO_PATH) ? BUNDLED_LOGO_PATH : LOADING_LOGO_PATH;
   const hasLogo  = fs.existsSync(logoPath);
 
-  // Three-dot sequential animation keyed on frame number (n), not time.
-  // At 1 FPS each frame = 1 second. mod(n,4) cycles 0→1→2→3→0…
-  //   n%4 == 0  →  (blank — no drawtext active)
-  //   n%4 == 1  →  .
-  //   n%4 == 2  →  . .
-  //   n%4 == 3  →  . . .  (accent colour when fully lit)
-  // eq() matches exact integers so there is no boundary overlap.
-  // Commas inside ffmpeg expressions must be escaped as \, in the shell string.
-  const txtY  = '(h-text_h)/2+168';
-  const d1 = `drawtext=text='.':fontcolor=0x3d5a78:fontsize=36:x=(w-text_w)/2:y=${txtY}:enable='eq(mod(n\\,4)\\,1)'`;
-  const d2 = `drawtext=text='. .':fontcolor=0x3d5a78:fontsize=36:x=(w-text_w)/2:y=${txtY}:enable='eq(mod(n\\,4)\\,2)'`;
-  const d3 = `drawtext=text='. . .':fontcolor=0x00d4ff:fontsize=36:x=(w-text_w)/2:y=${txtY}:enable='eq(mod(n\\,4)\\,3)'`;
-  const dotStr = `${d1},${d2},${d3}`;
+  const states = [
+    { text: null,    color: null },
+    { text: '.',     color: '0x3d5a78' },
+    { text: '. .',   color: '0x3d5a78' },
+    { text: '. . .', color: '0x00d4ff' },
+  ];
 
-  // Clip length = full pre-roll duration so prebakeHLS can slice without looping.
-  const clipLen = PREROLL_SEGMENTS * SEG_DURATION;
-
-  try {
-    if (hasLogo) {
-      execSync(
-        `ffmpeg -y -loglevel error ` +
-        `-f lavfi -i color=c=0x0a0e1a:size=${WIDTH}x${HEIGHT}:rate=${FPS} ` +
-        `-loop 1 -i "${logoPath}" ` +
-        `-filter_complex ` +
-        `"[1:v]scale=560:-1[logo];[0:v][logo]overlay=(W-w)/2:(H-h)/2-110[bg];` +
-        `[bg]drawtext=text='${label}':fontcolor=white:fontsize=48:x=(w-text_w)/2:y=(h-text_h)/2+100,` +
-        `${dotStr},format=yuv420p[out]" -map "[out]" ` +
-        `-c:v libx264 -preset ultrafast -pix_fmt yuv420p ` +
-        `-b:v ${VIDEO_BITRATE} -maxrate ${VIDEO_MAXRATE} -bufsize ${VIDEO_BUFSIZE} ` +
-        `-profile:v high -level 4.1 ` +
-        `-t ${clipLen} -f mpegts "${dest}"`,
-        { stdio: 'pipe' }
-      );
-    } else {
-      execSync(
-        `ffmpeg -y -loglevel error ` +
-        `-f lavfi -i color=c=0x0a0e1a:size=${WIDTH}x${HEIGHT}:rate=${FPS} ` +
-        `-vf "drawtext=text='SCORECASTARR':fontcolor=0x00d4ff:fontsize=64:x=(w-text_w)/2:y=(h-text_h)/2-60,` +
-        `drawtext=text='${label}':fontcolor=white:fontsize=40:x=(w-text_w)/2:y=(h-text_h)/2+10,` +
-        `${dotStr},format=yuv420p" ` +
-        `-c:v libx264 -preset ultrafast -pix_fmt yuv420p ` +
-        `-b:v ${VIDEO_BITRATE} -maxrate ${VIDEO_MAXRATE} -bufsize ${VIDEO_BUFSIZE} ` +
-        `-profile:v high -level 4.1 ` +
-        `-t ${clipLen} -f mpegts "${dest}"`,
-        { stdio: 'pipe' }
-      );
+  for (let s = 0; s < states.length; s++) {
+    const dest      = loadingStatePath(slug, s);
+    const { text, color } = states[s];
+    const dotFilter = text
+      ? `,drawtext=text='${text}':fontcolor=${color}:fontsize=36:x=(w-text_w)/2:y=(h-text_h)/2+168`
+      : '';
+    try {
+      if (hasLogo) {
+        execSync(
+          `ffmpeg -y -loglevel error ` +
+          `-f lavfi -i color=c=0x0a0e1a:size=${WIDTH}x${HEIGHT}:rate=1 ` +
+          `-loop 1 -i "${logoPath}" ` +
+          `-filter_complex ` +
+          `"[1:v]scale=560:-1[logo];[0:v][logo]overlay=(W-w)/2:(H-h)/2-110[bg];` +
+          `[bg]drawtext=text='${label}':fontcolor=white:fontsize=48:x=(w-text_w)/2:y=(h-text_h)/2+100` +
+          `${dotFilter},format=yuv420p[out]" -map "[out]" ` +
+          `-frames:v 1 -q:v 3 "${dest}"`,
+          { stdio: 'pipe' }
+        );
+      } else {
+        execSync(
+          `ffmpeg -y -loglevel error ` +
+          `-f lavfi -i color=c=0x0a0e1a:size=${WIDTH}x${HEIGHT}:rate=1 ` +
+          `-vf "drawtext=text='SCORECASTARR':fontcolor=0x00d4ff:fontsize=64:x=(w-text_w)/2:y=(h-text_h)/2-60,` +
+          `drawtext=text='${label}':fontcolor=white:fontsize=40:x=(w-text_w)/2:y=(h-text_h)/2+10` +
+          `${dotFilter},format=yuv420p" ` +
+          `-frames:v 1 -q:v 3 "${dest}"`,
+          { stdio: 'pipe' }
+        );
+      }
+    } catch (e) {
+      console.error(`[manager][${slug}] State ${s} frame failed: ${e.message}`);
+      return;
     }
-    console.log(`[manager][${slug}] Loading clip ready (${clipLen}s animated)`);
-  } catch (e) {
-    console.error(`[manager][${slug}] Loading clip failed: ${e.message}`);
   }
+  console.log(`[manager][${slug}] Loading state frames ready`);
 }
 
 // ── Pre-bake ─────────────────────────────────────────────────────────────────
@@ -300,47 +296,28 @@ function prebakeHLS(slug) {
     if (fs.existsSync(m3u8)) fs.unlinkSync(m3u8);
   } catch (_) {}
 
-  // Prefer the animated loading clip; fall back to static frame if clip wasn't generated.
-  const clip  = loadingClipPath(slug);
-  const frame = framePath(slug);
-  const useClip = fs.existsSync(clip);
-  if (!useClip && !fs.existsSync(frame)) {
-    console.warn(`[manager][${slug}] No loading clip or frame — skipping pre-bake`);
+  // Use per-state animation frames if available, otherwise fall back to static frame.
+  // Each segment uses state (i % 4) so the dot animation cycles across segments.
+  const hasStates = fs.existsSync(loadingStatePath(slug, 0));
+  const frame     = framePath(slug);
+  if (!hasStates && !fs.existsSync(frame)) {
+    console.warn(`[manager][${slug}] No frames for pre-bake — skipping`);
     return;
   }
 
-  // Encode each segment individually with mpegts muxer.
-  // When using the animated clip, seek to the correct time offset so each
-  // segment shows a different phase of the animation.
   for (let i = 0; i < PREROLL_SEGMENTS; i++) {
-    const seg     = path.join(HLS_DIR, `${slug}_${String(i).padStart(5, '0')}.ts`);
-    const tOffset = i * SEG_DURATION;
+    const seg   = path.join(HLS_DIR, `${slug}_${String(i).padStart(5, '0')}.ts`);
+    const input = hasStates ? loadingStatePath(slug, i % 4) : frame;
     try {
-      if (useClip) {
-        // Slice SEG_DURATION seconds from the animated clip at the correct offset.
-        // -ss must be placed AFTER -i (output-side seeking) for mpegts input —
-        // input-side seeking with -c copy produces 0 frames on this ffmpeg build.
-        execSync(
-          `ffmpeg -y -loglevel error -i "${clip}" ` +
-          `-ss ${tOffset} -t ${SEG_DURATION} ` +
-          `-c:v libx264 -preset ultrafast -pix_fmt yuv420p ` +
-          `-b:v ${VIDEO_BITRATE} -maxrate ${VIDEO_MAXRATE} -bufsize ${VIDEO_BUFSIZE} ` +
-          `-profile:v high -level 4.1 ` +
-          `-f mpegts "${seg}"`,
-          { stdio: 'pipe' }
-        );
-      } else {
-        // Static frame fallback — same as before.
-        execSync(
-          `ffmpeg -y -loglevel error -loop 1 -framerate ${FPS} -i "${frame}" ` +
-          `-vf format=yuv420p -c:v libx264 -preset ultrafast -tune stillimage ` +
-          `-b:v ${VIDEO_BITRATE} -maxrate ${VIDEO_MAXRATE} -bufsize ${VIDEO_BUFSIZE} -pix_fmt yuv420p ` +
-          `-profile:v high -level 4.1 ` +
-          `-g ${FPS * SEG_DURATION} -sc_threshold 0 ` +
-          `-t ${SEG_DURATION} -f mpegts "${seg}"`,
-          { stdio: 'pipe' }
-        );
-      }
+      execSync(
+        `ffmpeg -y -loglevel error -loop 1 -framerate ${FPS} -i "${input}" ` +
+        `-vf format=yuv420p -c:v libx264 -preset ultrafast -tune stillimage ` +
+        `-b:v ${VIDEO_BITRATE} -maxrate ${VIDEO_MAXRATE} -bufsize ${VIDEO_BUFSIZE} -pix_fmt yuv420p ` +
+        `-profile:v high -level 4.1 ` +
+        `-g ${FPS * SEG_DURATION} -sc_threshold 0 ` +
+        `-t ${SEG_DURATION} -f mpegts "${seg}"`,
+        { stdio: 'pipe' }
+      );
     } catch (e) {
       console.error(`[manager][${slug}] Seg ${i} encode failed: ${e.message}`);
       return;
