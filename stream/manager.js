@@ -436,8 +436,18 @@ async function startRenderer(slug) {
   // continuous XHR calls for score updates, so networkidle2 always times out.
   try {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    // Brief pause to let JS initialise after DOMContentLoaded
-    await new Promise(r => setTimeout(r, 3000));
+    // Poll for window.__streamReady which the page sets after initStreamCanvas()
+    // completes. This replaces a fixed sleep and starts capturing as soon as the
+    // page is actually ready rather than after an arbitrary delay.
+    const READY_TIMEOUT = 20000;
+    const t0 = Date.now();
+    let ready = false;
+    while (Date.now() - t0 < READY_TIMEOUT) {
+      try { ready = await page.evaluate(() => !!window.__streamReady); } catch(_) {}
+      if (ready) break;
+      await new Promise(r => setTimeout(r, 150));
+    }
+    if (!ready) console.warn(`[manager][${slug}] __streamReady not set after ${READY_TIMEOUT}ms — continuing anyway`);
   } catch (e) {
     console.error(`[manager][${slug}] Nav warning: ${e.message}`);
   }

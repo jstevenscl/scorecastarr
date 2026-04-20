@@ -9294,16 +9294,22 @@ renderFavSummary();
   if(sidebar)sidebar.style.display='none';
   document.body.classList.add('stream-mode');
 
-  // Fetch System Theme from server BEFORE scoreboard config — this gives the
-  // Puppeteer browser instance access to the user's system theme settings
-  // (colors, topbar meta size, etc.) which it can't read from localStorage
-  // since it's a separate browser session from the user's main browser.
-  // Only the topbar meta size and color vars apply in stream mode (sidebar
-  // scale and base font size don't apply because the sidebar is hidden and
-  // zooming #app would distort the 1080p stream layout).
+  // Fetch system theme and scoreboard config in parallel — they're independent
+  // requests so there's no reason to await one before starting the other.
+  // System theme: Puppeteer browser can't read localStorage so we fetch the
+  // user's color/topbar settings from the API. Non-fatal if it fails.
+  // Scoreboard config: needed to set sport filters before score fetching.
+  const slug=params.get('slug');
+  _activeStreamSlug = slug || '__active__';
+  const sbUrl=slug?`${API_BASE}/scoreboards/by-slug/${slug}`:`${API_BASE}/scoreboards/active`;
+  const [stRes, sbFetchRes] = await Promise.all([
+    fetch(`${API_BASE}/global-settings/system_theme`,{signal:AbortSignal.timeout(3000)}).catch(()=>null),
+    fetch(sbUrl,{signal:AbortSignal.timeout(5000)}).catch(()=>null),
+  ]);
+
+  // Apply system theme
   try{
-    const stRes=await fetch(`${API_BASE}/global-settings/system_theme`,{signal:AbortSignal.timeout(3000)});
-    if(stRes.ok){
+    if(stRes&&stRes.ok){
       const stJson=await stRes.json();
       const st=stJson.value||{};
       const root=document.documentElement;
@@ -9321,12 +9327,10 @@ renderFavSummary();
     }
   }catch(e){ /* non-fatal — stream falls back to defaults */ }
 
-  // Fetch scoreboard config FIRST so filters are set before any score fetching
-  const slug=params.get('slug');
-  _activeStreamSlug = slug || '__active__';
-  const url=slug?`${API_BASE}/scoreboards/by-slug/${slug}`:`${API_BASE}/scoreboards/active`;
+  // Apply scoreboard config
+  const url=sbUrl; // keep existing references below intact
   try{
-    const r=await fetch(url,{signal:AbortSignal.timeout(5000)});
+    const r=sbFetchRes;
     if(r.ok){
       const sb=await r.json();
       // Store scoreboard so fetchSport can pass motor_config to fetchF1Data/fetchNascarData
@@ -9394,6 +9398,10 @@ renderFavSummary();
   // Replace scoreboard with fixed canvas layout — must run AFTER fetchAllScores
   // so games are in state.games before renderStreamCanvas is called
   initStreamCanvas();
+  // Signal the renderer that the page is fully initialised and live frames
+  // can start. The renderer polls for this flag instead of sleeping a fixed
+  // number of seconds, so it starts capturing as soon as we're actually ready.
+  window.__streamReady = true;
 })();
 
 // =====================
