@@ -413,6 +413,10 @@ Three **Inherit From Default Stream Settings** toggles at the top of the display
 
 When a toggle is **on**, the relevant sliders are dimmed with a banner indicating the values come from Default Stream Settings and will update automatically if the defaults change. Toggle **off** to unlock those controls and set values specific to this scoreboard.
 
+### Copying Settings From Another Scoreboard
+
+At the top of Step 3 there is a **Copy Display Settings From Another Scoreboard** section. Select any other scoreboard from the dropdown and click **Copy Settings** to clone all display settings (fonts, colors, card size, theme, and inheritance toggle states) into the scoreboard you're editing. Sports, teams, name, and audio are never affected.
+
 ---
 
 ### Previewing Your Scoreboard
