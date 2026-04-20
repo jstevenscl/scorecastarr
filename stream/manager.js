@@ -231,15 +231,20 @@ function writeStartingClip(slug) {
   const logoPath = fs.existsSync(BUNDLED_LOGO_PATH) ? BUNDLED_LOGO_PATH : LOADING_LOGO_PATH;
   const hasLogo  = fs.existsSync(logoPath);
 
-  // Three dots light up sequentially over a 1.5 s cycle then reset.
-  // alpha = 0.2 (dim) until the dot's threshold in mod(t,1.5) is passed,
-  // then 1.0 (bright).  gt() returns 1 when true, 0 when false.
-  // Commas inside ffmpeg expressions must be escaped as \, in the shell.
-  const dotY   = '(h-text_h)/2+175';
-  const dot1   = `drawtext=text='●':fontcolor=0x00d4ff:fontsize=40:x=(w-text_w)/2-48:y=${dotY}:alpha='0.2+0.8*gt(mod(t\\,1.5)\\,0.5)'`;
-  const dot2   = `drawtext=text='●':fontcolor=0x00d4ff:fontsize=40:x=(w-text_w)/2:y=${dotY}:alpha='0.2+0.8*gt(mod(t\\,1.5)\\,0.9)'`;
-  const dot3   = `drawtext=text='●':fontcolor=0x00d4ff:fontsize=40:x=(w-text_w)/2+48:y=${dotY}:alpha='0.2+0.8*gt(mod(t\\,1.5)\\,1.2)'`;
-  const dotStr = `${dot1},${dot2},${dot3}`;
+  // Three-dot sequential animation using enable expressions — no alpha needed,
+  // works on all ffmpeg builds. Four states cycle every 2s:
+  //   0.0–0.5s  →  (blank reset pause)
+  //   0.5–1.0s  →  .
+  //   1.0–1.5s  →  . .
+  //   1.5–2.0s  →  . . .  (accent colour when fully lit)
+  // Each state is a separate drawtext that is shown only during its window.
+  // Commas inside ffmpeg expressions must be escaped as \, in the shell string.
+  const txtY  = '(h-text_h)/2+168';
+  const d0 = `drawtext=text='':fontcolor=0x3d5a78:fontsize=36:x=(w-text_w)/2:y=${txtY}:enable='lt(mod(t\\,2)\\,0.5)'`;
+  const d1 = `drawtext=text='.':fontcolor=0x3d5a78:fontsize=36:x=(w-text_w)/2:y=${txtY}:enable='between(mod(t\\,2)\\,0.5\\,1.0)'`;
+  const d2 = `drawtext=text='. .':fontcolor=0x3d5a78:fontsize=36:x=(w-text_w)/2:y=${txtY}:enable='between(mod(t\\,2)\\,1.0\\,1.5)'`;
+  const d3 = `drawtext=text='. . .':fontcolor=0x00d4ff:fontsize=36:x=(w-text_w)/2:y=${txtY}:enable='gte(mod(t\\,2)\\,1.5)'`;
+  const dotStr = `${d0},${d1},${d2},${d3}`;
 
   // Clip length = full pre-roll duration so prebakeHLS can slice without looping.
   const clipLen = PREROLL_SEGMENTS * SEG_DURATION;
