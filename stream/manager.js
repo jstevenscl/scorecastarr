@@ -231,21 +231,19 @@ function writeStartingClip(slug) {
   const logoPath = fs.existsSync(BUNDLED_LOGO_PATH) ? BUNDLED_LOGO_PATH : LOADING_LOGO_PATH;
   const hasLogo  = fs.existsSync(logoPath);
 
-  // Three-dot sequential animation using enable expressions — no alpha needed,
-  // works on all ffmpeg builds. Four states cycle every 4s (one per integer
-  // second at 1 FPS):
-  //   t%4 in [0,1)  →  (blank pause)
-  //   t%4 in [1,2)  →  .
-  //   t%4 in [2,3)  →  . .
-  //   t%4 in [3,4)  →  . . .  (accent colour when fully lit)
-  // Using gte*lt (not between) avoids boundary overlap at integer t values.
+  // Three-dot sequential animation keyed on frame number (n), not time.
+  // At 1 FPS each frame = 1 second. mod(n,4) cycles 0→1→2→3→0…
+  //   n%4 == 0  →  (blank — no drawtext active)
+  //   n%4 == 1  →  .
+  //   n%4 == 2  →  . .
+  //   n%4 == 3  →  . . .  (accent colour when fully lit)
+  // eq() matches exact integers so there is no boundary overlap.
   // Commas inside ffmpeg expressions must be escaped as \, in the shell string.
   const txtY  = '(h-text_h)/2+168';
-  const d0 = `drawtext=text=' ':fontcolor=0x3d5a78:fontsize=36:x=(w-text_w)/2:y=${txtY}:enable='lt(mod(t\\,4)\\,1)'`;
-  const d1 = `drawtext=text='.':fontcolor=0x3d5a78:fontsize=36:x=(w-text_w)/2:y=${txtY}:enable='gte(mod(t\\,4)\\,1)*lt(mod(t\\,4)\\,2)'`;
-  const d2 = `drawtext=text='. .':fontcolor=0x3d5a78:fontsize=36:x=(w-text_w)/2:y=${txtY}:enable='gte(mod(t\\,4)\\,2)*lt(mod(t\\,4)\\,3)'`;
-  const d3 = `drawtext=text='. . .':fontcolor=0x00d4ff:fontsize=36:x=(w-text_w)/2:y=${txtY}:enable='gte(mod(t\\,4)\\,3)'`;
-  const dotStr = `${d0},${d1},${d2},${d3}`;
+  const d1 = `drawtext=text='.':fontcolor=0x3d5a78:fontsize=36:x=(w-text_w)/2:y=${txtY}:enable='eq(mod(n\\,4)\\,1)'`;
+  const d2 = `drawtext=text='. .':fontcolor=0x3d5a78:fontsize=36:x=(w-text_w)/2:y=${txtY}:enable='eq(mod(n\\,4)\\,2)'`;
+  const d3 = `drawtext=text='. . .':fontcolor=0x00d4ff:fontsize=36:x=(w-text_w)/2:y=${txtY}:enable='eq(mod(n\\,4)\\,3)'`;
+  const dotStr = `${d1},${d2},${d3}`;
 
   // Clip length = full pre-roll duration so prebakeHLS can slice without looping.
   const clipLen = PREROLL_SEGMENTS * SEG_DURATION;
