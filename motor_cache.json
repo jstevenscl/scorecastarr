@@ -3920,7 +3920,7 @@
           "pos": 40,
           "driver": "Austin Hill",
           "car": "#33",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -3938,7 +3938,7 @@
           "pos": 42,
           "driver": "Jesse Love",
           "car": "#33",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -3965,7 +3965,7 @@
           "pos": 45,
           "driver": "Anthony Alfredo",
           "car": "#62",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 0,
           "wins": 0,
           "races": 0
@@ -21000,7 +21000,7 @@
           "pos": 25,
           "driver": "Daniel Dye",
           "car": "#10",
-          "manufacturer": "",
+          "manufacturer": "Ford",
           "points": 64,
           "wins": 0,
           "races": 0
@@ -21234,7 +21234,7 @@
           "pos": 51,
           "driver": "Jason Kitzmiller",
           "car": "#97",
-          "manufacturer": "",
+          "manufacturer": "Chevy",
           "points": 7,
           "wins": 0,
           "races": 0
@@ -21261,7 +21261,7 @@
           "pos": 54,
           "driver": "Derek White",
           "car": "#69",
-          "manufacturer": "",
+          "manufacturer": "Ford",
           "points": 2,
           "wins": 0,
           "races": 0
@@ -24822,7 +24822,7 @@
           "pos": 2,
           "driver": "Sheldon Creed",
           "car": "#00",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 389,
           "wins": 1,
           "races": 0
@@ -24831,7 +24831,7 @@
           "pos": 3,
           "driver": "Jesse Love",
           "car": "#2",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 371,
           "wins": 0,
           "races": 0
@@ -24840,7 +24840,7 @@
           "pos": 4,
           "driver": "Corey Day",
           "car": "#17",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 344,
           "wins": 0,
           "races": 0
@@ -24867,7 +24867,7 @@
           "pos": 7,
           "driver": "Carson Kvapil",
           "car": "#9",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 301,
           "wins": 0,
           "races": 0
@@ -24876,7 +24876,7 @@
           "pos": 8,
           "driver": "Austin Hill",
           "car": "#21",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 296,
           "wins": 1,
           "races": 0
@@ -24912,7 +24912,7 @@
           "pos": 12,
           "driver": "Rajah Caruth",
           "car": "#32",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 254,
           "wins": 0,
           "races": 0
@@ -24930,7 +24930,7 @@
           "pos": 14,
           "driver": "Sam Mayer",
           "car": "#41",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 225,
           "wins": 0,
           "races": 0
@@ -24966,7 +24966,7 @@
           "pos": 18,
           "driver": "Anthony Alfredo",
           "car": "#96",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 171,
           "wins": 0,
           "races": 0
@@ -25056,7 +25056,7 @@
           "pos": 28,
           "driver": "Josh Williams",
           "car": "#92",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 98,
           "wins": 0,
           "races": 0
@@ -25155,7 +25155,7 @@
           "pos": 39,
           "driver": "Mason Maggio",
           "car": "#91",
-          "manufacturer": "Chevy",
+          "manufacturer": "",
           "points": 31,
           "wins": 0,
           "races": 0
@@ -25362,7 +25362,7 @@
           "pos": 63,
           "driver": "Daniel Dye",
           "car": "#52",
-          "manufacturer": "",
+          "manufacturer": "Ford",
           "points": 0,
           "wins": 0,
           "races": 0
