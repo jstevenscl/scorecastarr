@@ -2,7 +2,7 @@
 ScorecastArr API — Flask backend
 See NCAA_ARCHITECTURE.md for full design decisions.
 """
-import os, sqlite3, logging, threading, json as _json
+import os, re, sqlite3, logging, threading, json as _json
 from datetime import datetime, timezone
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
@@ -1143,9 +1143,12 @@ def _build_ticker_params(original_params, channel_id, font_size=24, position='bo
         )
     else:
         ticker_src = _ticker_text_url(channel_id)
-        reload_val = 30 if ticker_src.startswith('http') else 1
+        is_http = ticker_src.startswith('http')
+        # Escape ':' for FFmpeg filter syntax — ':' is the option separator
+        escaped_src = ticker_src.replace(':', '\\:') if is_http else ticker_src
+        reload_val = 30 if is_http else 1
         drawtext = (
-            f'drawtext=textfile={ticker_src}:reload={reload_val}'
+            f'drawtext=textfile={escaped_src}:reload={reload_val}'
             f':fontsize={font_size}:fontcolor=white'
             f':box=1:boxcolor=black@{bg_opacity}:boxborderw=10'
             f':x={x_expr}:y={y_expr}'
@@ -1298,18 +1301,27 @@ def save_ticker_config(sb_id):
         return jsonify({'ok':True})
     except Exception as e: return jsonify({'error':str(e)}),500
 
-def _find_fallback_ffmpeg_profile(session, creds):
-    """Find an unlocked FFmpeg stream profile with -c:v copy suitable for ticker injection."""
+def _find_fallback_ffmpeg_profile(session, creds, preferred_id=None):
+    """Find an unlocked FFmpeg stream profile suitable for ticker injection.
+    preferred_id: use this profile ID if it exists and is valid (user-configured fallback).
+    Falls back to heuristic search if preferred_id not provided or not found."""
     try:
         r = session.get(f'{creds["url"]}/api/core/streamprofiles/', timeout=15)
         r.raise_for_status()
         data = r.json()
         items = data.get('results', data) if isinstance(data, dict) else data
         if not isinstance(items, list): return None
+        # Build a lookup by ID for quick access
+        by_id = {p['id']: p for p in items if 'id' in p}
+        # If caller specified a profile ID, try that first
+        if preferred_id:
+            p = by_id.get(int(preferred_id))
+            if p and not p.get('locked') and _profile_is_video_ffmpeg(p):
+                return p
+        # Heuristic: unlocked ffmpeg with -c:v copy, NOT audio-only
         candidates = [p for p in items
                       if not p.get('locked', False)
-                      and 'ffmpeg' in (p.get('command') or '').lower()
-                      and '-c:v copy' in (p.get('parameters') or '')]
+                      and _profile_is_video_ffmpeg(p)]
         for pref in ('default', 'standard', 'copy', 'passthrough', 'base'):
             for c in candidates:
                 if pref in (c.get('name') or '').lower():
@@ -1318,7 +1330,18 @@ def _find_fallback_ffmpeg_profile(session, creds):
     except Exception:
         return None
 
-def _enable_ticker_for_channel(channel_id, sb_id, font_size, position, bg_opacity, test_text, scroll_speed, session, creds, cfg_json='{}', cpu_saver_scale=False, cpu_saver_fps=False, cpu_saver_crf=False):
+def _profile_is_video_ffmpeg(p):
+    """Return True if this stream profile is an FFmpeg video profile suitable for ticker injection."""
+    params = (p.get('parameters') or '').lower()
+    cmd    = (p.get('command')    or '').lower()
+    if 'ffmpeg' not in cmd: return False
+    if '-c:v copy' not in params: return False
+    # Exclude audio-only profiles
+    if '-vn' in params: return False
+    if re.search(r'-map\s+0:a', params): return False
+    return True
+
+def _enable_ticker_for_channel(channel_id, sb_id, font_size, position, bg_opacity, test_text, scroll_speed, session, creds, cfg_json='{}', cpu_saver_scale=False, cpu_saver_fps=False, cpu_saver_crf=False, fallback_profile_id=None):
     """Enable ticker on a single channel. Returns (ok: bool, result: dict)."""
     import re as _re
     try:
@@ -1329,23 +1352,23 @@ def _enable_ticker_for_channel(channel_id, sb_id, font_size, position, bg_opacit
         extra_changes = []
 
         if not original_profile_id:
-            # No profile assigned — find a fallback FFmpeg profile to use as base
-            fallback = _find_fallback_ffmpeg_profile(session, creds)
+            # No profile assigned — use configured fallback or heuristic search
+            fallback = _find_fallback_ffmpeg_profile(session, creds, preferred_id=fallback_profile_id)
             if not fallback:
-                return False, {'error':'No stream profile assigned and no default FFmpeg profile found in Dispatcharr.'}
+                return False, {'error':'No stream profile assigned and no suitable FFmpeg video profile found. Configure a fallback profile in Ticker settings.'}
             profile = fallback
             stored_original_id = 0  # sentinel: restore to no profile on kill
-            extra_changes.append(f'INFO: No stream profile was assigned — used "{fallback["name"]}" as base. Channel will have no profile restored on KILL.')
+            extra_changes.append(f'INFO: No stream profile assigned — used "{fallback["name"]}" as base. Channel restored to no profile on KILL.')
         else:
             r = session.get(f'{creds["url"]}/api/core/streamprofiles/{original_profile_id}/',timeout=15)
             r.raise_for_status()
             profile = r.json()
             stored_original_id = original_profile_id
             if profile.get('locked'):
-                # Profile is locked — find an unlocked fallback to base the ticker on
-                fallback = _find_fallback_ffmpeg_profile(session, creds)
+                # Profile is locked — use configured fallback or heuristic search
+                fallback = _find_fallback_ffmpeg_profile(session, creds, preferred_id=fallback_profile_id)
                 if not fallback:
-                    return False, {'error':f'Profile "{profile["name"]}" is locked and no unlocked FFmpeg profile found to use as fallback.'}
+                    return False, {'error':f'Profile "{profile["name"]}" is locked and no suitable FFmpeg video profile found. Configure a fallback profile in Ticker settings.'}
                 extra_changes.append(f'INFO: Profile "{profile["name"]}" is locked — used "{fallback["name"]}" as base. Original locked profile restored on KILL.')
                 profile = fallback
 
@@ -1407,6 +1430,7 @@ def ticker_enable():
     cpu_saver_scale  = bool(b.get('cpu_saver_scale', False))
     cpu_saver_fps    = bool(b.get('cpu_saver_fps',   False))
     cpu_saver_crf    = bool(b.get('cpu_saver_crf',   False))
+    fallback_profile_id = b.get('fallback_profile_id') or None
     # Store the full config per channel so text generation is independent per channel
     import json as _je
     cfg_json  = _je.dumps({k:v for k,v in b.items() if k not in ('channel_ids','channel_id')})
@@ -1414,7 +1438,7 @@ def ticker_enable():
     if err: return jsonify({'error':err}),400
     results = []
     for ch_id in channel_ids:
-        ok, result = _enable_ticker_for_channel(ch_id, sb_id, font_size, position, bg_opacity, test_text, scroll_speed, s, c, cfg_json, cpu_saver_scale, cpu_saver_fps, cpu_saver_crf)
+        ok, result = _enable_ticker_for_channel(ch_id, sb_id, font_size, position, bg_opacity, test_text, scroll_speed, s, c, cfg_json, cpu_saver_scale, cpu_saver_fps, cpu_saver_crf, fallback_profile_id=fallback_profile_id)
         result['channel_id'] = ch_id
         result['ok'] = ok
         results.append(result)
@@ -1564,6 +1588,13 @@ def ticker_text_channel(channel_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     return _ticker_text_for_config(cfg)
+
+@app.route('/ticker/delivery-info', methods=['GET'])
+def ticker_delivery_info():
+    base = (STREAM_BASE_URL or '').rstrip('/')
+    if base:
+        return jsonify({'mode':'http','base_url':base})
+    return jsonify({'mode':'file','base_url':None})
 
 @app.route('/ticker/scores/<int:channel_id>', methods=['GET'])
 def ticker_scores_plain(channel_id):
