@@ -1113,12 +1113,9 @@ def _ticker_scores_path(channel_id):
     return f'{TICKER_DIR}/scores_{channel_id}.txt'
 
 def _ticker_text_url(channel_id):
-    """Return the textfile source for FFmpeg drawtext.
-    Uses HTTP via STREAM_BASE_URL when set (works cross-stack);
-    falls back to shared-volume file path otherwise."""
-    base = (STREAM_BASE_URL or '').rstrip('/')
-    if base:
-        return f'{base}/ticker/scores/{channel_id}'
+    """Return the local file path for FFmpeg drawtext textfile.
+    Always uses the shared-volume file path — FFmpeg opens this at filter init
+    and HTTP URLs cause stream startup failures if unreachable."""
     return _ticker_scores_path(channel_id)
 
 def _build_ticker_params(original_params, channel_id, font_size=24, position='bottom', bg_opacity=0.75, test_text=None, scroll_speed=0, cpu_saver_scale=False, cpu_saver_fps=False, cpu_saver_crf=False):
@@ -1143,12 +1140,8 @@ def _build_ticker_params(original_params, channel_id, font_size=24, position='bo
         )
     else:
         ticker_src = _ticker_text_url(channel_id)
-        is_http = ticker_src.startswith('http')
-        # Escape ':' for FFmpeg filter syntax — ':' is the option separator
-        escaped_src = ticker_src.replace(':', '\\:') if is_http else ticker_src
-        reload_val = 30 if is_http else 1
         drawtext = (
-            f'drawtext=textfile={escaped_src}:reload={reload_val}'
+            f'drawtext=textfile={ticker_src}:reload=1'
             f':fontsize={font_size}:fontcolor=white'
             f':box=1:boxcolor=black@{bg_opacity}:boxborderw=10'
             f':x={x_expr}:y={y_expr}'
