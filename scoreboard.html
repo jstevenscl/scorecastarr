@@ -9102,13 +9102,13 @@ function showTickerParamWarning(html){
   }
   el.style.cssText='margin-top:8px;border:1px solid rgba(245,166,35,0.35);border-radius:8px;background:rgba(245,166,35,0.06);overflow:hidden;';
   el.innerHTML=`
-    <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.twarn-arrow').textContent=this.nextElementSibling.style.display==='none'?'▶':'▼';"
+    <div onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'block':'none';this.querySelector('.twarn-arrow').textContent=b.style.display==='none'?'▶':'▼';"
          style="display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;user-select:none;">
       <span style="font-size:13px;">⚠</span>
-      <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;color:#f5a623;letter-spacing:0.3px;flex:1;">FFmpeg Profile Adjustments — original restored on KILL</span>
-      <span class="twarn-arrow" style="font-size:10px;color:#f5a623;">▼</span>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;color:#f5a623;letter-spacing:0.3px;flex:1;">FFmpeg Profile Adjustments — click to expand</span>
+      <span class="twarn-arrow" style="font-size:10px;color:#f5a623;">▶</span>
     </div>
-    <div style="padding:0 14px 12px;display:block;">${html}</div>`;
+    <div style="padding:0 14px 12px;display:none;max-height:240px;overflow-y:auto;">${html}</div>`;
 }
 
 function resetTickerDefaults(){
@@ -9165,8 +9165,18 @@ async function enableTickerOverlay(){
     if(r.ok&&d.ok){
       const ok=d.enabled||0, fail=d.failed||0;
       let msg=`Ticker enabled on ${ok} channel${ok>1?'s':''}.`;
-      if(fail>0) msg+=` ${fail} failed — check that those channels have FFmpeg profiles.`;
+      if(fail>0) msg+=` ${fail} failed — see below.`;
       showTickerResult(msg,fail===0);
+      // Show failed channels in a collapsible panel
+      const failedResults=(d.results||[]).filter(r=>!r.ok);
+      let failEl=document.getElementById('tickerFailedChannels');
+      if(failedResults.length){
+        if(!failEl){failEl=document.createElement('div');failEl.id='tickerFailedChannels';const ref=document.getElementById('tickerActionResult');if(ref&&ref.parentNode)ref.parentNode.insertBefore(failEl,ref.nextSibling);}
+        const chMap=new Map(_tickerChannels.map(c=>[c.id,c.name]));
+        const failHtml=failedResults.map(r=>`<div style="padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:11px;color:var(--text-secondary);">${chMap.get(r.channel_id)||'Channel '+r.channel_id} <span style="color:var(--accent-red);font-size:10px;">${r.error||'No FFmpeg profile'}</span></div>`).join('');
+        failEl.style.cssText='margin-top:8px;border:1px solid rgba(255,59,92,0.35);border-radius:8px;background:rgba(255,59,92,0.04);overflow:hidden;';
+        failEl.innerHTML=`<div onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'block':'none';this.querySelector('.tfail-arrow').textContent=b.style.display==='none'?'▶':'▼';" style="display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;user-select:none;"><span style="font-size:13px;">✗</span><span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;color:var(--accent-red);letter-spacing:0.3px;flex:1;">${fail} channel${fail>1?'s':''} failed — click to see which</span><span class="tfail-arrow" style="font-size:10px;color:var(--accent-red);">▶</span></div><div style="padding:0 14px 12px;display:none;max-height:200px;overflow-y:auto;">${failHtml}</div>`;
+      } else if(failEl){failEl.style.display='none';}
       // Show per-channel param change warnings if any adjustments were made
       const allChanges=(d.results||[]).filter(r=>r.ok&&r.param_changes?.length);
       if(allChanges.length){
