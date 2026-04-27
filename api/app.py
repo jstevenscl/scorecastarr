@@ -1106,9 +1106,20 @@ def get_channel(channel_id):
 # ── Ticker Overlay ────────────────────────────────────────────────────────────
 
 TICKER_DIR = '/ticker'
+_ticker_text_cache = {}   # channel_id → {'text': str, 'expires': float}
+_TICKER_TEXT_TTL  = 30    # seconds between ESPN/cache refreshes
 
 def _ticker_scores_path(channel_id):
     return f'{TICKER_DIR}/scores_{channel_id}.txt'
+
+def _ticker_text_url(channel_id):
+    """Return the textfile source for FFmpeg drawtext.
+    Uses HTTP via STREAM_BASE_URL when set (works cross-stack);
+    falls back to shared-volume file path otherwise."""
+    base = (STREAM_BASE_URL or '').rstrip('/')
+    if base:
+        return f'{base}/ticker/scores/{channel_id}'
+    return _ticker_scores_path(channel_id)
 
 def _build_ticker_params(original_params, channel_id, font_size=24, position='bottom', bg_opacity=0.75, test_text=None, scroll_speed=0, cpu_saver_scale=False, cpu_saver_fps=False, cpu_saver_crf=False):
     """Returns (modified_params: str, changes: list[str]).
@@ -1131,9 +1142,10 @@ def _build_ticker_params(original_params, channel_id, font_size=24, position='bo
             f':x={x_expr}:y={y_expr}'
         )
     else:
-        ticker_file = _ticker_scores_path(channel_id)
+        ticker_src = _ticker_text_url(channel_id)
+        reload_val = 30 if ticker_src.startswith('http') else 1
         drawtext = (
-            f'drawtext=textfile={ticker_file}:reload=1'
+            f'drawtext=textfile={ticker_src}:reload={reload_val}'
             f':fontsize={font_size}:fontcolor=white'
             f':box=1:boxcolor=black@{bg_opacity}:boxborderw=10'
             f':x={x_expr}:y={y_expr}'
@@ -1432,6 +1444,7 @@ def _disable_ticker_row(backup_row, session, creds):
         scores_file = _ticker_scores_path(backup_row['channel_id'])
         if _os.path.exists(scores_file):
             _os.remove(scores_file)
+        _ticker_text_cache.pop(backup_row['channel_id'], None)
     except Exception as e:
         warnings.append(f'Delete ticker file: {e}')
     return warnings
@@ -1551,6 +1564,33 @@ def ticker_text_channel(channel_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     return _ticker_text_for_config(cfg)
+
+@app.route('/ticker/scores/<int:channel_id>', methods=['GET'])
+def ticker_scores_plain(channel_id):
+    """Plain-text ticker scores for FFmpeg drawtext textfile=http://... (cross-stack).
+    Cached for _TICKER_TEXT_TTL seconds so reload=30 in FFmpeg doesn't hit ESPN APIs every frame."""
+    import json as _jsc, time as _tsc
+    now = _tsc.time()
+    cached = _ticker_text_cache.get(channel_id)
+    if cached and cached['expires'] > now:
+        text = cached['text']
+    else:
+        try:
+            with get_db() as conn:
+                row = conn.execute(
+                    'SELECT ticker_config FROM ticker_profile_backup WHERE channel_id=?',
+                    (channel_id,)).fetchone()
+            cfg = _jsc.loads(row['ticker_config'] or '{}') if row else {}
+            resp_obj = _ticker_text_for_config(cfg)
+            text = resp_obj.get_json(force=True).get('text', '')
+        except Exception:
+            text = cached['text'] if cached else ''
+        _ticker_text_cache[channel_id] = {'text': text, 'expires': now + _TICKER_TEXT_TTL}
+    from flask import make_response as _mkr
+    r = _mkr(text, 200)
+    r.headers['Content-Type'] = 'text/plain; charset=utf-8'
+    r.headers['Cache-Control'] = 'no-store'
+    return r
 
 @app.route('/ticker/text', methods=['GET'])
 def ticker_text_global():
