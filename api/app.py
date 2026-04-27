@@ -476,7 +476,7 @@ def init_db():
         # Fetches from dedicated data branch — never conflicts with code pushes to dev/beta/latest
         try:
             import json as _jg
-            DATA_URL = 'https://raw.githubusercontent.com/jstevenscl/scorecastarr/data/motor_cache.json'
+            DATA_URL = 'https://raw.githubusercontent.com/jstevenscl/scorecastarr-data/main/motor_cache.json'
             rg = http.get(DATA_URL, timeout=15)
             if rg.ok:
                 gdata = rg.json()
@@ -2640,7 +2640,7 @@ def motor_reseed():
     """Re-fetch motor_cache.json from GitHub data branch and repopulate DB."""
     try:
         import json as _jr
-        DATA_URL = 'https://raw.githubusercontent.com/jstevenscl/scorecastarr/data/motor_cache.json'
+        DATA_URL = 'https://raw.githubusercontent.com/jstevenscl/scorecastarr-data/main/motor_cache.json'
         rg = http.get(DATA_URL, timeout=20)
         if not rg.ok:
             return jsonify({'error': f'GitHub fetch failed: {rg.status_code}'}), 502
@@ -2781,7 +2781,7 @@ if __name__ == '__main__':
                 log.warning(f'[auto] PGA refresh error: {e}')
             # Re-seed player caches (headshots) from GitHub data branch
             try:
-                DATA_URL = 'https://raw.githubusercontent.com/jstevenscl/scorecastarr/data/motor_cache.json'
+                DATA_URL = 'https://raw.githubusercontent.com/jstevenscl/scorecastarr-data/main/motor_cache.json'
                 rg = http.get(DATA_URL, timeout=20)
                 if rg.ok:
                     gdata = rg.json()
