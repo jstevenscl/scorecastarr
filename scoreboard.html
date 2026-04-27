@@ -1221,7 +1221,7 @@ body.stream-mode .card-header{padding:calc(var(--card-header-size,11px) * 0.36) 
           </div>
           <button id="tickerKillAllBtn" onclick="disableAllTickers()" style="display:none;padding:5px 12px;background:rgba(255,59,92,0.1);border:1px solid var(--accent-red);border-radius:6px;color:var(--accent-red);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:1px;cursor:pointer;">KILL ALL</button>
         </div>
-        <div id="tickerActiveList" style="display:none;border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;background:var(--bg-secondary);overflow:hidden;"></div>
+        <div id="tickerActiveList" style="display:none;border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;background:var(--bg-secondary);max-height:320px;overflow-y:auto;"></div>
       </div>
 
       <!-- Dispatcharr channel -->
@@ -8210,6 +8210,8 @@ let _tickerSelectedChannels=new Map(); // id → channel object
 let _tickerActiveChannelIds=new Set(); // ids of channels with an active ticker right now
 let _tickerActiveLabels=new Map();    // id → ticker_label string (sports or "Custom Text")
 let _tickerSelectedGroups=new Set();  // group names currently toggled on
+let _tickerActiveExpanded=new Set();  // group names with expanded channel list in active panel
+let _tickerLastActive=[];             // last fetched active ticker array (avoids re-fetch on expand)
 
 function onTickerChannelCheck(chId, checked){
   const nId=Number(chId);
@@ -8325,11 +8327,15 @@ function _updateTickerSelection(){
   if(!panel||!chipList) return;
   if(n===0){panel.style.display='none';return;}
   panel.style.display='block';
-  chipList.innerHTML=[..._tickerSelectedChannels.values()].map(ch=>{
+  const CHIP_LIMIT=15;
+  const all=[..._tickerSelectedChannels.values()];
+  const visible=all.slice(0,CHIP_LIMIT);
+  const overflow=n-CHIP_LIMIT;
+  chipList.innerHTML=visible.map(ch=>{
     const num=ch.channel_number?` (${Math.floor(ch.channel_number)})`:'';
     const live=_tickerActiveChannelIds.has(Number(ch.id))?` <span style="color:var(--accent-green);font-size:9px;" title="Ticker already active">●</span>`:'';
     return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);border-radius:20px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:var(--text-primary);white-space:nowrap;">${ch.name}${num}${live}<button onclick="removeTickerChannel(${ch.id})" style="background:none;border:none;cursor:pointer;color:var(--text-dim);font-size:11px;padding:0 0 0 3px;line-height:1;" title="Remove">✕</button></span>`;
-  }).join('');
+  }).join('')+(overflow>0?`<span style="display:inline-flex;align-items:center;padding:3px 10px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:20px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:var(--text-dim);white-space:nowrap;">+${overflow} more</span>`:'');
 }
 
 function updateTickerStatusUI(cfg){
@@ -8348,65 +8354,98 @@ function updateTickerStatusUI(cfg){
 }
 
 async function refreshTickerStatusPanel(){
-  const listEl=document.getElementById('tickerActiveList');
-  const killAllBtn=document.getElementById('tickerKillAllBtn');
-  const dot=document.getElementById('tickerStatusDot');
-  const txt=document.getElementById('tickerStatusText');
   try{
     const r=await fetch(`${API_BASE}/ticker/status`,{signal:AbortSignal.timeout(10000)});
     const d=await r.json();
     const active=d.active||[];
-    // Track which channels have active tickers so the channel list can badge them
+    _tickerLastActive=active;
     _tickerActiveChannelIds=new Set(active.map(t=>Number(t.channel_id)));
-    _tickerActiveLabels=new Map(active.map(t=>[t.channel_id, t.ticker_label||'']));
+    _tickerActiveLabels=new Map(active.map(t=>[t.channel_id,t.ticker_label||'']));
     renderTickerChannelList();
     _updateTickerSelection();
-    if(active.length===0){
-      if(listEl)listEl.style.display='none';
-      if(killAllBtn)killAllBtn.style.display='none';
-      if(dot){dot.style.background='var(--text-dim)';dot.style.boxShadow='none';}
-      if(txt){txt.textContent='Not active';txt.style.color='var(--text-secondary)';txt.style.fontWeight='';}
-      return;
-    }
-    if(dot){dot.style.background='var(--accent-green)';dot.style.boxShadow='0 0 7px var(--accent-green)';}
-    if(txt){txt.innerHTML=`<strong style="color:var(--accent-green);">${active.length}</strong> active ticker${active.length>1?'s':''}`;txt.style.color='var(--text-secondary)';txt.style.fontWeight='';}
-    if(killAllBtn)killAllBtn.style.display=active.length>1?'inline-block':'none';
-    if(listEl){
-      listEl.style.display='block';
-      listEl.innerHTML=active.map(t=>{
-        const changes=t.param_changes||[];
-        const hasWarn=changes.some(c=>c.startsWith('WARNING'));
-        const warnColor=hasWarn?'#f5a623':'var(--accent)';
-        const warnPill=changes.length?`<span onclick="toggleTickerChanges(${t.channel_id})" style="cursor:pointer;font-size:9px;font-weight:800;color:${warnColor};background:${hasWarn?'rgba(245,166,35,0.1)':'rgba(0,212,255,0.1)'};border:1px solid ${warnColor};border-radius:4px;padding:1px 5px;letter-spacing:0.3px;flex-shrink:0;" title="FFmpeg param adjustments — click to view">⚙ ${hasWarn?'WARN':'INFO'}</span>`:'';
-        const changeRows=changes.map(c=>{
-          const[lvl,...rest]=c.split(':');
-          const col=lvl==='WARNING'?'#f5a623':'var(--accent)';
-          return `<div style="display:flex;gap:6px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);align-items:flex-start;">
-            <span style="font-size:8px;font-weight:800;color:${col};flex-shrink:0;margin-top:2px;">${lvl}</span>
-            <span style="font-size:10px;color:var(--text-secondary);">${rest.join(':').trim()}</span>
-          </div>`;
-        }).join('');
-        const changePanel=changes.length?`<div id="tickerChanges_${t.channel_id}" style="display:none;padding:6px 16px 10px;background:rgba(0,0,0,0.2);border-top:1px solid var(--border);">${changeRows}<div style="font-size:10px;color:var(--text-dim);margin-top:6px;">Original profile restored automatically when KILL is pressed.</div></div>`:'';
-        return `<div style="border-bottom:1px solid var(--border);" data-sb="${t.scoreboard_id}">
-          <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;">
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:13px;color:var(--text-primary);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.channel_name||'Channel '+t.channel_id}</div>
-              <div style="font-size:11px;margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                <span style="color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:0.3px;">${t.ticker_label||''}</span>
-                ${warnPill}
-                <span style="color:var(--text-dim);font-family:'Share Tech Mono',monospace;">· since ${t.created_at?new Date(t.created_at+'Z').toLocaleTimeString():''}</span>
-              </div>
-            </div>
-            <button onclick="disableTickerByChannel(${t.channel_id})" style="padding:4px 10px;background:rgba(255,59,92,0.08);border:1px solid var(--accent-red);border-radius:6px;color:var(--accent-red);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.5px;cursor:pointer;white-space:nowrap;flex-shrink:0;">KILL</button>
-          </div>
-          ${changePanel}
-        </div>`;
-      }).join('');
-      // Remove bottom border from last item
-      const last=listEl.lastElementChild;
-      if(last)last.style.borderBottom='none';
-    }
+    _renderActiveTickerList(active);
   }catch(e){}
+}
+
+function _renderActiveTickerList(active){
+  const listEl=document.getElementById('tickerActiveList');
+  const killAllBtn=document.getElementById('tickerKillAllBtn');
+  const dot=document.getElementById('tickerStatusDot');
+  const txt=document.getElementById('tickerStatusText');
+  if(active.length===0){
+    if(listEl)listEl.style.display='none';
+    if(killAllBtn)killAllBtn.style.display='none';
+    if(dot){dot.style.background='var(--text-dim)';dot.style.boxShadow='none';}
+    if(txt){txt.textContent='Not active';txt.style.color='var(--text-secondary)';txt.style.fontWeight='';}
+    return;
+  }
+  if(dot){dot.style.background='var(--accent-green)';dot.style.boxShadow='0 0 7px var(--accent-green)';}
+  if(txt){txt.innerHTML=`<strong style="color:var(--accent-green);">${active.length}</strong> active ticker${active.length>1?'s':''}`;txt.style.color='var(--text-secondary)';txt.style.fontWeight='';}
+  if(killAllBtn)killAllBtn.style.display=active.length>1?'inline-block':'none';
+  if(!listEl)return;
+  listEl.style.display='block';
+  const cgMap=new Map(_tickerChannels.map(ch=>[Number(ch.id),ch.channel_group_name||'Ungrouped']));
+  const grouped=new Map();
+  for(const t of active){
+    const g=cgMap.get(Number(t.channel_id))||'Ungrouped';
+    if(!grouped.has(g))grouped.set(g,[]);
+    grouped.get(g).push(t);
+  }
+  const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const sa=s=>String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  listEl.innerHTML=[...grouped.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([gName,gTickers])=>{
+    const isExp=_tickerActiveExpanded.has(gName);
+    const channelRows=gTickers.map(t=>{
+      const changes=t.param_changes||[];
+      const hasWarn=changes.some(c=>c.startsWith('WARNING'));
+      const warnPill=changes.length?`<span onclick="toggleTickerChanges(${t.channel_id})" style="cursor:pointer;font-size:9px;font-weight:800;color:${hasWarn?'#f5a623':'var(--accent)'};background:${hasWarn?'rgba(245,166,35,0.1)':'rgba(0,212,255,0.1)'};border:1px solid ${hasWarn?'#f5a623':'var(--accent)'};border-radius:4px;padding:1px 5px;letter-spacing:0.3px;flex-shrink:0;" title="FFmpeg param adjustments — click to view">⚙ ${hasWarn?'WARN':'INFO'}</span>`:'';
+      const changeRows=changes.map(c=>{const[lvl,...rest]=c.split(':');const col=lvl==='WARNING'?'#f5a623':'var(--accent)';return `<div style="display:flex;gap:6px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);align-items:flex-start;"><span style="font-size:8px;font-weight:800;color:${col};flex-shrink:0;margin-top:2px;">${lvl}</span><span style="font-size:10px;color:var(--text-secondary);">${rest.join(':').trim()}</span></div>`;}).join('');
+      const changePanel=changes.length?`<div id="tickerChanges_${t.channel_id}" style="display:none;padding:6px 16px 10px;background:rgba(0,0,0,0.2);border-top:1px solid var(--border);">${changeRows}<div style="font-size:10px;color:var(--text-dim);margin-top:6px;">Original profile restored automatically when KILL is pressed.</div></div>`:'';
+      return `<div style="border-bottom:1px solid rgba(255,255,255,0.04);" data-sb="${t.scoreboard_id}">
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 16px 8px 28px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;color:var(--text-primary);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(t.channel_name||'Channel '+t.channel_id)}</div>
+            <div style="font-size:11px;margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              <span style="color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:0.3px;">${esc(t.ticker_label||'')}</span>
+              ${warnPill}
+              <span style="color:var(--text-dim);font-family:'Share Tech Mono',monospace;">· ${t.created_at?new Date(t.created_at+'Z').toLocaleTimeString():''}</span>
+            </div>
+          </div>
+          <button onclick="disableTickerByChannel(${t.channel_id})" style="padding:3px 8px;background:rgba(255,59,92,0.08);border:1px solid var(--accent-red);border-radius:6px;color:var(--accent-red);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.5px;cursor:pointer;white-space:nowrap;flex-shrink:0;">KILL</button>
+        </div>
+        ${changePanel}
+      </div>`;
+    }).join('');
+    return `<div style="border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:rgba(0,212,255,0.02);cursor:pointer;" onclick="toggleActiveTickerGroup('${sa(gName)}')">
+        <span style="width:8px;height:8px;border-radius:50%;background:var(--accent-green);box-shadow:0 0 5px var(--accent-green);flex-shrink:0;"></span>
+        <div style="flex:1;min-width:0;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(gName)} <span style="color:var(--text-dim);font-weight:400;">(${gTickers.length})</span></div>
+        <button onclick="event.stopPropagation();disableTickersByGroup('${sa(gName)}')" style="padding:3px 9px;background:rgba(255,59,92,0.08);border:1px solid var(--accent-red);border-radius:6px;color:var(--accent-red);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:0.5px;cursor:pointer;white-space:nowrap;flex-shrink:0;">Kill Group</button>
+        <span style="color:var(--text-dim);font-size:11px;flex-shrink:0;user-select:none;">${isExp?'▲':'▼'}</span>
+      </div>
+      ${isExp?`<div style="border-top:1px solid var(--border);">${channelRows}</div>`:''}
+    </div>`;
+  }).join('');
+  const last=listEl.lastElementChild;
+  if(last)last.style.borderBottom='none';
+}
+
+function toggleActiveTickerGroup(groupName){
+  if(_tickerActiveExpanded.has(groupName))_tickerActiveExpanded.delete(groupName);
+  else _tickerActiveExpanded.add(groupName);
+  _renderActiveTickerList(_tickerLastActive);
+}
+
+async function disableTickersByGroup(groupName){
+  const cgMap=new Map(_tickerChannels.map(ch=>[Number(ch.id),ch.channel_group_name||'Ungrouped']));
+  const ids=[..._tickerActiveChannelIds].filter(id=>(cgMap.get(id)||'Ungrouped')===groupName);
+  if(!ids.length)return;
+  showTickerResult(`Disabling ${ids.length} ticker${ids.length>1?'s':''} in "${groupName}"...`,true);
+  for(const chId of ids){
+    try{await fetch(`${API_BASE}/ticker/disable`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({channel_id:chId}),signal:AbortSignal.timeout(20000)});}catch(e){}
+  }
+  showTickerResult(`"${groupName}" tickers disabled.`,true);
+  loadTickerConfig();
 }
 
 async function disableTickerByChannel(chId){
