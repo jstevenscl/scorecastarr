@@ -2785,7 +2785,7 @@ if __name__ == '__main__':
                 rg = http.get(DATA_URL, timeout=20)
                 if rg.ok:
                     gdata = rg.json()
-                    player_keys = {k for k in gdata if k.endswith('-players') or k.endswith('-rankings')}
+                    player_keys = {k for k in gdata if k.endswith(('-players', '-rankings', '-season'))}
                     if player_keys:
                         with get_db() as conn:
                             for key in player_keys:
