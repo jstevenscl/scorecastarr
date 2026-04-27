@@ -1419,11 +1419,24 @@ body.stream-mode .card-header{padding:calc(var(--card-header-size,11px) * 0.36) 
         <div id="tickerActionResult" style="display:none;padding:9px 12px;border-radius:7px;font-size:12px;font-family:'Share Tech Mono',monospace;margin-top:10px;"></div>
       </div>
 
-      <!-- Shared volume note -->
-      <div style="background:rgba(255,107,0,0.05);border:1px solid rgba(255,107,0,0.2);border-radius:8px;padding:14px;">
+      <!-- Fallback profile selector -->
+      <div style="margin-bottom:20px;">
+        <div class="section-label" style="margin-bottom:4px;">🔁 Fallback Stream Profile</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;line-height:1.5;">Used when a channel has no stream profile assigned or its profile is locked. Must be an unlocked FFmpeg profile with <code style="background:rgba(255,255,255,0.07);padding:1px 4px;border-radius:3px;">-c:v copy</code>.</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="tickerFallbackProfile"
+            style="flex:1;padding:8px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-family:'Barlow Condensed',sans-serif;font-size:13px;outline:none;">
+            <option value="">— Auto-detect (heuristic) —</option>
+          </select>
+          <button onclick="loadTickerStreamProfiles()" style="padding:7px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:7px;color:var(--text-dim);cursor:pointer;font-size:13px;">↻</button>
+        </div>
+      </div>
+
+      <!-- Delivery mode note -->
+      <div id="tickerDeliveryNote" style="background:rgba(255,107,0,0.05);border:1px solid rgba(255,107,0,0.2);border-radius:8px;padding:14px;">
         <div style="font-size:11px;font-weight:700;color:#ff6b00;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">⚠ Shared Volume Required</div>
         <div style="font-size:12px;color:var(--text-secondary);line-height:1.7;">
-          Score data is written to <code style="background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:3px;">/ticker/scores_&lt;channel_id&gt;.txt</code> per active ticker by the ScorecastArr stream container.
+          Score data is written to <code style="background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:3px;">/ticker/scores_&lt;channel_id&gt;.txt</code> by the ScorecastArr container.
           Both ScorecastArr and Dispatcharr must mount the <code style="background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:3px;">scorecastarr_ticker</code> Docker volume at <code style="background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:3px;">/ticker</code>.
         </div>
       </div>
@@ -8061,13 +8074,33 @@ const _TICKER_GROUPS=[
 
 async function onSectionTicker(){
   buildTickerSportsGrid();
-  // Fetch active ticker status FIRST so _tickerActiveChannelIds is populated
-  // before loadTickerChannels() renders the list — otherwise active channels
-  // won't be locked/greyed out on initial open.
-  await Promise.all([refreshTickerStatusPanel(), loadTickerImportScoreboards()]);
+  await Promise.all([refreshTickerStatusPanel(), loadTickerImportScoreboards(), loadTickerStreamProfiles()]);
   await loadTickerChannels();
   await loadTickerConfig();
   updateTickerPreview();
+}
+
+async function loadTickerStreamProfiles(){
+  const sel=document.getElementById('tickerFallbackProfile');
+  const note=document.getElementById('tickerDeliveryNote');
+  if(!sel) return;
+  try{
+    const r=await fetch(`${API_BASE}/dispatcharr/streamprofiles`,{signal:AbortSignal.timeout(15000)});
+    if(!r.ok) return;
+    const d=await r.json();
+    const profiles=(d.profiles||[]).filter(p=>!p.locked && (p.parameters||'').includes('-c:v copy') && !(p.parameters||'').toLowerCase().includes('-vn'));
+    const saved=sel.dataset.saved||'';
+    sel.innerHTML='<option value="">— Auto-detect (heuristic) —</option>'
+      +profiles.map(p=>`<option value="${p.id}"${String(p.id)===saved?' selected':''}>${p.name}</option>`).join('');
+    // Update delivery note based on STREAM_BASE_URL availability
+    if(note){
+      const si=await fetch(`${API_BASE}/ticker/delivery-info`,{signal:AbortSignal.timeout(5000)}).then(r=>r.ok?r.json():null).catch(()=>null);
+      if(si?.mode==='http'){
+        note.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--accent-green);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">✓ HTTP Delivery Mode Active</div><div style="font-size:12px;color:var(--text-secondary);line-height:1.7;">Score data is served via HTTP from ScorecastArr — no shared Docker volume needed. Ticker text updates every ~1 second.</div>`;
+        note.style.background='rgba(0,255,136,0.04)';note.style.borderColor='rgba(0,255,136,0.2)';
+      }
+    }
+  }catch(e){}
 }
 
 async function loadTickerImportScoreboards(){
@@ -9072,6 +9105,7 @@ function getTickerConfig(){
     cpu_saver_scale:document.getElementById('tickerCpuScale')?.checked||false,
     cpu_saver_fps:document.getElementById('tickerCpuFps')?.checked||false,
     cpu_saver_crf:document.getElementById('tickerCpuCrf')?.checked||false,
+    fallback_profile_id:document.getElementById('tickerFallbackProfile')?.value||null,
   };
 }
 
