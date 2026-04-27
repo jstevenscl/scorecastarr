@@ -1286,6 +1286,26 @@ def save_ticker_config(sb_id):
         return jsonify({'ok':True})
     except Exception as e: return jsonify({'error':str(e)}),500
 
+def _find_fallback_ffmpeg_profile(session, creds):
+    """Find an unlocked FFmpeg stream profile with -c:v copy suitable for ticker injection."""
+    try:
+        r = session.get(f'{creds["url"]}/api/core/streamprofiles/', timeout=15)
+        r.raise_for_status()
+        data = r.json()
+        items = data.get('results', data) if isinstance(data, dict) else data
+        if not isinstance(items, list): return None
+        candidates = [p for p in items
+                      if not p.get('locked', False)
+                      and 'ffmpeg' in (p.get('command') or '').lower()
+                      and '-c:v copy' in (p.get('parameters') or '')]
+        for pref in ('default', 'standard', 'copy', 'passthrough', 'base'):
+            for c in candidates:
+                if pref in (c.get('name') or '').lower():
+                    return c
+        return candidates[0] if candidates else None
+    except Exception:
+        return None
+
 def _enable_ticker_for_channel(channel_id, sb_id, font_size, position, bg_opacity, test_text, scroll_speed, session, creds, cfg_json='{}', cpu_saver_scale=False, cpu_saver_fps=False, cpu_saver_crf=False):
     """Enable ticker on a single channel. Returns (ok: bool, result: dict)."""
     import re as _re
@@ -1294,13 +1314,29 @@ def _enable_ticker_for_channel(channel_id, sb_id, font_size, position, bg_opacit
         r.raise_for_status()
         channel = r.json()
         original_profile_id = channel.get('stream_profile_id')
+        extra_changes = []
+
         if not original_profile_id:
-            return False, {'error':'Channel has no stream profile assigned. Assign one in Dispatcharr first.'}
-        r = session.get(f'{creds["url"]}/api/core/streamprofiles/{original_profile_id}/',timeout=15)
-        r.raise_for_status()
-        profile = r.json()
-        if profile.get('locked'):
-            return False, {'error':f'Profile "{profile["name"]}" is locked. Duplicate it in Dispatcharr first.'}
+            # No profile assigned — find a fallback FFmpeg profile to use as base
+            fallback = _find_fallback_ffmpeg_profile(session, creds)
+            if not fallback:
+                return False, {'error':'No stream profile assigned and no default FFmpeg profile found in Dispatcharr.'}
+            profile = fallback
+            stored_original_id = 0  # sentinel: restore to no profile on kill
+            extra_changes.append(f'INFO: No stream profile was assigned — used "{fallback["name"]}" as base. Channel will have no profile restored on KILL.')
+        else:
+            r = session.get(f'{creds["url"]}/api/core/streamprofiles/{original_profile_id}/',timeout=15)
+            r.raise_for_status()
+            profile = r.json()
+            stored_original_id = original_profile_id
+            if profile.get('locked'):
+                # Profile is locked — find an unlocked fallback to base the ticker on
+                fallback = _find_fallback_ffmpeg_profile(session, creds)
+                if not fallback:
+                    return False, {'error':f'Profile "{profile["name"]}" is locked and no unlocked FFmpeg profile found to use as fallback.'}
+                extra_changes.append(f'INFO: Profile "{profile["name"]}" is locked — used "{fallback["name"]}" as base. Original locked profile restored on KILL.')
+                profile = fallback
+
         original_params = profile.get('parameters','')
         if not original_params:
             return False, {'error':'Stream profile has no parameters'}
@@ -1314,6 +1350,7 @@ def _enable_ticker_for_channel(channel_id, sb_id, font_size, position, bg_opacit
         modified_params, param_changes = _build_ticker_params(clean_params,channel_id,font_size,position,bg_opacity,test_text,scroll_speed,cpu_saver_scale,cpu_saver_fps,cpu_saver_crf)
         if modified_params == clean_params:
             return False, {'error':'Could not inject ticker — "-c:v copy" not found in profile parameters.'}
+        param_changes = extra_changes + param_changes
         base_name = profile['name'].removesuffix(' (Ticker)')
         ticker_name = f'{base_name} (Ticker)'
         r = session.post(f'{creds["url"]}/api/core/streamprofiles/',
@@ -1329,10 +1366,10 @@ def _enable_ticker_for_channel(channel_id, sb_id, font_size, position, bg_opacit
             conn.execute('''INSERT OR REPLACE INTO ticker_profile_backup
                             (channel_id,scoreboard_id,original_profile_id,ticker_profile_id,ticker_config,param_changes)
                             VALUES(?,?,?,?,?,?)''',
-                         (channel_id,sb_id,original_profile_id,ticker_profile_id,cfg_json,_jpc.dumps(param_changes)))
+                         (channel_id,sb_id,stored_original_id,ticker_profile_id,cfg_json,_jpc.dumps(param_changes)))
             conn.commit()
         return True, {'channel_id':channel_id,'ticker_profile_id':ticker_profile_id,
-                      'ticker_profile_name':ticker_name,'original_profile_id':original_profile_id,
+                      'ticker_profile_name':ticker_name,'original_profile_id':stored_original_id,
                       'param_changes':param_changes}
     except Exception as e:
         return False, {'error':str(e)}
@@ -1377,8 +1414,10 @@ def _disable_ticker_row(backup_row, session, creds):
     """Shared logic to disable a single ticker backup entry. Returns list of warnings."""
     warnings = []
     try:
+        orig = backup_row['original_profile_id']
+        restore_value = None if (orig == 0 or orig is None) else orig
         r = session.patch(f'{creds["url"]}/api/channels/channels/{backup_row["channel_id"]}/',
-                          json={'stream_profile_id':backup_row['original_profile_id']},timeout=15)
+                          json={'stream_profile_id':restore_value},timeout=15)
         r.raise_for_status()
     except Exception as e:
         warnings.append(f'Restore channel profile: {e}')
