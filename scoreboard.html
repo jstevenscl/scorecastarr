@@ -1231,18 +1231,26 @@ body.stream-mode .card-header{padding:calc(var(--card-header-size,11px) * 0.36) 
           <button onclick="loadTickerChannels()" title="Refresh channel list"
             style="padding:4px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;color:var(--text-dim);cursor:pointer;font-size:13px;line-height:1;">↻ Refresh</button>
         </div>
-        <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.5;">Check one or more channels to receive this ticker configuration. The green <span style="color:var(--accent-green);">●</span> badge marks channels with a ticker already active.</div>
-        <!-- Search + group filter + select-all -->
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.5;">Select channels to receive this ticker. The green <span style="color:var(--accent-green);">●</span> badge marks channels with a ticker already active.</div>
+        <!-- Group scope chips -->
+        <div style="margin-bottom:10px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px;">Scope — toggle groups to filter, then use <span style="color:var(--accent);">+ Add All</span> or check individually</div>
+          <div id="tickerGroupSearchWrap" style="display:none;margin-bottom:6px;">
+            <input id="tickerGroupSearchInput" type="text" placeholder="Filter groups..."
+              oninput="renderTickerGroupChips()"
+              style="width:100%;padding:6px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:7px;color:var(--text-primary);font-family:'Barlow Condensed',sans-serif;font-size:12px;outline:none;box-sizing:border-box;">
+          </div>
+          <div id="tickerGroupChips" style="display:flex;flex-wrap:wrap;gap:5px;min-height:28px;">
+            <span style="font-size:12px;color:var(--text-dim);">Loading...</span>
+          </div>
+        </div>
+        <!-- Search + Add All -->
         <div style="display:flex;gap:6px;margin-bottom:6px;">
-          <input id="tickerChannelSearch" type="text" placeholder="Search by name or number..."
+          <input id="tickerChannelSearch" type="text" placeholder="Search channels..."
             oninput="filterTickerChannels()"
             style="flex:1;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-family:'Barlow Condensed',sans-serif;font-size:13px;outline:none;">
-          <select id="tickerGroupFilter" onchange="filterTickerChannels()"
-            style="padding:8px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-family:'Barlow Condensed',sans-serif;font-size:12px;outline:none;max-width:130px;">
-            <option value="">All groups</option>
-          </select>
-          <button onclick="selectAllTickerGroup()" title="Select all channels in the filtered group (requires a group to be selected)"
-            style="padding:8px 10px;background:rgba(0,212,255,0.07);border:1px solid rgba(0,212,255,0.3);border-radius:8px;color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.5px;cursor:pointer;white-space:nowrap;">+ All</button>
+          <button id="tickerAddAllBtn" onclick="addAllVisibleTickerChannels()"
+            style="padding:8px 12px;background:rgba(0,212,255,0.07);border:1px solid rgba(0,212,255,0.3);border-radius:8px;color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.5px;cursor:pointer;white-space:nowrap;">+ Add All</button>
         </div>
         <!-- Scrollable channel list -->
         <div id="tickerChannelList"
@@ -8137,7 +8145,6 @@ async function loadTickerConfig(){
 
 async function loadTickerChannels(){
   const listEl=document.getElementById('tickerChannelList');
-  const groupSel=document.getElementById('tickerGroupFilter');
   if(listEl) listEl.innerHTML='<div style="padding:14px;text-align:center;color:var(--text-dim);font-size:12px;">Loading...</div>';
   try{
     const r=await fetch(`${API_BASE}/dispatcharr/channels`,{signal:AbortSignal.timeout(20000)});
@@ -8147,12 +8154,10 @@ async function loadTickerChannels(){
       return;
     }
     _tickerChannels=d.channels||[];
-    // Build group filter options
-    if(groupSel){
-      const groups=[...new Set(_tickerChannels.map(ch=>ch.channel_group_name||'').filter(Boolean))].sort();
-      groupSel.innerHTML='<option value="">All groups</option>'+groups.map(g=>`<option value="${g}">${g}</option>`).join('');
-    }
+    _tickerSelectedGroups.clear();
+    renderTickerGroupChips();
     renderTickerChannelList();
+    _updateAddAllBtn();
   }catch(e){
     if(listEl) listEl.innerHTML='<div style="padding:14px;text-align:center;color:var(--accent-red);font-size:12px;">Could not load channels</div>';
   }
@@ -8162,10 +8167,9 @@ function renderTickerChannelList(){
   const listEl=document.getElementById('tickerChannelList');
   if(!listEl)return;
   const search=(document.getElementById('tickerChannelSearch')?.value||'').toLowerCase();
-  const group=document.getElementById('tickerGroupFilter')?.value||'';
   const filtered=_tickerChannels.filter(ch=>{
-    if(group && ch.channel_group_name!==group) return false;
-    if(search && !ch.name.toLowerCase().includes(search) &&
+    if(_tickerSelectedGroups.size>0 && !_tickerSelectedGroups.has(ch.channel_group_name||'')) return false;
+    if(search && !(ch.name||'').toLowerCase().includes(search) &&
        !String(ch.channel_number||'').includes(search)) return false;
     return true;
   });
@@ -8199,11 +8203,13 @@ function renderTickerChannelList(){
 
 function filterTickerChannels(){
   renderTickerChannelList();
+  _updateAddAllBtn();
 }
 
 let _tickerSelectedChannels=new Map(); // id → channel object
 let _tickerActiveChannelIds=new Set(); // ids of channels with an active ticker right now
 let _tickerActiveLabels=new Map();    // id → ticker_label string (sports or "Custom Text")
+let _tickerSelectedGroups=new Set();  // group names currently toggled on
 
 function onTickerChannelCheck(chId, checked){
   const nId=Number(chId);
@@ -8227,12 +8233,71 @@ function onTickerChannelCheck(chId, checked){
   }
 }
 
-function selectAllTickerGroup(){
-  const group=document.getElementById('tickerGroupFilter')?.value;
-  if(!group){return;}
-  const search=(document.getElementById('tickerChannelSearch')?.value||'').toLowerCase();
-  _tickerChannels.filter(ch=>ch.channel_group_name===group&&(!search||(ch.name||'').toLowerCase().includes(search)||String(ch.channel_number||'').includes(search))&&!_tickerActiveChannelIds.has(Number(ch.id))).forEach(ch=>_tickerSelectedChannels.set(Number(ch.id),ch));
+const _TICKER_GROUP_SEARCH_THRESHOLD=70;
+function renderTickerGroupChips(){
+  const container=document.getElementById('tickerGroupChips');
+  if(!container)return;
+  const allGroups=[...new Set(_tickerChannels.map(ch=>ch.channel_group_name||'').filter(Boolean))].sort();
+  if(!allGroups.length){container.innerHTML='<span style="font-size:12px;color:var(--text-dim);">No groups found</span>';return;}
+  // Show/hide the group search input based on threshold
+  const searchWrap=document.getElementById('tickerGroupSearchWrap');
+  if(searchWrap) searchWrap.style.display=allGroups.length>_TICKER_GROUP_SEARCH_THRESHOLD?'block':'none';
+  // Filter visible chips by group search term
+  const groupSearch=(document.getElementById('tickerGroupSearchInput')?.value||'').toLowerCase();
+  const groups=groupSearch?allGroups.filter(g=>g.toLowerCase().includes(groupSearch)):allGroups;
+  const allActive=_tickerSelectedGroups.size===0;
+  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const safeAttr=s=>s.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  container.innerHTML=[
+    `<button onclick="clearTickerGroupFilter()" style="padding:4px 12px;border-radius:20px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.3px;border:1px solid ${allActive?'var(--accent)':'var(--border)'};background:${allActive?'rgba(0,212,255,0.15)':'var(--bg-card)'};color:${allActive?'var(--accent)':'var(--text-dim)'};">All</button>`,
+    ...groups.map(g=>{
+      const active=_tickerSelectedGroups.has(g);
+      return `<button onclick="toggleTickerGroup('${safeAttr(g)}')" style="padding:4px 12px;border-radius:20px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.3px;border:1px solid ${active?'var(--accent)':'var(--border)'};background:${active?'rgba(0,212,255,0.15)':'var(--bg-card)'};color:${active?'var(--accent)':'var(--text-dim)'};">${esc(g)}</button>`;
+    })
+  ].join('');
+}
+
+function toggleTickerGroup(group){
+  if(_tickerSelectedGroups.has(group)) _tickerSelectedGroups.delete(group);
+  else _tickerSelectedGroups.add(group);
+  renderTickerGroupChips();
   renderTickerChannelList();
+  _updateAddAllBtn();
+}
+
+function clearTickerGroupFilter(){
+  _tickerSelectedGroups.clear();
+  const si=document.getElementById('tickerGroupSearchInput');
+  if(si) si.value='';
+  renderTickerGroupChips();
+  renderTickerChannelList();
+  _updateAddAllBtn();
+}
+
+function _updateAddAllBtn(){
+  const btn=document.getElementById('tickerAddAllBtn');
+  if(!btn)return;
+  const search=(document.getElementById('tickerChannelSearch')?.value||'').toLowerCase();
+  const n=_tickerChannels.filter(ch=>{
+    if(_tickerSelectedGroups.size>0 && !_tickerSelectedGroups.has(ch.channel_group_name||'')) return false;
+    if(search && !(ch.name||'').toLowerCase().includes(search) && !String(ch.channel_number||'').includes(search)) return false;
+    if(_tickerActiveChannelIds.has(Number(ch.id))) return false;
+    if(_tickerSelectedChannels.has(Number(ch.id))) return false;
+    return true;
+  }).length;
+  btn.textContent=n?`+ Add All (${n})`:'+ Add All';
+}
+
+function addAllVisibleTickerChannels(){
+  const search=(document.getElementById('tickerChannelSearch')?.value||'').toLowerCase();
+  _tickerChannels.filter(ch=>{
+    if(_tickerSelectedGroups.size>0 && !_tickerSelectedGroups.has(ch.channel_group_name||'')) return false;
+    if(search && !(ch.name||'').toLowerCase().includes(search) && !String(ch.channel_number||'').includes(search)) return false;
+    if(_tickerActiveChannelIds.has(Number(ch.id))) return false;
+    return true;
+  }).forEach(ch=>_tickerSelectedChannels.set(Number(ch.id),ch));
+  renderTickerChannelList();
+  _updateAddAllBtn();
   _updateTickerSelection();
 }
 
@@ -8240,12 +8305,14 @@ function clearTickerSelection(){
   _tickerSelectedChannels.clear();
   renderTickerChannelList();
   _updateTickerSelection();
+  _updateAddAllBtn();
 }
 
 function removeTickerChannel(chId){
   _tickerSelectedChannels.delete(chId);
   renderTickerChannelList();
   _updateTickerSelection();
+  _updateAddAllBtn();
 }
 
 function _updateTickerSelection(){
