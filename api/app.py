@@ -1386,15 +1386,13 @@ def _enable_ticker_for_channel(channel_id, sb_id, font_size, position, bg_opacit
                                'parameters':modified_params,'is_active':True},timeout=15)
         r.raise_for_status()
         ticker_profile_id = r.json()['id']
-        # Ensure scores file exists before assigning the profile.
-        # FFmpeg fails at stream startup if textfile is missing, even with reload=1.
-        scores_path = _ticker_scores_path(channel_id)
-        if not os.path.exists(scores_path):
-            try:
-                os.makedirs(TICKER_DIR, exist_ok=True)
-                open(scores_path, 'w').close()
-            except Exception:
-                pass
+        # Pre-create scores file via stream manager (which has the /ticker volume).
+        # scorecastarr-api has no /ticker mount — this call crosses to manager.js
+        # so FFmpeg never tries to open a missing textfile at stream startup.
+        try:
+            http.post(f'{STREAM_MANAGER_URL}/ticker/precreate', json={'channel_id': channel_id}, timeout=5)
+        except Exception:
+            pass  # non-fatal — manager.js will write on next poll
         r = session.patch(f'{creds["url"]}/api/channels/channels/{channel_id}/',
                           json={'stream_profile_id':ticker_profile_id},timeout=15)
         r.raise_for_status()

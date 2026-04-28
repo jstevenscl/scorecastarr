@@ -776,6 +776,31 @@ function startHttpServer() {
       return;
     }
 
+    // POST /ticker/precreate
+    if (req.method === 'POST' && req.url === '/ticker/precreate') {
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const { channel_id } = JSON.parse(body || '{}');
+          if (!channel_id) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'channel_id required' }));
+            return;
+          }
+          if (!fs.existsSync(TICKER_DIR)) fs.mkdirSync(TICKER_DIR, { recursive: true });
+          const filePath = path.join(TICKER_DIR, `scores_${channel_id}.txt`);
+          if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, '', 'utf8');
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: true }));
+        } catch(e) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: e.message }));
+        }
+      });
+      return;
+    }
+
     res.writeHead(404); res.end();
   });
 
