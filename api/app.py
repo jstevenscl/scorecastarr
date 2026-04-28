@@ -1329,9 +1329,11 @@ def _enable_ticker_for_channel(channel_id, sb_id, font_size, position, bg_opacit
         channel_update['stream_profile_id'] = ticker_profile_id
         r = session.put(f'{creds["url"]}/api/channels/channels/{channel_id}/',
                         json=channel_update, timeout=15)
+        log.info(f'[ticker] PUT channel {channel_id} → HTTP {r.status_code}')
         if not r.ok:
             r = session.patch(f'{creds["url"]}/api/channels/channels/{channel_id}/',
                               json={'stream_profile_id':ticker_profile_id},timeout=15)
+            log.info(f'[ticker] PATCH channel {channel_id} → HTTP {r.status_code}')
         r.raise_for_status()
         verify = session.get(f'{creds["url"]}/api/channels/channels/{channel_id}/',timeout=10)
         actual_profile = verify.json().get('stream_profile_id') if verify.ok else 'fetch_failed'
