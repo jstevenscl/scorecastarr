@@ -2,7 +2,7 @@
 
 A self-hosted live sports scoreboard that generates HLS streams and pushes them to Dispatcharr as real TV channels — automatically.
 
-ScorecastArr pulls live scores from ESPN and other public APIs, renders them as a full 1080p scoreboard, and produces an HLS video stream for every scoreboard you create. Each stream updates every 30 seconds without any user interaction.
+ScorecastArr pulls live scores from publicly accessible sports data APIs, renders them as a full 1080p scoreboard, and produces an HLS video stream for every scoreboard you create. Each stream updates every 30 seconds without any user interaction.
 
 ---
 
@@ -714,6 +714,8 @@ volumes:
 
 **Step 3 — Add the volume to your Dispatcharr stack**
 
+> ⚠️ **This step is required if Dispatcharr runs in a separate Docker stack — which is the most common deployment.** Dispatcharr's FFmpeg process reads the per-channel score files at runtime. If the volume is not mounted in Dispatcharr's container, FFmpeg will fail silently with "No such file or directory" and the channel will stay in a `connecting` state indefinitely with no error shown in the UI.
+
 In your Dispatcharr `docker-compose.yml`, add the same volume to the Dispatcharr service:
 
 ```yaml
@@ -727,6 +729,8 @@ volumes:
   scorecastarr_ticker:
     external: true                    # add this block
 ```
+
+> **Volume name must match exactly.** The volume name in Dispatcharr's compose must be `scorecastarr_ticker` — the same name used by the ScorecastArr stream container. If you previously used an older install that created a volume with a different name (e.g. `scorestream_ticker`), Dispatcharr will mount a completely separate volume and the score files will never be visible to it. Verify with `docker inspect scorecastarr-stream` — the volume listed under `Mounts` at destination `/ticker` is the one Dispatcharr must share.
 
 > **Same stack:** If ScorecastArr and Dispatcharr are in the same `docker-compose.yml`, declare `scorecastarr_ticker` as a regular named volume (no `external: true`) once under `volumes:` and mount it in both services.
 
@@ -744,6 +748,15 @@ docker exec dispatcharr ls /ticker
 ```
 
 Both should return an empty directory with no error. If you get `No such file or directory`, the container was not recreated with the new mount.
+
+**Verify both containers share the same volume:**
+
+```bash
+docker inspect scorecastarr-stream --format '{{range .Mounts}}{{if eq .Destination "/ticker"}}{{.Name}}{{end}}{{end}}'
+docker inspect dispatcharr --format '{{range .Mounts}}{{if eq .Destination "/ticker"}}{{.Name}}{{end}}{{end}}'
+```
+
+Both commands must print the same volume name (`scorecastarr_ticker`). If they print different names, Dispatcharr is reading from a different volume than ScorecastArr is writing to — the ticker will appear to enable correctly but FFmpeg will silently fail to read the score files.
 
 ---
 
@@ -881,10 +894,10 @@ The ticker overlay supports all sports in the table above. Data sources:
 
 | Sport group | Live data source |
 |---|---|
-| NFL, NBA, MLB, NHL, WNBA, CFL, XFL, UFL, MLS, NWSL | ESPN Scoreboard API (live + today's finals) |
-| Premier League, Champions League, La Liga, Bundesliga, Serie A, Ligue 1 | ESPN Scoreboard API (live + today's finals) |
-| ATP, WTA | ESPN Scoreboard API (live + today's finals) |
-| NCAA Football, Basketball (M/W), Baseball, Softball, Volleyball, Lacrosse | ESPN Scoreboard API (live + today's finals) |
+| NFL, NBA, MLB, NHL, WNBA, CFL, XFL, UFL, MLS, NWSL | Public sports scoreboard API (live + today's finals) |
+| Premier League, Champions League, La Liga, Bundesliga, Serie A, Ligue 1 | Public sports scoreboard API (live + today's finals) |
+| ATP, WTA | Public sports scoreboard API (live + today's finals) |
+| NCAA Football, Basketball (M/W), Baseball, Softball, Volleyball, Lacrosse | Public sports scoreboard API (live + today's finals) |
 | NASCAR Cup | NASCAR live feed API (live positions + lap count); falls back to motor cache if race was today |
 | Formula 1 | Motor cache (race results — shown only on race day) |
 | PGA Tour | Motor cache (leaderboard — shown only when a tournament is actively in progress with scores) |
@@ -932,7 +945,7 @@ The workflow runs automatically on schedule. To manually refresh:
 - Check the stream container is running: `docker logs scorecastarr-stream`
 
 **No scores showing:**
-- ScorecastArr fetches from ESPN's public APIs — if there are no live or scheduled games today, the scoreboard will show a "No Games" message
+- ScorecastArr fetches from public sports data APIs — if there are no live or scheduled games today, the scoreboard will show a "No Games" message
 - Check the API container logs: `docker logs scorecastarr-api`
 
 **Scoreboard shows "Not Configured":**
@@ -964,9 +977,10 @@ The workflow runs automatically on schedule. To manually refresh:
 - NASCAR standings (Cup, NOAPS, Trucks) are scraped from Fox Sports standings pages. If data looks stale or incorrect, go to GitHub → Actions → **Update Motor Cache Data** → Run workflow, then call `POST /api/motor/reseed` or restart `scorecastarr-api`.
 - A simple container repull does **not** flush the in-memory cache — you must stop and remove the container before repulling, or use the `/motor/reseed` endpoint.
 
-**Ticker overlay not appearing after enabling:**
-- Restart the channel in Dispatcharr — existing ffmpeg processes use the old stream profile until restarted
-- Confirm the `scorecastarr_ticker` volume is mounted in both containers: `docker exec scorecastarr-stream ls /ticker` and `docker exec dispatcharr ls /ticker` — both should return the per-channel score files (e.g. `scores_42.txt`) or an empty directory with no error
+**Ticker overlay not appearing / channel stuck in "connecting" after enabling:**
+- Confirm the `scorecastarr_ticker` volume is mounted in **both** the ScorecastArr stream container AND Dispatcharr's container — this is the most common cause. Run: `docker exec scorecastarr-stream ls /ticker` and `docker exec dispatcharr ls /ticker` — both must succeed with no error
+- **Volume name mismatch:** Verify both containers share the exact same volume. Run `docker inspect scorecastarr-stream --format '{{range .Mounts}}{{if eq .Destination "/ticker"}}{{.Name}}{{end}}{{end}}'` and the same command for `dispatcharr`. Both must print `scorecastarr_ticker`. If Dispatcharr prints a different name (e.g. `scorestream_ticker` from an older install), update Dispatcharr's compose to use `scorecastarr_ticker` and redeploy
+- After fixing the volume, restart the Dispatcharr channel — existing ffmpeg processes use the old stream profile until restarted
 - Check that at least one enabled sport has live or today's completed data — the ticker writes an empty file if no data is available
 - Check stream container logs: `docker logs scorecastarr-stream`
 
@@ -1000,6 +1014,16 @@ Use GitHub Issues to report bugs, request features, or ask questions — there a
 - **[Ask a Question](https://github.com/jstevenscl/scorecastarr/issues/new?template=question.yml)** — need help with setup, configuration, or usage
 
 Before opening an issue, check [existing issues](https://github.com/jstevenscl/scorecastarr/issues) to see if it's already been reported or answered. The [User Guide](docs/USER-GUIDE.md) covers installation, all settings, and common setups and is a good first stop.
+
+---
+
+## Disclaimer
+
+ScorecastArr is an independent, open-source project intended for **personal, non-commercial use only**. It is not affiliated with, endorsed by, or sponsored by ESPN, the NFL, NBA, MLB, NHL, or any other sports league or data provider.
+
+Live score data is sourced from publicly accessible sports data APIs. ScorecastArr does not store, redistribute, or commercially exploit any sports data — it renders data locally on your own server for personal viewing only.
+
+Team logos and player headshots displayed in the app are the property of their respective leagues, teams, and rights holders. All trademarks and service marks belong to their respective owners.
 
 ---
 
