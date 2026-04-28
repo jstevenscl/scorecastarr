@@ -1323,8 +1323,15 @@ def _enable_ticker_for_channel(channel_id, sb_id, font_size, position, bg_opacit
             log.info(f'[ticker] precreate channel {channel_id}: HTTP {pc.status_code} {pc.text}')
         except Exception as pc_err:
             log.warning(f'[ticker] precreate FAILED for channel {channel_id}: {pc_err}')
-        r = session.patch(f'{creds["url"]}/api/channels/channels/{channel_id}/',
-                          json={'stream_profile_id':ticker_profile_id},timeout=15)
+        # Use PUT with full channel object to match what Dispatcharr UI does —
+        # a minimal PATCH assigns the profile in the DB but the stream doesn't pick it up
+        channel_update = dict(channel)
+        channel_update['stream_profile_id'] = ticker_profile_id
+        r = session.put(f'{creds["url"]}/api/channels/channels/{channel_id}/',
+                        json=channel_update, timeout=15)
+        if not r.ok:
+            r = session.patch(f'{creds["url"]}/api/channels/channels/{channel_id}/',
+                              json={'stream_profile_id':ticker_profile_id},timeout=15)
         r.raise_for_status()
         verify = session.get(f'{creds["url"]}/api/channels/channels/{channel_id}/',timeout=10)
         actual_profile = verify.json().get('stream_profile_id') if verify.ok else 'fetch_failed'
