@@ -8,6 +8,8 @@ on:
       - 'stream/**'
       - 'nginx/**'
       - 'scoreboard.html'
+      - 'web/**'
+      - 'docs/screenshots/**'
 
 env:
   REGISTRY: ghcr.io
