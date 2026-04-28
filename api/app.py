@@ -1326,6 +1326,9 @@ def _enable_ticker_for_channel(channel_id, sb_id, font_size, position, bg_opacit
         r = session.patch(f'{creds["url"]}/api/channels/channels/{channel_id}/',
                           json={'stream_profile_id':ticker_profile_id},timeout=15)
         r.raise_for_status()
+        verify = session.get(f'{creds["url"]}/api/channels/channels/{channel_id}/',timeout=10)
+        actual_profile = verify.json().get('stream_profile_id') if verify.ok else 'fetch_failed'
+        log.info(f'[ticker] channel {channel_id} assigned profile {ticker_profile_id} — Dispatcharr now shows stream_profile_id={actual_profile}')
         import json as _jpc
         with get_db() as conn:
             conn.execute('''INSERT OR REPLACE INTO ticker_profile_backup
