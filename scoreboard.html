@@ -7604,7 +7604,7 @@ async function saveCredentials(){
   try{
     const r=await fetch(`${API_BASE}/dispatcharr/credentials`,{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({url,username,password:password,api_token:document.getElementById('dsApiToken')?.value?.trim()||''}),
+      body:JSON.stringify({url,username,...(password?{password}:{}),...(document.getElementById('dsApiToken')?.value?.trim()?{api_token:document.getElementById('dsApiToken').value.trim()}:{})}),
       signal:AbortSignal.timeout(5000)
     });
     const d=await r.json();
