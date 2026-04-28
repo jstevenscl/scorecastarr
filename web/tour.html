@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScorecastArr — Interactive Setup Tour</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #080b10;
+  --bg2:      #0d1117;
+  --bg3:      #111722;
+  --border:   #1e2d42;
+  --border2:  #2a4060;
+  --accent:   #00d4ff;
+  --acc2:     #ff6b00;
+  --green:    #00ff88;
+  --red:      #ff3b5c;
+  --gold:     #ffd700;
+  --text:     #e8f0fe;
+  --text2:    #7a9ab8;
+  --dim:      #3d5a78;
+  --sidebar-w: 260px;
+  --timer-dur: 25s;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;height:100%;-webkit-font-smoothing:antialiased;}
+
+/* ─── BRANCH PICKER ──────────────────────────────────────────── */
+#picker {
+  position:fixed;inset:0;z-index:100;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+}
+.picker-wrap {max-width:820px;width:100%;padding:24px;}
+.picker-logo {display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.picker-logo .icon {width:34px;height:34px;background:linear-gradient(135deg,var(--accent),#0066ff);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.picker-logo .name {font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:22px;letter-spacing:2px;text-transform:uppercase;}
+.picker-logo .name span {color:var(--accent);}
+.picker-title {font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--text);margin-bottom:6px;}
+.picker-sub {font-size:14px;color:var(--text2);margin-bottom:30px;}
+.picker-cards {display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
+.picker-card {
+  background:var(--bg3);border:2px solid var(--border);border-radius:14px;
+  padding:24px 22px;cursor:pointer;transition:all .2s;text-align:left;
+}
+.picker-card:hover {border-color:var(--accent);background:rgba(0,212,255,.06);}
+.picker-card .card-icon {font-size:28px;margin-bottom:12px;}
+.picker-card h3 {font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:1px;margin-bottom:6px;}
+.picker-card p {font-size:13px;color:var(--text2);line-height:1.55;}
+.picker-card .tag {display:inline-block;margin-top:10px;padding:3px 8px;border-radius:4px;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;}
+.picker-card.recommended .tag {background:rgba(0,255,136,.12);border:1px solid rgba(0,255,136,.3);color:var(--green);}
+.picker-card.separate .tag {background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--accent);}
+.picker-skip {text-align:center;}
+.picker-skip a {font-size:12px;color:var(--dim);text-decoration:none;letter-spacing:.5px;transition:color .2s;}
+.picker-skip a:hover {color:var(--accent);}
+
+/* ─── TOUR SHELL ─────────────────────────────────────────────── */
+#tour {display:none;height:100vh;overflow:hidden;}
+.tour-layout {display:flex;height:100%;}
+
+/* ─── SIDEBAR ────────────────────────────────────────────────── */
+#tsidebar {
+  width:var(--sidebar-w);min-width:var(--sidebar-w);
+  background:var(--bg2);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;
+}
+.ts-logo {padding:16px 18px 14px;border-bottom:1px solid var(--border);}
+.ts-logo-row {display:flex;align-items:center;gap:8px;}
+.ts-logo-icon {width:28px;height:28px;background:linear-gradient(135deg,var(--accent),#0066ff);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.ts-logo-name {font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px;letter-spacing:2px;text-transform:uppercase;}
+.ts-logo-name span {color:var(--accent);}
+.ts-branch-badge {
+  margin-top:10px;display:flex;align-items:center;justify-content:space-between;
+  padding:5px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:7px;
+  cursor:pointer;transition:all .2s;
+}
+.ts-branch-badge:hover {border-color:var(--accent);}
+.ts-branch-label {font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--accent);letter-spacing:.5px;}
+.ts-branch-change {font-size:10px;color:var(--dim);}
+
+/* chapter/step nav */
+.ts-chapters {padding:12px 0;flex:1;}
+.ts-chapter {margin-bottom:2px;}
+.ts-chapter-hdr {
+  display:flex;align-items:center;gap:8px;padding:6px 18px;
+  font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;color:var(--dim);cursor:pointer;
+  transition:color .15s;
+}
+.ts-chapter-hdr:hover {color:var(--text2);}
+.ts-chapter-hdr.active {color:var(--text);}
+.ts-chapter-hdr .ch-num {
+  width:18px;height:18px;border-radius:50%;background:var(--bg);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;
+}
+.ts-chapter-hdr.done .ch-num {background:rgba(0,255,136,.15);border-color:var(--green);color:var(--green);}
+.ts-chapter-hdr.active .ch-num {background:rgba(0,212,255,.15);border-color:var(--accent);color:var(--accent);}
+.ts-chapter-hdr.skipped {opacity:.4;}
+
+.ts-steps {display:none;}
+.ts-chapter.open .ts-steps {display:block;}
+.ts-step-item {
+  display:flex;align-items:center;gap:8px;padding:4px 18px 4px 40px;
+  font-size:11px;color:var(--dim);cursor:pointer;transition:color .15s;border-left:2px solid transparent;
+}
+.ts-step-item:hover {color:var(--text2);}
+.ts-step-item.done {color:var(--dim);}
+.ts-step-item.done::before {content:'✓';font-size:9px;color:var(--green);margin-right:2px;}
+.ts-step-item.active {color:var(--accent);border-left-color:var(--accent);}
+.ts-step-item.active::before {content:'→';font-size:9px;color:var(--accent);margin-right:2px;}
+.ts-step-item.skipped {opacity:.35;}
+
+.ts-sidebar-foot {
+  padding:12px 18px;border-top:1px solid var(--border);
+  font-size:10px;color:var(--dim);letter-spacing:.5px;
+}
+.ts-sidebar-foot a {color:var(--dim);text-decoration:none;}
+.ts-sidebar-foot a:hover {color:var(--accent);}
+
+/* ─── MAIN CONTENT ───────────────────────────────────────────── */
+#tcontent {flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+.tc-header {
+  padding:14px 28px 10px;border-bottom:1px solid var(--border);
+  background:var(--bg2);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.tc-breadcrumb {font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);}
+.tc-breadcrumb span {color:var(--text2);}
+.tc-progress {font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);}
+
+.tc-body {flex:1;overflow-y:auto;padding:24px 28px;}
+
+/* Step types */
+.step-welcome {text-align:center;padding:40px 20px;}
+.step-welcome .sw-icon {font-size:52px;margin-bottom:16px;}
+.step-welcome h1 {font-family:'Barlow Condensed',sans-serif;font-size:34px;font-weight:900;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;}
+.step-welcome h1 span {color:var(--accent);}
+.step-welcome .sw-sub {font-size:15px;color:var(--text2);margin-bottom:20px;line-height:1.6;}
+.step-welcome .sw-body {font-size:14px;color:var(--text2);line-height:1.7;max-width:560px;margin:0 auto;}
+
+.step-text .st-icon {font-size:36px;margin-bottom:14px;}
+.step-text h2 {font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;}
+.step-text .st-sub {font-size:12px;color:var(--dim);font-family:'Barlow Condensed',sans-serif;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;}
+.step-text .st-body {font-size:14px;color:var(--text2);line-height:1.75;}
+
+.step-shot h2, .step-code h2 {font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;}
+.step-shot .st-sub, .step-code .st-sub {font-size:11px;color:var(--dim);font-family:'Barlow Condensed',sans-serif;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;}
+
+/* Screenshot */
+.shot-frame {
+  border:1px solid var(--border2);border-radius:10px;overflow:hidden;
+  margin-bottom:16px;background:var(--bg);max-height:380px;
+}
+.shot-frame img {width:100%;display:block;object-fit:contain;}
+.shot-callouts {display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+.callout-item {display:flex;align-items:flex-start;gap:10px;}
+.callout-num {
+  width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--bg);
+  font-family:'Share Tech Mono',monospace;font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;
+}
+.callout-text {font-size:13px;color:var(--text2);line-height:1.5;}
+
+/* Code block */
+.code-frame {
+  background:#0a0f18;border:1px solid var(--border2);border-radius:10px;
+  overflow:hidden;margin-bottom:16px;
+}
+.code-bar {
+  padding:7px 14px;background:#0d1520;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:6px;
+}
+.code-bar-dot {width:8px;height:8px;border-radius:50%;}
+.code-bar-lang {margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:1px;}
+.code-scroll {overflow-x:auto;padding:14px 16px;}
+pre {font-family:'Share Tech Mono',monospace;font-size:12px;line-height:1.7;white-space:pre;}
+.hl-line {background:rgba(0,212,255,.08);display:block;margin:0 -16px;padding:0 16px;}
+/* Syntax */
+.sy-k  {color:var(--accent);}     /* key */
+.sy-v  {color:#a8d8a8;}            /* value */
+.sy-c  {color:var(--dim);}         /* comment */
+.sy-s  {color:#ffb347;}            /* string / special */
+.sy-l  {color:var(--text2);}       /* list marker */
+.sy-f  {color:#c9a0dc;}            /* flag */
+.sy-e  {color:var(--gold);}        /* env var */
+
+/* Note box */
+.note-box {
+  border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.55;
+  display:flex;gap:10px;align-items:flex-start;margin-top:4px;
+}
+.note-box.info {background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.2);color:var(--text2);}
+.note-box.warning {background:rgba(255,107,0,.08);border:1px solid rgba(255,107,0,.3);color:#ffcaa0;}
+.note-icon {font-size:16px;flex-shrink:0;}
+
+/* Step body prose */
+.step-body {font-size:14px;color:var(--text2);line-height:1.75;margin-top:8px;}
+.step-body strong {color:var(--text);}
+.step-body a {color:var(--accent);}
+
+/* ─── FOOTER NAV ─────────────────────────────────────────────── */
+.tc-footer {
+  padding:12px 28px;border-top:1px solid var(--border);
+  background:var(--bg2);display:flex;align-items:center;gap:14px;flex-shrink:0;
+}
+.tnav-btn {
+  padding:8px 20px;border-radius:8px;font-family:'Barlow Condensed',sans-serif;
+  font-weight:700;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;
+  cursor:pointer;transition:all .2s;border:1px solid var(--border);
+  background:var(--bg3);color:var(--text2);
+}
+.tnav-btn:hover {border-color:var(--accent);color:var(--accent);}
+.tnav-btn.primary {background:linear-gradient(135deg,rgba(0,212,255,.18),rgba(0,102,255,.18));border-color:var(--accent);color:var(--accent);}
+.tnav-btn.primary:hover {background:linear-gradient(135deg,rgba(0,212,255,.28),rgba(0,102,255,.28));box-shadow:0 0 16px rgba(0,212,255,.2);}
+.tnav-counter {font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);flex:1;text-align:center;}
+
+/* Timer */
+.timer-wrap {display:flex;align-items:center;gap:8px;}
+.timer-bar-bg {width:80px;height:4px;background:var(--bg);border-radius:2px;border:1px solid var(--border);overflow:hidden;}
+.timer-bar {height:100%;background:var(--accent);border-radius:2px;width:100%;transition:width linear;}
+.timer-btn {
+  width:24px;height:24px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;
+  color:var(--dim);transition:all .2s;
+}
+.timer-btn:hover {border-color:var(--border2);color:var(--text2);}
+</style>
+</head>
+<body>
+
+<!-- ── BRANCH PICKER ──────────────────────────────────────────── -->
+<div id="picker">
+  <div class="picker-wrap">
+    <div class="picker-logo">
+      <div class="icon">📡</div>
+      <div class="name">Score<span>cast</span>Arr</div>
+    </div>
+    <div class="picker-title">Interactive Setup Tour</div>
+    <div class="picker-sub">Let's get ScorecastArr configured. First, tell us how you're deploying it:</div>
+
+    <div class="picker-cards">
+      <button class="picker-card recommended" onclick="startTour('same')">
+        <div class="card-icon">🧩</div>
+        <h3>Same Stack as Dispatcharr</h3>
+        <p>ScorecastArr services are added to your existing Dispatcharr docker-compose.yml. Everything runs in one stack on the same host.</p>
+        <span class="tag">Simplest Setup</span>
+      </button>
+      <button class="picker-card separate" onclick="startTour('separate')">
+        <div class="card-icon">🔌</div>
+        <h3>Separate Stack</h3>
+        <p>ScorecastArr has its own docker-compose.yml on the same or a different host. Requires a shared Docker volume for the ticker overlay.</p>
+        <span class="tag">Separate Compose</span>
+      </button>
+    </div>
+
+    <div class="picker-skip">
+      <a href="#" onclick="startTour('same',true);return false;">Already running ScorecastArr? Skip Docker setup &rarr; go straight to Integration</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOUR SHELL ─────────────────────────────────────────────── -->
+<div id="tour">
+  <div class="tour-layout">
+
+    <!-- Sidebar -->
+    <aside id="tsidebar">
+      <div class="ts-logo">
+        <div class="ts-logo-row">
+          <div class="ts-logo-icon">📡</div>
+          <div class="ts-logo-name">Score<span>cast</span>Arr</div>
+        </div>
+        <div class="ts-branch-badge" onclick="resetBranch()">
+          <span class="ts-branch-label" id="branchLabel">same stack</span>
+          <span class="ts-branch-change">change</span>
+        </div>
+      </div>
+      <div class="ts-chapters" id="chapterNav"></div>
+      <div class="ts-sidebar-foot">
+        <a href="/" target="_blank">Open App</a> &nbsp;&middot;&nbsp;
+        <a href="https://github.com/jstevenscl/scorecastarr/blob/main/docs/USER-GUIDE.md" target="_blank">User Guide</a>
+      </div>
+    </aside>
+
+    <!-- Content -->
+    <div id="tcontent">
+      <div class="tc-header">
+        <div class="tc-breadcrumb" id="tcBreadcrumb">Chapter 1 &rsaquo; <span>Welcome</span></div>
+        <div class="tc-progress" id="tcProgress">Step 1 / 1</div>
+      </div>
+      <div class="tc-body" id="tcBody"></div>
+      <div class="tc-footer">
+        <button class="tnav-btn" id="btnPrev" onclick="navigate(-1)">&larr; Back</button>
+        <div class="tnav-counter" id="tcCounter"></div>
+        <div class="timer-wrap">
+          <div class="timer-bar-bg"><div class="timer-bar" id="timerBar"></div></div>
+          <button class="timer-btn" id="timerBtn" onclick="toggleTimer()" title="Pause/Resume auto-advance">&#9646;&#9646;</button>
+        </div>
+        <button class="tnav-btn primary" id="btnNext" onclick="navigate(1)">Next &rarr;</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ── STEP DATA ─────────────────────────────────────────────────────────────────
+// branch: null = shown for both, 'same' or 'separate' = branch-specific
+
+const RAW_STEPS = [
+
+  // ── Chapter 1: Docker Compose Setup ─────────────────────────────────────
+  {
+    chapter:1, chTitle:'Docker Compose Setup', branch:null,
+    type:'welcome',
+    title:'Welcome to <span>ScorecastArr</span>',
+    sub:'Live sports scores as HLS streams in your IPTV app',
+    body:`ScorecastArr turns live sports data into real-time HLS video streams that play in TiviMate, Jellyfin, Plex, or any IPTV player. It integrates with <strong>Dispatcharr</strong> to publish channels directly to your M3U lineup.
+<br><br>This tour covers: Docker setup &rarr; Dispatcharr integration &rarr; Creating scoreboards &rarr; Pushing channels &rarr; Ticker overlay &rarr; Live preview.`,
+  },
+
+  {
+    chapter:1, chTitle:'Docker Compose Setup', branch:'same',
+    type:'code', lang:'yaml',
+    title:'Add ScorecastArr to Your Dispatcharr Stack',
+    sub:'Append these services to your existing docker-compose.yml',
+    code:`  # ── Add to your existing Dispatcharr docker-compose.yml ──────────────
+
+  scorecastarr-api:
+    image: ghcr.io/jstevenscl/scorecastarr-api:beta
+    container_name: scorecastarr-api
+    restart: unless-stopped
+    environment:
+      - TZ=America/New_York
+      - DISPATCHARR_URL=http://dispatcharr:4321
+      - STREAM_BASE_URL=http://YOUR_SERVER_IP:7777
+    volumes:
+      - scorecastarr_config:/config
+      - scorecastarr_audio:/audio_library
+    networks:
+      - your_dispatcharr_network
+
+  scorecastarr-web:
+    image: ghcr.io/jstevenscl/scorecastarr-web:beta
+    container_name: scorecastarr-web
+    restart: unless-stopped
+    ports:
+      - "7777:80"
+    networks:
+      - your_dispatcharr_network
+
+  scorecastarr-stream:
+    image: ghcr.io/jstevenscl/scorecastarr-stream:beta
+    container_name: scorecastarr-stream
+    restart: unless-stopped
+    environment:
+      - TZ=America/New_York
+      - STREAM_BASE_URL=http://YOUR_SERVER_IP:7777
+    volumes:
+      - scorecastarr_config:/config
+      - scorecastarr_hls:/hls
+      - scorecastarr_audio:/audio_library
+      - scorecastarr_ticker:/ticker`,
+    highlight:[34],
+    note:'Replace YOUR_SERVER_IP and your_dispatcharr_network with your actual values.',
+    noteType:'info',
+  },
+
+  {
+    chapter:1, chTitle:'Docker Compose Setup', branch:'same',
+    type:'code', lang:'yaml',
+    title:'Declare Volumes + Mount Ticker in Dispatcharr',
+    sub:'Dispatcharr needs read access to the shared ticker volume',
+    code:`  # ── In Dispatcharr's service block, add the ticker volume mount ──
+
+  dispatcharr:
+    image: ghcr.io/dispatcharr/dispatcharr:latest
+    volumes:
+      - ...existing mounts...
+      - scorecastarr_ticker:/ticker:ro     # ← ADD THIS
+
+# ── At the bottom of your compose, declare all ScorecastArr volumes ──
+
+volumes:
+  scorecastarr_config:
+    name: scorecastarr_config
+  scorecastarr_hls:
+    name: scorecastarr_hls
+  scorecastarr_audio:
+    name: scorecastarr_audio
+  scorecastarr_ticker:
+    name: scorecastarr_ticker`,
+    highlight:[6,16,17,18],
+    note:'The scorecastarr_ticker mount is critical for the Ticker Overlay. Without it, FFmpeg inside Dispatcharr cannot read the scores file and the ticker stream will stall silently at "connecting."',
+    noteType:'warning',
+  },
+
+  {
+    chapter:1, chTitle:'Docker Compose Setup', branch:'same',
+    type:'code', lang:'bash',
+    title:'Start the Stack',
+    sub:'Pull images and bring everything up',
+    code:`# Pull latest images and start all services
+docker compose pull && docker compose up -d
+
+# Verify all containers are running
+docker compose ps
+
+# Open ScorecastArr in your browser
+# http://YOUR_SERVER_IP:7777`,
+    note:'First pull may take a few minutes. ScorecastArr will be available at port 7777.',
+    noteType:'info',
+  },
+
+  // ── Separate stack steps ────────────────────────────────────────────────
+  {
+    chapter:1, chTitle:'Docker Compose Setup', branch:'separate',
+    type:'code', lang:'yaml',
+    title:'ScorecastArr Standalone Compose',
+    sub:'Create a new docker-compose.yml for ScorecastArr',
+    code:`# docker-compose.yml  (ScorecastArr — standalone stack)
+services:
+
+  scorecastarr-api:
+    image: ghcr.io/jstevenscl/scorecastarr-api:beta
+    container_name: scorecastarr-api
+    restart: unless-stopped
+    environment:
+      - TZ=America/New_York
+      - DISPATCHARR_URL=http://YOUR_DISPATCHARR_IP:4321
+      - STREAM_BASE_URL=http://YOUR_SERVER_IP:7777
+    volumes:
+      - scorecastarr_config:/config
+      - scorecastarr_audio:/audio_library
+
+  scorecastarr-web:
+    image: ghcr.io/jstevenscl/scorecastarr-web:beta
+    container_name: scorecastarr-web
+    restart: unless-stopped
+    ports:
+      - "7777:80"
+
+  scorecastarr-stream:
+    image: ghcr.io/jstevenscl/scorecastarr-stream:beta
+    container_name: scorecastarr-stream
+    restart: unless-stopped
+    environment:
+      - TZ=America/New_York
+      - STREAM_BASE_URL=http://YOUR_SERVER_IP:7777
+    volumes:
+      - scorecastarr_config:/config
+      - scorecastarr_hls:/hls
+      - scorecastarr_audio:/audio_library
+      - scorecastarr_ticker:/ticker
+
+volumes:
+  scorecastarr_config:
+    name: scorecastarr_config
+  scorecastarr_hls:
+    name: scorecastarr_hls
+  scorecastarr_audio:
+    name: scorecastarr_audio
+  scorecastarr_ticker:
+    name: scorecastarr_ticker
+    external: true    # ← IMPORTANT: shared with Dispatcharr's stack`,
+    highlight:[42,43],
+    note:'Note external: true on scorecastarr_ticker — this volume must also be mounted in Dispatcharr\'s stack. See next step.',
+    noteType:'warning',
+  },
+
+  {
+    chapter:1, chTitle:'Docker Compose Setup', branch:'separate',
+    type:'code', lang:'yaml',
+    title:'Add Ticker Volume to Dispatcharr\'s Stack',
+    sub:'Dispatcharr needs to read the same shared volume',
+    code:`# In Dispatcharr's docker-compose.yml — add these:
+
+services:
+  dispatcharr:
+    # ...existing config...
+    volumes:
+      - ...existing mounts...
+      - scorecastarr_ticker:/ticker:ro     # ← ADD THIS LINE
+
+# At the bottom of Dispatcharr's compose:
+volumes:
+  # ...existing volumes...
+  scorecastarr_ticker:
+    name: scorecastarr_ticker
+    external: true     # ← references the volume ScorecastArr created`,
+    highlight:[7,11,12,13,14],
+    note:'The volume name must be exactly scorecastarr_ticker in both stacks. A mismatch means FFmpeg silently fails — the ticker stream stalls at "connecting" with no error message.',
+    noteType:'warning',
+  },
+
+  {
+    chapter:1, chTitle:'Docker Compose Setup', branch:'separate',
+    type:'code', lang:'bash',
+    title:'Verify the Shared Volume',
+    sub:'Run this after recreating Dispatcharr\'s container',
+    code:`# Check ScorecastArr-stream has the right volume at /ticker:
+docker inspect scorecastarr-stream \\
+  --format '{{range .Mounts}}{{if eq .Destination "/ticker"}}{{.Name}}{{end}}{{end}}'
+# Expected output: scorecastarr_ticker
+
+# Check Dispatcharr has the same volume at /ticker:
+docker inspect dispatcharr \\
+  --format '{{range .Mounts}}{{if eq .Destination "/ticker"}}{{.Name}}{{end}}{{end}}'
+# Expected output: scorecastarr_ticker
+
+# Both must print: scorecastarr_ticker
+# If output is blank or different, fix the volume name and recreate the container.`,
+    note:'Container must be recreated (stop → remove → up), NOT just restarted, for volume changes to take effect. In Portainer, use "Recreate" from the container menu.',
+    noteType:'info',
+  },
+
+  {
+    chapter:1, chTitle:'Docker Compose Setup', branch:'separate',
+    type:'code', lang:'bash',
+    title:'Start ScorecastArr',
+    sub:'Pull and bring up the separate stack',
+    code:`# From your ScorecastArr directory:
+docker compose pull && docker compose up -d
+
+# Verify containers are running
+docker compose ps
+
+# Open ScorecastArr in your browser
+# http://YOUR_SERVER_IP:7777`,
+    note:'Start ScorecastArr first so the scorecastarr_ticker volume is created before Dispatcharr references it.',
+    noteType:'info',
+  },
+
+  // ── Chapter 2: Dispatcharr Integration ─────────────────────────────────
+  {
+    chapter:2, chTitle:'Dispatcharr Integration', branch:null,
+    type:'shot',
+    title:'Connect to Dispatcharr',
+    sub:'Settings → Integrations',
+    screenshot:'/screenshots/02-integrations.png',
+    callouts:[
+      'Enter your Dispatcharr URL — e.g. http://192.168.0.100:4321',
+      'Paste your Dispatcharr API Key (Settings → API in Dispatcharr)',
+      'Click Save — ScorecastArr will verify the connection immediately',
+    ],
+    body:`Open ScorecastArr at <strong>http://YOUR_SERVER:7777</strong>, then click the gear icon in the sidebar to open Settings. Select <strong>Integrations</strong> from the left panel.`,
+  },
+
+  {
+    chapter:2, chTitle:'Dispatcharr Integration', branch:null,
+    type:'text', icon:'🔗',
+    title:'Finding Your Dispatcharr API Key',
+    sub:'Dispatcharr → Settings → API',
+    body:`In Dispatcharr, go to <strong>Settings → API</strong> and copy the API key shown there.
+<br><br>
+The URL is typically <code style="background:rgba(0,212,255,.1);padding:1px 5px;border-radius:3px;font-family:monospace;font-size:12px;color:var(--accent)">http://YOUR_DISPATCHARR_IP:4321</code> — replace with your actual host and port.
+<br><br>
+Once saved, the integration status dot in the sidebar turns <strong style="color:var(--green)">green</strong>. If it turns red, double-check the URL and API key.`,
+    note:'ScorecastArr communicates with Dispatcharr exclusively through its REST API. No direct database access is required.',
+    noteType:'info',
+  },
+
+  // ── Chapter 3: Creating Scoreboards ─────────────────────────────────────
+  {
+    chapter:3, chTitle:'Creating Scoreboards', branch:null,
+    type:'shot',
+    title:'Create Your First Scoreboard',
+    sub:'My Scoreboards → New Scoreboard',
+    screenshot:'/screenshots/03-my-scoreboards.png',
+    callouts:[
+      'Click New Scoreboard to open the editor wizard',
+      'Existing scoreboards show push status and Dispatcharr channel info',
+    ],
+    body:`A <strong>Scoreboard</strong> is one HLS stream — it becomes a single channel in Dispatcharr. You can create as many as you like, each with different sports, teams, or display settings.`,
+  },
+
+  {
+    chapter:3, chTitle:'Creating Scoreboards', branch:null,
+    type:'shot',
+    title:'Step 1 — Select Sports',
+    sub:'Choose which sports appear on this scoreboard',
+    screenshot:'/screenshots/04-editor-step1-sports.png',
+    callouts:[
+      'Toggle sports on or off — only enabled sports appear on the stream',
+      'Season badges show current status: LIVE, PRE-SEASON, POST, or OFF',
+      'Off-season sports are dimmed but can still be enabled',
+    ],
+    body:`Enable the sports you want on this scoreboard. Each scoreboard can have a completely different sport mix — e.g., one NFL-only board, one "all live sports" board.`,
+  },
+
+  {
+    chapter:3, chTitle:'Creating Scoreboards', branch:null,
+    type:'shot',
+    title:'Step 2 — Select Teams',
+    sub:'Filter to specific teams or show everything',
+    screenshot:'/screenshots/05-editor-step2-teams.png',
+    callouts:[
+      'Search for teams by name — results filter as you type',
+      'Click a team to add it — appears as a removable chip',
+      'Leave empty to show ALL games for the selected sports',
+    ],
+    body:`Team filtering is optional. Leave the teams list empty to show every game. Add specific teams to show only matchups involving those teams.`,
+  },
+
+  {
+    chapter:3, chTitle:'Creating Scoreboards', branch:null,
+    type:'shot',
+    title:'Step 3 — Display Settings',
+    sub:'Layout, timing, and visual options',
+    screenshot:'/screenshots/06-editor-step3-display-top.png',
+    callouts:[
+      'Cards per page — how many score cards fit on one full-screen view',
+      'Page interval — seconds before rotating to the next page',
+      'Font sizes, colors, and animation speed for this scoreboard',
+    ],
+    body:`Display settings are per-scoreboard. You can also set global defaults in <strong>Settings → Display Defaults</strong> that apply to all new scoreboards. Click <strong>Save</strong> to finish creating the scoreboard.`,
+  },
+
+  // ── Chapter 4: Push to Dispatcharr ──────────────────────────────────────
+  {
+    chapter:4, chTitle:'Push to Dispatcharr', branch:null,
+    type:'shot',
+    title:'Push Your Scoreboard',
+    sub:'Creates an HLS channel in Dispatcharr',
+    screenshot:'/screenshots/15-my-scoreboards-cards.png',
+    callouts:[
+      'Click Push to register this scoreboard as a Dispatcharr channel',
+      'The channel appears in your M3U playlist immediately after pushing',
+      'Status badge shows whether the channel is synced with Dispatcharr',
+    ],
+    body:`Pushing creates a channel in Dispatcharr pointing to the ScorecastArr HLS stream URL. The channel is immediately available in any IPTV app connected to Dispatcharr.`,
+  },
+
+  {
+    chapter:4, chTitle:'Push to Dispatcharr', branch:null,
+    type:'text', icon:'📺',
+    title:'Tune In — It\'s Live',
+    sub:'Open your IPTV app and play the channel',
+    body:`After pushing, open <strong>TiviMate, Jellyfin, Plex, VLC</strong>, or any IPTV player connected to your Dispatcharr M3U. Navigate to the new channel — the live scoreboard starts streaming immediately.
+<br><br>
+The stream updates automatically every few seconds as scores change. No manual refresh needed. Page rotation cycles through all sports on the board automatically.`,
+    note:'Stream URL format: http://YOUR_SERVER:7777/hls/CHANNEL_ID.m3u8 — but you\'ll normally play it through Dispatcharr\'s M3U.',
+    noteType:'info',
+  },
+
+  {
+    chapter:4, chTitle:'Push to Dispatcharr', branch:null,
+    type:'shot',
+    title:'Sports Library — Global Controls',
+    sub:'Fine-tune which sports are visible across all scoreboards',
+    screenshot:'/screenshots/08-sports-library.png',
+    callouts:[
+      'Enable or disable sports globally — overrides per-scoreboard settings',
+      'Off-season sports shown with dashed border and dimmed appearance',
+      'Display settings per-sport: font sizes, colors, card layout options',
+    ],
+    body:`The <strong>Sports Library</strong> (Settings → Sports Library) provides global sport-level controls. Disabling a sport here hides it from all scoreboards and streams.`,
+  },
+
+  // ── Chapter 5: Ticker Overlay ────────────────────────────────────────────
+  {
+    chapter:5, chTitle:'Ticker Overlay', branch:null,
+    type:'shot',
+    title:'Ticker Overlay',
+    sub:'Scrolling live scores on any Dispatcharr channel',
+    screenshot:'/screenshots/13-ticker-settings.png',
+    callouts:[
+      'Active Ticker Status panel — shows which channels currently have ticker running',
+      'Dispatcharr Channels — search and add channels to receive the ticker',
+      'Ticker Sources — toggle sport groups to include in the scrolling score crawl',
+    ],
+    body:`The <strong>Ticker Overlay</strong> injects a live scrolling scores crawl into the bottom of <em>any</em> Dispatcharr channel — not just ScorecastArr channels. Open <strong>Settings → Ticker Overlay</strong>.`,
+  },
+
+  {
+    chapter:5, chTitle:'Ticker Overlay', branch:null,
+    type:'text', icon:'➕',
+    title:'Add Channels to the Ticker',
+    sub:'Search your Dispatcharr channels and select which get the overlay',
+    body:`In the <strong>Dispatcharr Channels</strong> section:
+<br><br>
+1. Type a channel name in the search box to filter your Dispatcharr lineup<br>
+2. Click a result to add it — it appears as a chip<br>
+3. Use <strong>+ Add All</strong> to add every channel at once<br>
+4. Sport group scope buttons (NFL, NBA, etc.) filter the channel list by league match<br>
+<br>
+Each added channel will have the ticker crawl injected by Dispatcharr's FFmpeg when clients tune in.`,
+  },
+
+  {
+    chapter:5, chTitle:'Ticker Overlay', branch:'separate',
+    type:'code', lang:'bash',
+    title:'⚠️ Verify Volume Before Enabling',
+    sub:'Separate stack — confirm Dispatcharr can see the ticker files',
+    code:`# Run this now before clicking Enable Ticker:
+docker inspect dispatcharr \\
+  --format '{{range .Mounts}}{{if eq .Destination "/ticker"}}{{.Name}}{{end}}{{end}}'
+
+# Must output: scorecastarr_ticker
+# If blank: you haven't added the volume mount to Dispatcharr's compose yet
+# If wrong name: fix the name and recreate (not restart) the Dispatcharr container`,
+    note:'If the volume is missing or misnamed, the ticker stream will stall silently at "connecting." There will be no error in the logs — the file simply won\'t exist for FFmpeg to read.',
+    noteType:'warning',
+  },
+
+  {
+    chapter:5, chTitle:'Ticker Overlay', branch:null,
+    type:'text', icon:'✅',
+    title:'Enable the Ticker',
+    sub:'One click per channel — takes effect on next tune-in',
+    body:`1. Enable the <strong>sport groups</strong> you want in the ticker (NFL, NBA, MLB, etc.)<br>
+2. Click <strong>Enable Ticker</strong> next to each channel<br>
+3. Tune to the channel in your IPTV app — scores scroll across the bottom<br><br>
+<strong>Management buttons:</strong><br>
+&bull; <strong>Disable Ticker</strong> — removes the overlay and returns to original stream<br>
+&bull; <strong>Kill Stream</strong> — force-kills a stuck or stale stream session<br>
+&bull; <strong>Reset</strong> — clears state and re-initializes the ticker profile<br><br>
+The ticker updates every 15 seconds. CPU Saver mode reduces polling frequency when no games are live.`,
+  },
+
+  // ── Chapter 6: Live Preview ──────────────────────────────────────────────
+  {
+    chapter:6, chTitle:'Live Preview', branch:null,
+    type:'shot',
+    title:'ScorecastArr Web Preview',
+    sub:'Live scoreboard at http://YOUR_SERVER:7777',
+    screenshot:'/screenshots/01-main-scoreboard.png',
+    callouts:[
+      'Left sidebar — filter by sport, favorites, and ended games',
+      'Live score cards rotate automatically, same as the stream',
+      'Favorites — star any team to highlight them across all sports',
+    ],
+    body:`The web UI at <strong>http://YOUR_SERVER:7777</strong> shows the live scoreboard in real time. This is the same view rendered into every HLS stream. Use it as a preview, or point an OBS browser source at it to use as a stream overlay.`,
+  },
+
+  {
+    chapter:6, chTitle:'Live Preview', branch:null,
+    type:'text', icon:'🏆',
+    title:'You\'re All Set!',
+    sub:'ScorecastArr is configured and streaming',
+    body:`Your scoreboards are live, channels are in Dispatcharr, and the ticker overlay is active.
+<br><br>
+<strong>Useful links:</strong><br>
+&bull; <a href="https://github.com/jstevenscl/scorecastarr/blob/main/README.md" target="_blank">README — full setup reference</a><br>
+&bull; <a href="https://github.com/jstevenscl/scorecastarr/blob/main/docs/USER-GUIDE.md" target="_blank">User Guide — feature reference</a><br>
+&bull; <a href="https://github.com/jstevenscl/scorecastarr/issues" target="_blank">GitHub Issues — bug reports &amp; questions</a><br>
+&bull; <a href="/" target="_blank">Open ScorecastArr</a><br>
+<br>
+To run this tour again: navigate to <strong>/tour</strong> from your ScorecastArr host.`,
+  },
+];
+
+// ── ENGINE ───────────────────────────────────────────────────────────────────
+
+let BRANCH = 'same';
+let STEPS  = [];
+let IDX    = 0;
+let timerRunning = false;
+let timerTimeout = null;
+let timerStarted = 0;
+let timerRemain  = 0;
+const TIMER_MS = 25000;
+
+function buildSteps(branch, skipCh1) {
+  STEPS = RAW_STEPS.filter(s => {
+    if (s.branch !== null && s.branch !== branch) return false;
+    if (skipCh1 && s.chapter === 1) return false;
+    return true;
+  });
+}
+
+function startTour(branch, skipCh1) {
+  BRANCH = branch;
+  localStorage.setItem('sca_tour_branch', branch);
+  buildSteps(branch, !!skipCh1);
+  IDX = 0;
+  document.getElementById('picker').style.display = 'none';
+  document.getElementById('tour').style.display   = 'block';
+  document.getElementById('branchLabel').textContent =
+    branch === 'same' ? 'same stack' : 'separate stack';
+  renderSidebar();
+  renderStep();
+  startTimer();
+}
+
+function resetBranch() {
+  clearTimer();
+  document.getElementById('picker').style.display = 'flex';
+  document.getElementById('tour').style.display   = 'none';
+}
+
+// ── STEP RENDER ──────────────────────────────────────────────────────────────
+
+function renderStep() {
+  const s = STEPS[IDX];
+  if (!s) return;
+
+  // header
+  document.getElementById('tcBreadcrumb').innerHTML =
+    `Chapter ${s.chapter} &rsaquo; <span>${s.chTitle}</span>`;
+  document.getElementById('tcProgress').textContent =
+    `Step ${IDX + 1} / ${STEPS.length}`;
+  document.getElementById('tcCounter').textContent =
+    `${IDX + 1} of ${STEPS.length}`;
+  document.getElementById('btnPrev').disabled = IDX === 0;
+  document.getElementById('btnNext').textContent = IDX === STEPS.length - 1 ? 'Finish' : 'Next →';
+
+  // body
+  document.getElementById('tcBody').innerHTML = buildStepHTML(s);
+
+  // sidebar highlight
+  renderSidebar();
+
+  // restart timer
+  restartTimer();
+}
+
+function buildStepHTML(s) {
+  if (s.type === 'welcome') {
+    return `<div class="step-welcome">
+      <div class="sw-icon">📡</div>
+      <h1>${s.title}</h1>
+      <div class="sw-sub">${s.sub}</div>
+      <div class="sw-body">${s.body}</div>
+    </div>`;
+  }
+
+  if (s.type === 'text') {
+    return `<div class="step-text">
+      ${s.icon ? `<div class="st-icon">${s.icon}</div>` : ''}
+      <h2>${s.title}</h2>
+      <div class="st-sub">${s.sub}</div>
+      <div class="st-body">${s.body}</div>
+      ${noteHTML(s)}
+    </div>`;
+  }
+
+  if (s.type === 'shot') {
+    const callouts = (s.callouts || []).map((c, i) =>
+      `<div class="callout-item">
+        <div class="callout-num">${i + 1}</div>
+        <div class="callout-text">${c}</div>
+      </div>`
+    ).join('');
+    return `<div class="step-shot">
+      <h2>${s.title}</h2>
+      <div class="st-sub">${s.sub}</div>
+      <div class="shot-frame">
+        <img src="${s.screenshot}" alt="${s.title}" loading="lazy">
+      </div>
+      ${callouts ? `<div class="shot-callouts">${callouts}</div>` : ''}
+      ${s.body ? `<div class="step-body">${s.body}</div>` : ''}
+      ${noteHTML(s)}
+    </div>`;
+  }
+
+  if (s.type === 'code') {
+    const highlighted = highlightCode(s.code, s.lang, s.highlight || []);
+    return `<div class="step-code">
+      <h2>${s.title}</h2>
+      <div class="st-sub">${s.sub}</div>
+      <div class="code-frame">
+        <div class="code-bar">
+          <div class="code-bar-dot" style="background:#ff5f57"></div>
+          <div class="code-bar-dot" style="background:#febc2e"></div>
+          <div class="code-bar-dot" style="background:#28c840"></div>
+          <span class="code-bar-lang">${s.lang.toUpperCase()}</span>
+        </div>
+        <div class="code-scroll"><pre>${highlighted}</pre></div>
+      </div>
+      ${noteHTML(s)}
+    </div>`;
+  }
+
+  return '';
+}
+
+function noteHTML(s) {
+  if (!s.note) return '';
+  const icon = s.noteType === 'warning' ? '⚠️' : 'ℹ️';
+  return `<div class="note-box ${s.noteType || 'info'}">
+    <span class="note-icon">${icon}</span>
+    <span>${s.note}</span>
+  </div>`;
+}
+
+// ── SYNTAX HIGHLIGHT ─────────────────────────────────────────────────────────
+
+function highlightCode(raw, lang, hlLines) {
+  const lines = raw.split('\n');
+  return lines.map((line, i) => {
+    const lineNum = i + 1;
+    const isHL = hlLines.includes(lineNum);
+    const content = lang === 'yaml' ? highlightYAML(line)
+                  : lang === 'bash' ? highlightBash(line)
+                  : escHtml(line);
+    return isHL ? `<span class="hl-line">${content}</span>` : content;
+  }).join('\n');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function highlightYAML(line) {
+  const e = escHtml(line);
+  // comment
+  if (/^\s*#/.test(line)) return `<span class="sy-c">${e}</span>`;
+  // key: value
+  return e
+    .replace(/^(\s*-\s*)/, '<span class="sy-l">$1</span>')
+    .replace(/^(<span[^>]*>.*?<\/span>)?(\s*)([\w_-]+)(\s*:)/, '$1$2<span class="sy-k">$3</span>$4')
+    .replace(/:\s+(.+)$/, (m, val) => {
+      const vEsc = val;
+      if (vEsc.startsWith('#')) return ': <span class="sy-c">' + vEsc + '</span>';
+      if (/^["']/.test(vEsc)) return ': <span class="sy-s">' + vEsc + '</span>';
+      return ': <span class="sy-v">' + vEsc + '</span>';
+    });
+}
+
+function highlightBash(line) {
+  const e = escHtml(line);
+  if (/^\s*#/.test(line)) return `<span class="sy-c">${e}</span>`;
+  return e
+    .replace(/(--[\w-]+=?)/g, '<span class="sy-f">$1</span>')
+    .replace(/\$\{?[\w]+\}?/g, '<span class="sy-e">$&</span>');
+}
+
+// ── SIDEBAR ───────────────────────────────────────────────────────────────────
+
+function renderSidebar() {
+  const curStep = STEPS[IDX];
+  if (!curStep) return;
+
+  // Group steps by chapter
+  const chMap = {};
+  STEPS.forEach((s, i) => {
+    if (!chMap[s.chapter]) chMap[s.chapter] = {title: s.chTitle, steps: []};
+    chMap[s.chapter].steps.push({s, i});
+  });
+
+  const nav = document.getElementById('chapterNav');
+  nav.innerHTML = Object.entries(chMap).map(([ch, {title, steps}]) => {
+    const chNum = parseInt(ch);
+    const isActive = steps.some(({i}) => i === IDX);
+    const isDone   = steps.every(({i}) => i < IDX);
+    const cls = isActive ? 'active' : isDone ? 'done' : '';
+
+    const stepItems = steps.map(({s, i}) => {
+      const sc = i === IDX ? 'active' : i < IDX ? 'done' : '';
+      return `<div class="ts-step-item ${sc}" onclick="goTo(${i})">${truncate(s.title.replace(/<[^>]+>/g,''), 34)}</div>`;
+    }).join('');
+
+    return `<div class="ts-chapter ${isActive ? 'open' : ''}">
+      <div class="ts-chapter-hdr ${cls}" onclick="toggleChapter(this)">
+        <div class="ch-num">${isDone ? '✓' : chNum}</div>
+        <span>${title}</span>
+      </div>
+      <div class="ts-steps">${stepItems}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleChapter(el) {
+  el.parentElement.classList.toggle('open');
+}
+
+function truncate(str, n) {
+  return str.length > n ? str.slice(0, n - 1) + '…' : str;
+}
+
+// ── NAVIGATION ───────────────────────────────────────────────────────────────
+
+function navigate(dir) {
+  const next = IDX + dir;
+  if (next < 0 || next > STEPS.length - 1) {
+    if (next >= STEPS.length) window.location.href = '/';
+    return;
+  }
+  IDX = next;
+  renderStep();
+}
+
+function goTo(idx) {
+  IDX = idx;
+  renderStep();
+}
+
+// ── TIMER ─────────────────────────────────────────────────────────────────────
+
+function startTimer() {
+  timerRunning = true;
+  updateTimerBtn();
+  runTimer(TIMER_MS);
+}
+
+function runTimer(ms) {
+  clearTimeout(timerTimeout);
+  const bar = document.getElementById('timerBar');
+  if (!bar || !timerRunning) return;
+
+  timerStarted = Date.now();
+  timerRemain  = ms;
+  bar.style.transition = `width ${ms}ms linear`;
+  bar.style.width = '0%';
+
+  timerTimeout = setTimeout(() => {
+    if (timerRunning) navigate(1);
+  }, ms);
+}
+
+function pauseTimer() {
+  if (!timerRunning) return;
+  timerRunning = false;
+  clearTimeout(timerTimeout);
+  const elapsed = Date.now() - timerStarted;
+  timerRemain = Math.max(0, timerRemain - elapsed);
+  const bar = document.getElementById('timerBar');
+  if (bar) {
+    const pct = (timerRemain / TIMER_MS) * 100;
+    bar.style.transition = 'none';
+    bar.style.width = pct + '%';
+  }
+  updateTimerBtn();
+}
+
+function resumeTimer() {
+  if (timerRunning) return;
+  timerRunning = true;
+  updateTimerBtn();
+  runTimer(timerRemain);
+}
+
+function restartTimer() {
+  timerRemain = TIMER_MS;
+  if (timerRunning) runTimer(TIMER_MS);
+}
+
+function clearTimer() {
+  clearTimeout(timerTimeout);
+  timerRunning = false;
+}
+
+function toggleTimer() {
+  timerRunning ? pauseTimer() : resumeTimer();
+}
+
+function updateTimerBtn() {
+  const btn = document.getElementById('timerBtn');
+  if (btn) btn.innerHTML = timerRunning ? '&#9646;&#9646;' : '&#9654;';
+}
+
+// ── KEYBOARD ─────────────────────────────────────────────────────────────────
+
+document.addEventListener('keydown', e => {
+  if (document.getElementById('tour').style.display === 'none') return;
+  if (e.key === 'ArrowRight' || e.key === 'l') navigate(1);
+  if (e.key === 'ArrowLeft'  || e.key === 'h') navigate(-1);
+  if (e.key === ' ') { e.preventDefault(); toggleTimer(); }
+  if (e.key === 'Escape') resetBranch();
+});
+
+// pause timer while hovering content
+document.addEventListener('DOMContentLoaded', () => {
+  const content = document.getElementById('tcontent');
+  if (content) {
+    content.addEventListener('mouseenter', pauseTimer);
+    content.addEventListener('mouseleave', resumeTimer);
+  }
+
+  // Check for ?running=1 → skip Docker chapter
+  const params = new URLSearchParams(location.search);
+  if (params.get('running') === '1') {
+    const saved = localStorage.getItem('sca_tour_branch') || 'same';
+    startTour(saved, true);
+    return;
+  }
+
+  // Check URL hash for deep link e.g. #ch3
+  const hash = location.hash;
+  const chMatch = hash.match(/^#ch(\d+)/);
+  if (chMatch) {
+    const saved = localStorage.getItem('sca_tour_branch') || 'same';
+    startTour(saved, false);
+    const targetCh = parseInt(chMatch[1]);
+    const targetIdx = STEPS.findIndex(s => s.chapter === targetCh);
+    if (targetIdx > -1) { IDX = targetIdx; renderStep(); }
+  }
+});
+</script>
+</body>
+</html>
