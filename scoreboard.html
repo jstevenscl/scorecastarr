@@ -8083,7 +8083,6 @@ async function onSectionTicker(){
 
 async function loadTickerStreamProfiles(){
   const sel=document.getElementById('tickerFallbackProfile');
-  const note=document.getElementById('tickerDeliveryNote');
   if(!sel) return;
   try{
     const r=await fetch(`${API_BASE}/dispatcharr/streamprofiles`,{signal:AbortSignal.timeout(15000)});
@@ -8093,14 +8092,6 @@ async function loadTickerStreamProfiles(){
     const saved=sel.dataset.saved||'';
     sel.innerHTML='<option value="">— Auto-detect (heuristic) —</option>'
       +profiles.map(p=>`<option value="${p.id}"${String(p.id)===saved?' selected':''}>${p.name}</option>`).join('');
-    // Update delivery note based on STREAM_BASE_URL availability
-    if(note){
-      const si=await fetch(`${API_BASE}/ticker/delivery-info`,{signal:AbortSignal.timeout(5000)}).then(r=>r.ok?r.json():null).catch(()=>null);
-      if(si?.mode==='http'){
-        note.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--accent-green);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">✓ HTTP Delivery Mode Active</div><div style="font-size:12px;color:var(--text-secondary);line-height:1.7;">Score data is served via HTTP from ScorecastArr — no shared Docker volume needed. Ticker text updates every ~1 second.</div>`;
-        note.style.background='rgba(0,255,136,0.04)';note.style.borderColor='rgba(0,255,136,0.2)';
-      }
-    }
   }catch(e){}
 }
 
