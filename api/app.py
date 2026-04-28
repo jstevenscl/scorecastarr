@@ -1205,6 +1205,12 @@ def _build_ticker_params(original_params, channel_id, font_size=24, position='bo
         if cpu_saver_crf:
             changes.append(f'INFO: CPU Saver — CRF raised 23 → 28 (saves ~15% encode work; subtle quality reduction on high-detail scenes).')
         params = re.sub(r'\s{2,}', ' ', params).strip()
+        # +nobuffer limits input reads to real-time speed — fine for copy but starves
+        # the libx264 encoder, pushing first output chunk past Dispatcharr's buffer
+        # fill timeout. Replace with +igndts (handles broken IPTV timestamps) which
+        # lets FFmpeg read ahead so the encoder has frames to process immediately.
+        if '+nobuffer' in params:
+            params = params.replace('+nobuffer', '+igndts')
         params = params.replace(
             '-c:v copy',
             f'-vf "{vf_chain}" {fps_arg}-c:v libx264 -preset ultrafast -tune zerolatency'
