@@ -1338,14 +1338,7 @@ def _enable_ticker_for_channel(channel_id, sb_id, font_size, position, bg_opacit
         verify = session.get(f'{creds["url"]}/api/channels/channels/{channel_id}/',timeout=10)
         actual_profile = verify.json().get('stream_profile_id') if verify.ok else 'fetch_failed'
         log.info(f'[ticker] channel {channel_id} assigned profile {ticker_profile_id} — Dispatcharr now shows stream_profile_id={actual_profile}')
-        # Tell ts_proxy to reload all channel configs so it picks up the new profile.
-        # Without this the DB is updated but ts_proxy keeps using its cached state.
-        try:
-            rh = session.post(f'{creds["url"]}/api/core/rehash-streams/', timeout=10)
-            log.info(f'[ticker] rehash-streams: HTTP {rh.status_code}')
-        except Exception as rhe:
-            log.warning(f'[ticker] rehash-streams failed: {rhe}')
-        # Also stop any existing ts_proxy session so next play starts clean.
+        # Stop any active ts_proxy session so next play starts clean with the new profile.
         try:
             sr = session.post(f'{creds["url"]}/proxy/ts/stop/{channel_id}', timeout=5)
             log.info(f'[ticker] ts_proxy stop channel {channel_id}: HTTP {sr.status_code}')
