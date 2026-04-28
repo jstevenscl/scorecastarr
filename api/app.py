@@ -1119,12 +1119,7 @@ def _ticker_text_url(channel_id):
     return _ticker_scores_path(channel_id)
 
 def _build_ticker_params(original_params, channel_id, font_size=24, position='bottom', bg_opacity=0.75, test_text=None, scroll_speed=0, cpu_saver_scale=False, cpu_saver_fps=False, cpu_saver_crf=False):
-    """Returns (modified_params: str, changes: list[str]).
-    changes describes every parameter that was stripped or altered for CPU/encode compatibility.
-    cpu_saver_scale: prepend scale=min(iw,1280):min(ih,720) before drawtext (no-op on 720p sources)
-    cpu_saver_fps:   cap output at 15fps, adjust keyframe interval accordingly
-    cpu_saver_crf:   raise CRF 23 → 28 for lower encode complexity
-    """
+    """Returns (modified_params: str, changes: list[str])."""
     import re
     params = original_params.strip()
     changes = []
@@ -1139,107 +1134,28 @@ def _build_ticker_params(original_params, channel_id, font_size=24, position='bo
             f':x={x_expr}:y={y_expr}'
         )
     else:
-        ticker_src = _ticker_text_url(channel_id)
+        ticker_src = _ticker_scores_path(channel_id)
         drawtext = (
             f'drawtext=textfile={ticker_src}:reload=1'
             f':fontsize={font_size}:fontcolor=white'
             f':box=1:boxcolor=black@{bg_opacity}:boxborderw=10'
             f':x={x_expr}:y={y_expr}'
         )
-    # ── Build CPU Saver components ────────────────────────────────────────────
-    # Scale filter: downscales 1080p/4K → max 1280×720 preserving aspect ratio.
-    # Uses conditional min() so 720p and below sources pass through unchanged.
     scale_filter = ("scale=w='min(iw,1280)':h='min(ih,720)'"
                     ":force_original_aspect_ratio=decrease:flags=fast_bilinear")
-    # Full vf prefix: scale (if enabled) then drawtext
     vf_chain = f'{scale_filter},{drawtext}' if cpu_saver_scale else drawtext
-    # Encoder output args for CPU Saver modes
-    crf_val   = 28 if cpu_saver_crf   else 23
-    fps_val   = 15 if cpu_saver_fps   else None   # None = don't add -r flag
-    gop_val   = 30 if cpu_saver_fps   else 60     # keyframe every 2s at 15fps, 2s at 30fps
-    bmax_val  = '4000k' if cpu_saver_fps else '6000k'
-    buf_val   = '8000k' if cpu_saver_fps else '12000k'
-    fps_arg   = f'-r {fps_val} ' if fps_val else ''
-
     if '-c:v copy' in params:
-        # ── Detect and report copy-mode flags that break or explode CPU when encode is added ──
-        # 1. -force_key_frames with n_forced*0 expression — evaluates true every frame → all I-frames
-        fkf_q = re.search(r'-force_key_frames\s+"([^"]*)"', params)
-        fkf_u = re.search(r'-force_key_frames\s+(\S+)', params) if not fkf_q else None
-        if fkf_q:
-            expr = fkf_q.group(1)
-            note = ('expression always evaluates true (n_forced×0=0), which forces every frame to be an I-frame with no inter-compression — stripped to prevent high CPU load and buffering.'
-                    if 'n_forced*0' in expr or 'n_forced * 0' in expr
-                    else 'copy-mode keyframe flag removed to prevent encoder conflict.')
-            changes.append(f'WARNING: Removed -force_key_frames "{expr}" — {note}')
-            params = re.sub(r'-force_key_frames\s+"[^"]*"', '', params)
-        elif fkf_u:
-            changes.append(
-                f'WARNING: Removed -force_key_frames {fkf_u.group(1)} — copy-mode artifact, stripped to prevent encoder conflict.'
-            )
-            params = re.sub(r'-force_key_frames\s+\S+', '', params)
-        # 2. -g / -keyint_min — silently ignored in copy mode but can conflict; reset to sane encode values
-        g_m = re.search(r'-g\s+(\d+)', params)
-        if g_m:
-            old_g = g_m.group(1)
-            if old_g != str(gop_val):
-                changes.append(f'INFO: Reset -g {old_g} → {gop_val} (keyframe interval adjusted for encode; was a no-op in copy mode).')
-            params = re.sub(r'-g\s+\d+', '', params)
-        ki_m = re.search(r'-keyint_min\s+(\d+)', params)
-        if ki_m:
-            old_ki = ki_m.group(1)
-            if old_ki != str(gop_val):
-                changes.append(f'INFO: Reset -keyint_min {old_ki} → {gop_val} (minimum keyframe interval adjusted for encode).')
-            params = re.sub(r'-keyint_min\s+\d+', '', params)
-        # 3. -sc_threshold — safe to keep but tidy up; re-added with the encoder block
-        params = re.sub(r'-sc_threshold\s+\d+', '', params)
-        # 4. Report the core encode substitution and any CPU saver options
-        encode_note = (f'INFO: Replaced -c:v copy → -c:v libx264 -preset ultrafast -tune zerolatency '
-                       f'-crf {crf_val} -maxrate {bmax_val} -bufsize {buf_val} '
-                       f'(drawtext requires a software encode pass; bitrate cap prevents unbounded CPU load).')
-        changes.append(encode_note)
-        if cpu_saver_scale:
-            changes.append('INFO: CPU Saver — scale to 720p max applied (no-op on sources already ≤720p; saves ~40% encode work on 1080p sources).')
-        if cpu_saver_fps:
-            changes.append(f'INFO: CPU Saver — output capped at {fps_val}fps, GOP adjusted to {gop_val} (saves ~40% encode work; ticker scroll unaffected).')
-        if cpu_saver_crf:
-            changes.append(f'INFO: CPU Saver — CRF raised 23 → 28 (saves ~15% encode work; subtle quality reduction on high-detail scenes).')
-        params = re.sub(r'\s{2,}', ' ', params).strip()
-        # +nobuffer limits input reads to real-time speed — fine for copy but starves
-        # the libx264 encoder, pushing first output chunk past Dispatcharr's buffer
-        # fill timeout. Replace with +igndts (handles broken IPTV timestamps) which
-        # lets FFmpeg read ahead so the encoder has frames to process immediately.
-        if '+nobuffer' in params:
-            params = params.replace('+nobuffer', '+igndts')
         params = params.replace(
             '-c:v copy',
-            f'-vf "{vf_chain}" {fps_arg}-c:v libx264 -preset ultrafast -tune zerolatency'
-            + (f' -crf {crf_val} -maxrate {bmax_val} -bufsize {buf_val} -g {gop_val} -keyint_min {gop_val} -sc_threshold 0' if cpu_saver_fps or cpu_saver_crf else '')
+            f'-vf "{vf_chain}" -c:v libx264 -preset ultrafast -tune zerolatency'
         )
+        changes.append('INFO: Replaced -c:v copy → libx264 ultrafast zerolatency for drawtext encode.')
+        if cpu_saver_scale:
+            changes.append('INFO: CPU Saver — scale to 720p max applied.')
     elif '-vf ' in params:
         params = re.sub(r'-vf\s+"([^"]+)"', f'-vf "\\1,{drawtext}"', params)
-        preset_m = re.search(r'-preset\s+(slow|medium|fast|faster)', params)
-        if preset_m:
-            changes.append(f'INFO: Upgraded -preset {preset_m.group(1)} → veryfast (drawtext encode pass — slower presets waste CPU on filter output).')
-            params = re.sub(r'-preset\s+(slow|medium|fast|faster)', '-preset veryfast', params)
     else:
         params = re.sub(r'(-f\s+\S+\s*(?:pipe:\d+)?)\s*$', f'-vf "{drawtext}" \\1', params.rstrip())
-        if '-preset' not in params:
-            params = re.sub(r'(-c:v\s+libx264)', r'\1 -preset ultrafast -tune zerolatency', params)
-            changes.append('INFO: Added -preset ultrafast -tune zerolatency (no preset found; added for CPU efficiency).')
-        else:
-            preset_m = re.search(r'-preset\s+(slow|medium|fast|faster)', params)
-            if preset_m:
-                changes.append(f'INFO: Upgraded -preset {preset_m.group(1)} → veryfast.')
-                params = re.sub(r'-preset\s+(slow|medium|fast|faster)', '-preset veryfast', params)
-    # Add IPTV robustness flags that bulletproof transcode profiles use.
-    # Base copy-mode profiles omit these; without them libx264 encoding fails on
-    # live IPTV sources because the stream connection closes before encode starts.
-    if '-probesize' not in params:
-        params = re.sub(r'(-i\s+\S+)', r'-err_detect ignore_err -probesize 10M -analyzeduration 10M \1', params)
-        changes.append('INFO: Added -err_detect ignore_err -probesize 10M -analyzeduration 10M for IPTV live stream compatibility.')
-    if '-muxdelay' not in params:
-        params = re.sub(r'(-f\s+mpegts)', r'-muxdelay 0 -muxpreload 0 \1', params)
     return params, changes
 
 @app.route('/ticker/preview-params', methods=['POST'])
