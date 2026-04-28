@@ -790,7 +790,7 @@ function startHttpServer() {
           }
           if (!fs.existsSync(TICKER_DIR)) fs.mkdirSync(TICKER_DIR, { recursive: true });
           const filePath = path.join(TICKER_DIR, `scores_${channel_id}.txt`);
-          if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, '', 'utf8');
+          if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, ' ', 'utf8');
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: true }));
         } catch(e) {
