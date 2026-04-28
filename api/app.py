@@ -968,9 +968,9 @@ def save_credentials():
     if not url: return jsonify({'error':'URL is required'}),400
     try:
         db_set('dispatcharr_url',url)
-        if b.get('username'): db_set('dispatcharr_username',b['username'].strip())
-        if b.get('password') is not None: db_set('dispatcharr_password',b['password'])
-        if b.get('api_token') is not None: db_set('dispatcharr_api_token',b['api_token'].strip())
+        if 'username' in b: db_set('dispatcharr_username',b['username'].strip())
+        if 'password' in b: db_set('dispatcharr_password',b['password'])
+        if 'api_token' in b: db_set('dispatcharr_api_token',b['api_token'].strip())
         return jsonify({'status':'saved'})
     except Exception as e: return jsonify({'error':str(e)}),500
 
