@@ -1390,9 +1390,10 @@ def _enable_ticker_for_channel(channel_id, sb_id, font_size, position, bg_opacit
         # scorecastarr-api has no /ticker mount — this call crosses to manager.js
         # so FFmpeg never tries to open a missing textfile at stream startup.
         try:
-            http.post(f'{STREAM_MANAGER_URL}/ticker/precreate', json={'channel_id': channel_id}, timeout=5)
-        except Exception:
-            pass  # non-fatal — manager.js will write on next poll
+            pc = http.post(f'{STREAM_MANAGER_URL}/ticker/precreate', json={'channel_id': channel_id}, timeout=5)
+            log.info(f'[ticker] precreate channel {channel_id}: HTTP {pc.status_code} {pc.text}')
+        except Exception as pc_err:
+            log.warning(f'[ticker] precreate FAILED for channel {channel_id}: {pc_err}')
         r = session.patch(f'{creds["url"]}/api/channels/channels/{channel_id}/',
                           json={'stream_profile_id':ticker_profile_id},timeout=15)
         r.raise_for_status()
