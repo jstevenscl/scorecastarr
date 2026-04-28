@@ -1227,6 +1227,14 @@ def _build_ticker_params(original_params, channel_id, font_size=24, position='bo
             if preset_m:
                 changes.append(f'INFO: Upgraded -preset {preset_m.group(1)} → veryfast.')
                 params = re.sub(r'-preset\s+(slow|medium|fast|faster)', '-preset veryfast', params)
+    # Add IPTV robustness flags that bulletproof transcode profiles use.
+    # Base copy-mode profiles omit these; without them libx264 encoding fails on
+    # live IPTV sources because the stream connection closes before encode starts.
+    if '-probesize' not in params:
+        params = re.sub(r'(-i\s+\S+)', r'-err_detect ignore_err -probesize 10M -analyzeduration 10M \1', params)
+        changes.append('INFO: Added -err_detect ignore_err -probesize 10M -analyzeduration 10M for IPTV live stream compatibility.')
+    if '-muxdelay' not in params:
+        params = re.sub(r'(-f\s+mpegts)', r'-muxdelay 0 -muxpreload 0 \1', params)
     return params, changes
 
 @app.route('/ticker/preview-params', methods=['POST'])
