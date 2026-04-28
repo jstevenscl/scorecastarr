@@ -1,9 +1,9 @@
 # ScorecastArr — User Guide
 
-**Version:** 0.2.0-beta  
-**Last Updated:** 2026-04-15
+**Version:** 0.3.0-beta  
+**Last Updated:** 2026-04-28
 
-ScorecastArr is a self-hosted live sports scoreboard that streams directly into Dispatcharr as real IPTV channels. It pulls live data from ESPN, renders a full HD scoreboard, and delivers it as an HLS video stream — automatically registering and numbering channels in Dispatcharr for you.
+ScorecastArr is a self-hosted live sports scoreboard that streams directly into Dispatcharr as real IPTV channels. It pulls live data from publicly accessible sports data APIs, renders a full HD scoreboard, and delivers it as an HLS video stream — automatically registering and numbering channels in Dispatcharr for you.
 
 ---
 
@@ -614,25 +614,97 @@ Go to **Settings → Ticker Overlay**.
 
 ![Ticker Overlay](screenshots/13-ticker-settings.png)
 
-The Ticker Overlay adds a scrolling score crawl bar to the bottom of your HLS streams — similar to what you see on ESPN or NFL Network. The ticker shows live scores from all selected sports, scrolling continuously.
+The Ticker Overlay adds a live scrolling score crawl to any Dispatcharr channel — similar to what you see on ESPN or NFL Network. ScorecastArr creates a modified FFmpeg stream profile for the channel, injects a `drawtext` filter with real-time score data, and restores the original profile cleanly when you disable the ticker.
 
-> **Performance note:** The ticker feature increases CPU usage because it requires compositing an additional overlay onto the video stream. Review the performance warning shown at the top of this page before enabling it.
+> **Before using the ticker:** The `scorecastarr_ticker` Docker volume must be mounted in both the `scorecastarr-stream` container AND the Dispatcharr container. See [Shared Volume Setup](../README.md#shared-volume-setup) in the README. If Dispatcharr is in a separate stack this step is easy to miss — the ticker will appear to enable correctly but the stream will silently fail. See [Troubleshooting](#17-troubleshooting) for the diagnostic steps.
 
-### Dispatcher Channel
+> **Performance note:** The ticker requires real-time video re-encoding. Use the CPU Saver options if you experience stuttering on lower-powered servers.
 
-The Dispatcharr channel that will carry the ticker-enhanced stream. Select from your existing ScorecastArr channels in the dropdown.
+---
 
-### Preview Channel
+### Active Ticker Status Panel
 
-An optional secondary channel that shows only the ticker bar (without the full scoreboard) — useful for testing the layout before pushing it live.
+At the top of the page, the status panel shows all currently active tickers. Each entry displays:
+- The Dispatcharr channel name
+- Which sports (or custom text) the ticker is showing
+- The ticker stream profile ID in Dispatcharr
+- How long the ticker has been active
+- A **⚙ WARN/INFO** pill — click to see every FFmpeg parameter ScorecastArr automatically adjusted and why (e.g. `force_key_frames stripped — incompatible with encode mode`)
+- A **KILL** button to disable that ticker individually
 
-### Source Channel
+When multiple tickers are active a **KILL ALL** button appears.
 
-The underlying scoreboard stream that the ticker reads scores from.
+---
 
-### Sport channels
+### 1. Select Dispatcharr Channels
 
-The grid of checkboxes at the bottom lets you choose which sports feed into the ticker crawl. Enable only the sports you want to appear in the scrolling ticker.
+The **Dispatcharr Channels** section lists all channels available in your connected Dispatcharr instance.
+
+**Selecting channels:**
+- Type in the search box to filter by name
+- Click any channel row to add it as a selected chip
+- Click **+ Add All** to add every visible (filtered) channel at once
+- Click the **✕** on a chip to remove it
+- Use the **Clear** button to remove all selected channels
+
+**Scope / group filtering:** Above the search box, group chips let you toggle entire Dispatcharr channel groups on or off to narrow the list before clicking **+ Add All** — useful when you want to add all channels in one group without touching others.
+
+Channels that already have an active ticker are shown with a green badge and cannot be selected again — each channel can only have one ticker at a time.
+
+After selecting a channel, ScorecastArr validates its current stream profile:
+- **✓ FFmpeg ready** — compatible with ticker overlay
+- **⚠ not an FFmpeg profile** — change the channel's stream profile in Dispatcharr to an FFmpeg-based one
+- **[locked]** — profile is locked; duplicate it in Dispatcharr first
+
+---
+
+### 2. Choose Ticker Sources
+
+The **Ticker Sources** section lets you choose which sports appear in the scrolling ticker.
+
+Sports are organized into groups:
+- **Pro Leagues** — NFL, NBA, MLB, NHL, WNBA, CFL, XFL, UFL, MLS, NWSL, PGA Tour
+- **Motorsport** — Formula 1, NASCAR Cup, NASCAR OAPS, NASCAR Trucks
+- **Tennis** — ATP Tour, WTA Tour
+- **International Soccer** — Premier League, Champions League, La Liga, Bundesliga, Serie A, Ligue 1
+- **NCAA Men** — Football, Basketball, Baseball
+- **NCAA Women** — Basketball, Softball, Volleyball, Lacrosse
+
+Check the sports you want included. For each sport, toggle the **FAVS** pill to restrict that sport's output to only games or races involving your favorited teams.
+
+**Import from scoreboard:** Select an existing scoreboard from the dropdown and click **Import** to pre-fill the sport checkboxes from that scoreboard's enabled sports. You can modify the selection afterward.
+
+---
+
+### 3. Appearance
+
+| Setting | Description |
+|---------|-------------|
+| **Position** | Bottom (default) or Top of the video frame |
+| **Font size** | 16–48px. Recommended: 24–32px for 1080p streams |
+| **Scroll speed** | 0 = static text, 1–400 px/s scrolling marquee. Recommended: 100–200 px/s |
+| **Background opacity** | Darkness of the black bar behind the ticker text (0–100%) |
+
+---
+
+### 4. CPU Saver (optional)
+
+| Toggle | What It Does |
+|--------|-------------|
+| **Scale to 720p** | Downscales video to 720p during ticker encoding (sources already at 720p or lower are not upscaled) |
+| **Cap at 15fps** | Reduces encoded output to 15 FPS — imperceptible for a score ticker, significantly reduces CPU load |
+| **Raise CRF** | Increases x264 CRF from 23 to 28, reducing encode work at the cost of slightly lower bitrate |
+
+All three can be combined. Settings apply only while the ticker is active — original quality is restored on disable.
+
+---
+
+### 5. Enable / Disable
+
+- **ENABLE TICKER** — creates the ticker stream profile in Dispatcharr, assigns it to all selected channels, and begins writing per-channel score files. The form clears after enabling so you can immediately set up a second ticker for different channels.
+- **KILL (per-ticker)** — in the status panel, instantly disables a single ticker and restores the original profile.
+- **KILL ALL** — disables every active ticker at once.
+- **RESET TO DEFAULTS** — restores appearance settings (28px font, 150 px/s scroll, 75% opacity, bottom position) and clears sport selections.
 
 ---
 
@@ -804,11 +876,29 @@ Common causes:
    docker logs scorecastarr-stream --tail 50 | grep -i audio
    ```
 
-### Ticker is not appearing on the stream
+### Ticker enabled but stream is stuck / not playing
 
-1. Go to **Settings → Ticker Overlay** and confirm at least one sport is checked
-2. Confirm the scoreboard's ticker mode (Step 3 → Ticker) is set to **Sol** or **Set idle**
-3. The ticker requires a Dispatcher channel to be selected in Ticker settings
+The most common cause is a missing or mismatched Docker volume. When FFmpeg inside Dispatcharr cannot read the score file, the channel stays in a `connecting` state indefinitely with no visible error.
+
+**Step 1 — Verify the volume is mounted in both containers:**
+```bash
+docker exec scorecastarr-stream ls /ticker
+docker exec dispatcharr ls /ticker
+```
+Both must succeed. If `dispatcharr` returns `No such file or directory`, add the volume mount to Dispatcharr's compose and redeploy.
+
+**Step 2 — Verify both containers share the same volume:**
+```bash
+docker inspect scorecastarr-stream --format '{{range .Mounts}}{{if eq .Destination "/ticker"}}{{.Name}}{{end}}{{end}}'
+docker inspect dispatcharr --format '{{range .Mounts}}{{if eq .Destination "/ticker"}}{{.Name}}{{end}}{{end}}'
+```
+Both must print `scorecastarr_ticker`. If Dispatcharr prints a different name (e.g. `scorestream_ticker` from an older install), update Dispatcharr's compose to use `scorecastarr_ticker` and redeploy both stacks.
+
+**Step 3 — Restart the Dispatcharr channel** after fixing the volume — the new stream profile won't be picked up until the channel restarts.
+
+**Other checks:**
+- Confirm at least one enabled sport has live or today's completed data — the ticker shows nothing if there are no games
+- Check stream container logs: `docker logs scorecastarr-stream`
 
 ### Channel numbers are wrong after re-pushing
 
@@ -862,4 +952,6 @@ Go to the [Issues page](https://github.com/jstevenscl/scorecastarr/issues/new/ch
 
 ---
 
-*ScorecastArr — ESPN Data*
+---
+
+*ScorecastArr is an independent open-source project for personal, non-commercial use. Not affiliated with or endorsed by ESPN, any sports league, or data provider. All trademarks belong to their respective owners.*

@@ -619,7 +619,7 @@ body.stream-mode .card-header{padding:calc(var(--card-header-size,11px) * 0.36) 
     <button class="sidebar-btn" onclick="openSettings('scoreboards')">&#x2699;&#xFE0F; Settings</button>
   </div>
 
-  <div class="sidebar-footer" id="ssVersion">ScorecastArr &middot; ESPN Data</div>
+  <div class="sidebar-footer" id="ssVersion">ScorecastArr &middot; Public Sports Data</div>
 </aside>
 
 <div id="main">
@@ -1570,8 +1570,8 @@ body.stream-mode .card-header{padding:calc(var(--card-header-size,11px) * 0.36) 
       <div class="modal-section" style="margin-top:20px;">
         <div class="modal-section-title">Data Source</div>
         <div style="font-size:13px;color:var(--text-secondary);line-height:1.7;">
-          ScorecastArr uses the unofficial ESPN Scoreboard API. Data is fetched directly from your browser — no proxy needed.<br><br>
-          <span style="color:var(--text-dim);font-size:11px;">If scores show "demo" it means ESPN blocked the request from your network (CORS). This is normal inside some Docker/reverse proxy setups.</span>
+          ScorecastArr uses publicly accessible sports data APIs for personal, non-commercial use. Data is fetched directly from your browser — no proxy needed.<br><br>
+          <span style="color:var(--text-dim);font-size:11px;">If scores show "demo" it means the data request was blocked by your network (CORS). This is normal inside some Docker/reverse proxy setups.</span>
         </div>
       </div>
 
