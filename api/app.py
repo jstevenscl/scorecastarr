@@ -1207,9 +1207,8 @@ def _build_ticker_params(original_params, channel_id, font_size=24, position='bo
         params = re.sub(r'\s{2,}', ' ', params).strip()
         params = params.replace(
             '-c:v copy',
-            f'-vf "{vf_chain}" {fps_arg}-c:v libx264 -preset ultrafast -tune zerolatency '
-            f'-crf {crf_val} -maxrate {bmax_val} -bufsize {buf_val} '
-            f'-g {gop_val} -keyint_min {gop_val} -sc_threshold 0'
+            f'-vf "{vf_chain}" {fps_arg}-c:v libx264 -preset ultrafast -tune zerolatency'
+            + (f' -crf {crf_val} -maxrate {bmax_val} -bufsize {buf_val} -g {gop_val} -keyint_min {gop_val} -sc_threshold 0' if cpu_saver_fps or cpu_saver_crf else '')
         )
     elif '-vf ' in params:
         params = re.sub(r'-vf\s+"([^"]+)"', f'-vf "\\1,{drawtext}"', params)
