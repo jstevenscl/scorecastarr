@@ -1329,6 +1329,13 @@ def _enable_ticker_for_channel(channel_id, sb_id, font_size, position, bg_opacit
         verify = session.get(f'{creds["url"]}/api/channels/channels/{channel_id}/',timeout=10)
         actual_profile = verify.json().get('stream_profile_id') if verify.ok else 'fetch_failed'
         log.info(f'[ticker] channel {channel_id} assigned profile {ticker_profile_id} — Dispatcharr now shows stream_profile_id={actual_profile}')
+        # Reset the ts_proxy stream state so the next play attempt starts fresh
+        # with the new profile. Without this, any previous failure state persists.
+        try:
+            sr = session.post(f'{creds["url"]}/proxy/ts/stop/{channel_id}', timeout=5)
+            log.info(f'[ticker] ts_proxy stop channel {channel_id}: HTTP {sr.status_code}')
+        except Exception as se:
+            log.warning(f'[ticker] ts_proxy stop failed for channel {channel_id}: {se}')
         import json as _jpc
         with get_db() as conn:
             conn.execute('''INSERT OR REPLACE INTO ticker_profile_backup
