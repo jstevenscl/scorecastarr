@@ -2837,16 +2837,16 @@ if __name__ == '__main__':
                 _auto_refresh_pga()
             except Exception as e:
                 log.warning(f'[auto] PGA refresh error: {e}')
-            # Re-seed player caches (headshots) from GitHub data branch
+            # Re-seed full motor cache from GitHub data branch (history, players, rankings, etc.)
             try:
                 DATA_URL = 'https://raw.githubusercontent.com/jstevenscl/scorecastarr-data/main/motor_cache.json'
                 rg = http.get(DATA_URL, timeout=20)
                 if rg.ok:
                     gdata = rg.json()
-                    player_keys = {k for k in gdata if k.endswith(('-players', '-rankings', '-season'))}
-                    if player_keys:
+                    refresh_keys = set(gdata.keys())
+                    if refresh_keys:
                         with get_db() as conn:
-                            for key in player_keys:
+                            for key in refresh_keys:
                                 value = gdata[key]
                                 new_data = _jr2.dumps(value.get('data', value))
                                 gh_updated = value.get('_updated', '2026-01-01')
@@ -2855,9 +2855,9 @@ if __name__ == '__main__':
                                     (key, new_data, gh_updated + ' 00:00:00')
                                 )
                             conn.commit()
-                        log.info(f'[auto] Player caches refreshed from GitHub: {len(player_keys)} keys')
+                        log.info(f'[auto] Motor cache refreshed from GitHub: {len(refresh_keys)} keys')
             except Exception as e:
-                log.warning(f'[auto] Player cache refresh error: {e}')
+                log.warning(f'[auto] Motor cache refresh error: {e}')
             _time.sleep(6 * 3600)  # Refresh every 6 hours
 
     def _auto_refresh_nascar():
