@@ -291,7 +291,7 @@ Click the gear icon in the sidebar to open Settings. The navigation is grouped:
 
 | Page | What It Controls | Affects |
 |---|---|---|
-| **Sports Library** | Enable or disable sports globally. Disabled sports are hidden from the sidebar and all scoreboard editors. Individual sports (PGA, F1, NASCAR, ATP, WTA) can be expanded ▸ to set per-sport headshot size for the main browsing view. | Entire app |
+| **Sports Library** | Enable or disable sports globally. Disabled sports are hidden from the sidebar and all scoreboard editors. Individual sports (PGA, F1, NASCAR, ATP, WTA) can be expanded ▸ to set per-sport **headshot size** and **auto-refresh rate** for the main browsing view. | Entire app |
 | **Audio Library** | Upload audio files, create playlists, set a global default playlist for stream background music. | Stream audio |
 | **Ticker Overlay** | Overlay a live scrolling score ticker onto a Dispatcharr channel. Select sports, channel, and appearance (font size, scroll speed, opacity, position). Includes a live preview. | Dispatcharr channel video |
 
@@ -384,6 +384,7 @@ In editor Step 3 (Display & Layout), each scoreboard has independent **per-score
 |---|---|
 | **Card Scale** | Scales all game cards larger or smaller (50–300%) |
 | **Rotation Timer** | How long each page shows before advancing (0 = no rotation) |
+| **Safe-Area Padding** | Inward padding (0–10%) applied uniformly on all edges of the stream canvas. Use 2–5% if the TV display clips the picture edges (common on hotel TVs and displays with overscan enabled). |
 | **Team Logo Size** | Size of team logos on cards |
 | **Abbreviation Size** | Font size of team abbreviations (e.g., LAL, BOS) |
 | **Score Size** | Font size of the score numbers |
@@ -409,7 +410,7 @@ Three **Inherit From Default Stream Settings** toggles at the top of the display
 |--------|---------------------|
 | **Default Fonts** | Abbreviation, Score, and Team Name sizes |
 | **Default Colors** | Team Name color |
-| **Default Card Size** | Card Scale, Rotation Timer, and Layout |
+| **Default Card Size** | Card Scale, Rotation Timer, Layout, and Safe-Area Padding |
 
 When a toggle is **on**, the relevant sliders are dimmed with a banner indicating the values come from Default Stream Settings and will update automatically if the defaults change. Toggle **off** to unlock those controls and set values specific to this scoreboard.
 
@@ -533,15 +534,18 @@ The size is set on each card element via `--card-headshot-size`, so multiple spo
 
 **Sports Library row layout:**
 - Click the **▸** chevron next to PGA, F1, any NASCAR series, ATP, or WTA to expand
-- Drag the Headshot Size slider (range 20–64px)
-- Changes apply instantly to the main scoreboard.html view
-- Tennis ATP and WTA are separate rows so you can size them independently
+- Drag the **Headshot Size** slider (range 20–64px) — applies to the main browsing view
+- Set a **per-sport auto-refresh rate** using the pill buttons (5s, 10s, 15s, 30s, 60s, or Off). The asterisk (*) on the badge means the sport is using the global default rate set in Default Stream Settings → Card Size. Setting a per-sport rate overrides the global default for that sport only.
+- Changes apply instantly to the main scoreboard view
+- Tennis ATP and WTA are separate rows so you can size and refresh them independently
 
 **Scoreboard editor location:**
 - Open the scoreboard, navigate to **Step 3 — Display & Layout**
 - Scroll to **🏁 Per-Sport Display & Data**
 - Each enabled motor/tennis sport has its own labeled card with options including a **🖼️ Headshot Size** slider
 - For tennis, the size applies to both ATP and WTA on that scoreboard (one shared `tennis_headshot_size`)
+
+**PGA Tour — Show Cut Players:** The PGA section in the motor panel includes a **✂️ Show Cut Players** toggle. When **off** (the default), players who missed the cut (CUT, MC, WD, DQ) are hidden from past tournament cards so only active competitors are shown. Toggle **on** to include them.
 
 ---
 
@@ -816,6 +820,8 @@ All three can be enabled together. The toggles apply only to the ticker encode �
 - **KILL (per-ticker)** — in the status panel, instantly disables a single active ticker and restores its original profile.
 - **KILL ALL** — disables every active ticker across all channels in one click.
 - **RESET TO DEFAULTS** — restores appearance settings (28px font, 150 px/s scroll, 75% opacity, bottom position) and clears all sport selections.
+
+**🧹 Maintenance** — Scroll to the bottom of the Ticker Overlay page to find the **Clean Up Orphaned Profiles** button. Ticker stream profiles can accumulate in Dispatcharr if tickers are killed abnormally or during troubleshooting. Clicking this button scans Dispatcharr for all stream profiles ending in `(Ticker)` that are no longer tracked by an active ticker, and deletes them. Active tickers are never affected — only untracked orphans are removed. Safe to run at any time.
 
 > After enabling, **restart the channel in Dispatcharr** to pick up the new stream profile. Existing ffmpeg processes use the old profile until restarted.
 

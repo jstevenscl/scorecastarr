@@ -1,7 +1,7 @@
 # ScorecastArr — User Guide
 
 **Version:** 0.3.0-beta  
-**Last Updated:** 2026-04-28
+**Last Updated:** 2026-05-11
 
 ScorecastArr is a self-hosted live sports scoreboard that streams directly into Dispatcharr as real IPTV channels. It pulls live data from publicly accessible sports data APIs, renders a full HD scoreboard, and delivers it as an HLS video stream — automatically registering and numbering channels in Dispatcharr for you.
 
@@ -410,7 +410,7 @@ Three toggles control which groups of settings this scoreboard inherits from **D
 |--------|---------|
 | **Default Fonts** | Abbreviation size, Score size, Team Name size |
 | **Default Colors** | Team Name color |
-| **Default Card Size** | Card Scale, Page Rotation timer, Stream Layout |
+| **Default Card Size** | Card Scale, Page Rotation timer, Stream Layout, Safe-Area Padding |
 
 When a toggle is **on**, the corresponding sliders/pickers are dimmed and a banner reads *"Inherited from Default Stream Settings — toggle off above to override."* Those values follow whatever is set in **Settings → Default Stream Settings**, so if you update the defaults later they apply to this scoreboard automatically.
 
@@ -532,6 +532,7 @@ Quick-apply a complete font + color package. Click a preset tile to load it, the
 |---------|---------|
 | **Card Scale** | Overall size of each game card (percentage) |
 | **Rotation Speed** | Seconds each page is shown before advancing to the next |
+| **Safe-Area Padding** | Inward padding (0–10%) on all edges of the stream canvas. Use 2–5% if your TV clips the picture edges (hotel TVs, displays with overscan). Set per-scoreboard in editor Step 3 — toggle off **Default Card Size** to unlock. |
 | **Layout** | Grid (multi-column) or List (single-column) arrangement |
 
 ### Per-scoreboard overrides
@@ -568,6 +569,26 @@ Sports are grouped by category:
 - **Other** — Tennis ATP/WTA, PGA Tour, WNBA, etc.
 
 > **Tip:** Disable sports you never watch to keep the scoreboard and editors clean. You can always re-enable them later.
+
+### Per-Sport Auto-Refresh Rates
+
+Each sport has a configurable auto-refresh rate — how often ScorecastArr polls for new score data while you have the scoreboard open.
+
+**To see or change the rate for a sport:**
+
+1. In the Sports Library, click the **▸** expand button on any sport row
+2. A rate pill appears (e.g. `10s`, `20s`, `Global*`)
+3. An asterisk (`*`) means the sport is using the **global default rate** set in Default Stream Settings. A plain value means a custom override is set for that sport.
+
+**To change a sport's rate:** click the rate pill — a small selector appears with common intervals plus a **Global** option to revert to the default.
+
+**Built-in defaults:**
+- NASCAR / F1 — 10 s (high-frequency during live races)
+- MLB / NHL — 20 s
+- NFL / NBA — 30 s
+- Most other sports — global default
+
+> **Tip:** If you are not actively watching a sport right now, set it to a longer interval (or **Off**) to reduce API calls. The refresh rate only affects the live scoreboard view, not the ticker overlay.
 
 ---
 
@@ -705,6 +726,18 @@ All three can be combined. Settings apply only while the ticker is active — or
 - **KILL (per-ticker)** — in the status panel, instantly disables a single ticker and restores the original profile.
 - **KILL ALL** — disables every active ticker at once.
 - **RESET TO DEFAULTS** — restores appearance settings (28px font, 150 px/s scroll, 75% opacity, bottom position) and clears sport selections.
+
+---
+
+### 6. Maintenance
+
+Scroll to the bottom of the Ticker Overlay page to find the **🧹 Maintenance** section.
+
+**CLEAN UP ORPHANED PROFILES** — scans Dispatcharr for stream profiles that ScorecastArr created (names ending in ` (Ticker)`) but are no longer associated with any active ticker. This can happen if a container was restarted unexpectedly mid-assignment or if channels were deleted in Dispatcharr without disabling the ticker first.
+
+- Active ticker profiles are **never touched** — only orphans with no current ticker assignment are removed.
+- A result summary is shown after the scan: how many profiles were deleted, and their names. If none are found the button reports "No orphaned profiles found."
+- Safe to run at any time. If you are unsure whether a profile is truly orphaned, check the Active Ticker Status Panel at the top of the page first — any profile listed there is protected.
 
 ---
 
