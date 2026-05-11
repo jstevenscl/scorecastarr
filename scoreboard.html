@@ -1546,15 +1546,19 @@ body.stream-mode .card-header{padding:calc(var(--card-header-size,11px) * 0.36) 
       </div>
 
       <div class="modal-section" style="margin-top:20px;">
-        <div class="modal-section-title">Auto-Refresh Rate</div>
-        <div class="rate-pills" id="ratePills" data-tip="How often scores automatically refresh from ESPN. Lower = more up-to-date but more network requests.">
-          <div class="rate-pill" data-rate="0" onclick="setRefreshRate(0)">Manual only</div>
-          <div class="rate-pill" data-rate="30" onclick="setRefreshRate(30)">30 sec</div>
-          <div class="rate-pill active" data-rate="60" onclick="setRefreshRate(60)">1 min</div>
+        <div class="modal-section-title">Global Default Refresh Rate</div>
+        <div class="modal-sublabel" style="margin-bottom:10px;">Fallback rate for any sport set to "Default". Per-sport overrides are in <strong>Sports Library</strong> — expand any sport to set its own rate.</div>
+        <div class="rate-pills" id="ratePills" data-tip="Global fallback. Override per-sport in the Sports Library tab.">
+          <div class="rate-pill" data-rate="0"   onclick="setRefreshRate(0)">Manual only</div>
+          <div class="rate-pill" data-rate="5"   onclick="setRefreshRate(5)">5 sec</div>
+          <div class="rate-pill" data-rate="10"  onclick="setRefreshRate(10)">10 sec</div>
+          <div class="rate-pill" data-rate="15"  onclick="setRefreshRate(15)">15 sec</div>
+          <div class="rate-pill" data-rate="30"  onclick="setRefreshRate(30)">30 sec</div>
+          <div class="rate-pill active" data-rate="60"  onclick="setRefreshRate(60)">1 min</div>
           <div class="rate-pill" data-rate="120" onclick="setRefreshRate(120)">2 min</div>
           <div class="rate-pill" data-rate="300" onclick="setRefreshRate(300)">5 min</div>
         </div>
-        <div style="margin-top:10px;font-size:11px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;" id="rateStatus">Auto-refresh: every 60 seconds</div>
+        <div style="margin-top:10px;font-size:11px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;" id="rateStatus">Global default: every 60 sec</div>
       </div>
 
       <div class="modal-section" style="margin-top:20px;">
@@ -4854,6 +4858,13 @@ function loadActiveSports(enabled){
   try{const s=ss.get('ss_active_sports');return s?new Set(JSON.parse(s)):new Set(enabled);}catch(e){return new Set(enabled);}
 }
 function saveActiveSports(){ss.set('ss_active_sports',JSON.stringify([...state.activeSports]));}
+function loadSportRates(){try{const s=ss.get('ss_sport_rates');return s?JSON.parse(s):{};}catch(e){return {};}}
+function saveSportRates(){ss.set('ss_sport_rates',JSON.stringify(state.sportRefreshRates));}
+
+// Per-sport default auto-refresh intervals (seconds). Override per-sport in Sports Library.
+const SPORT_DEFAULT_RATES={'nascar':10,'nascar-noaps':10,'nascar-trucks':10,'f1':30,'mlb':20,'nhl':20,'nba':30,'pga':30,'atp':30,'wta':30,'nfl':60,'wnba':60,'cfl':60,'xfl':60,'ufl':60,'mls':60,'nwsl':60,'epl':60,'ucl':60,'laliga':60,'bundesliga':60,'seriea':60,'ligue1':60,'ncaamb':60,'ncaafb':60,'ncaabase':60,'ncaawb':60,'ncaasb':60,'ncaavb':60,'ncaalax':60};
+const SPORT_RATE_GLOBAL=-1; // use global default rate
+const SPORT_RATE_OFF=0;     // never auto-fetch this sport
 
 const _enabledSports = new Set(ALL_SPORTS.map(s => s.id)); // All Sports view always shows all sports
 const state={
@@ -4871,6 +4882,7 @@ const state={
   seasonMeta:{},
   usingMock:false,
   refreshRate:60,
+  sportRefreshRates:{},
   display:{abbrSize:18,scoreSize:34,nameSize:11,nameColor:'#3d5a78',tickerSize:14,logoSize:34,channelSize:11,sectionHeaderSize:15,sectionHeaderColor:'#e8f0fe',sectionStripeWidth:6},
 };
 
@@ -5147,18 +5159,74 @@ function _initFloatPanel(panelId,handleId,wKey,hKey){
 //  REFRESH RATE
 // =====================
 let autoRefreshTimer=null;
+const _sportNextFetch={}; // sportId → epoch ms when next fetch is due
+
+function effectiveSportRate(sportId){
+  const ov=state.sportRefreshRates[sportId];
+  if(ov===SPORT_RATE_OFF) return SPORT_RATE_OFF;
+  if(ov===undefined||ov===SPORT_RATE_GLOBAL){
+    return state.refreshRate>0?state.refreshRate:SPORT_RATE_OFF;
+  }
+  return ov;
+}
+
+function scheduleSportDueTimes(){
+  const now=Date.now();
+  getAllEnabledSports().forEach(s=>{
+    const rate=effectiveSportRate(s.id);
+    _sportNextFetch[s.id]=rate>0?now+rate*1000:Infinity;
+  });
+}
+
+async function autoTickRefresh(){
+  if(document.body.classList.contains('stream-mode')) return;
+  const now=Date.now();
+  const due=getAllEnabledSports().filter(s=>{
+    const rate=effectiveSportRate(s.id);
+    return rate>0&&now>=(_sportNextFetch[s.id]??0);
+  });
+  if(!due.length) return;
+  await Promise.all(due.map(s=>fetchSport(s)));
+  due.forEach(s=>{
+    const rate=effectiveSportRate(s.id);
+    _sportNextFetch[s.id]=Date.now()+rate*1000;
+  });
+  updateTopbar();
+  patchScoreboardSports(due); // in-place: no full DOM replace, no flash
+  const el=document.getElementById('lastUpdate');
+  if(el)el.textContent=`Updated: ${new Date().toLocaleTimeString()}${state.usingMock?' (demo)':''}`;
+}
+
 function setRefreshRate(r){
   state.refreshRate=r;
-  document.querySelectorAll('.rate-pill').forEach(p=>p.classList.toggle('active',parseInt(p.dataset.rate)===r));
+  document.querySelectorAll('#ratePills .rate-pill').forEach(p=>p.classList.toggle('active',parseInt(p.dataset.rate)===r));
   const el=document.getElementById('rateStatus');
-  if(el)el.textContent=r===0?'Auto-refresh: disabled':`Auto-refresh: every ${r<60?r+' seconds':r/60+' minute(s)'}`;
+  if(el)el.textContent=r===0?'Global default: manual only':`Global default: every ${r<60?r+' sec':r/60+' min'}`;
+  scheduleSportDueTimes();
   startAutoRefresh();
-  settingsSave(() => ss.set('ss_refresh_rate',String(r)));
+  settingsSave(()=>ss.set('ss_refresh_rate',String(r)));
+}
+
+function setSportRefreshRate(sportId,r){
+  state.sportRefreshRates[sportId]=r;
+  const rate=effectiveSportRate(sportId);
+  _sportNextFetch[sportId]=rate>0?Date.now()+rate*1000:Infinity;
+  document.querySelectorAll(`#sport-rate-pills-${sportId} .sport-rate-pill`).forEach(p=>
+    p.classList.toggle('active',parseInt(p.dataset.rate)===r));
+  // Update the rate badge in the expand button
+  const btn=document.getElementById(`sport-expand-${sportId}`);
+  if(btn){
+    const defRate=SPORT_DEFAULT_RATES[sportId]??60;
+    const lbl=r===SPORT_RATE_GLOBAL?(defRate<60?defRate+'s':defRate/60+'m')+'*':(r===SPORT_RATE_OFF?'Off':(r<60?r+'s':r/60+'m'));
+    const badge=btn.querySelector('span');
+    if(badge) badge.textContent=lbl;
+  }
+  settingsSave(saveSportRates);
 }
 
 function startAutoRefresh(){
   clearInterval(autoRefreshTimer);
-  if(state.refreshRate>0)autoRefreshTimer=setInterval(fetchAllScores,state.refreshRate*1000);
+  autoRefreshTimer=setInterval(autoTickRefresh,5000);
 }
 
 // =====================
@@ -5233,41 +5301,42 @@ const INDIVIDUAL_HEADSHOT_SPORTS = new Set(['pga','f1','nascar','nascar-noaps','
 
 function buildSportsTab(){
   if(!state.display.sportHeadshots) state.display.sportHeadshots={};
+  const _rateOpts=[{v:5,l:'5s'},{v:10,l:'10s'},{v:15,l:'15s'},{v:20,l:'20s'},{v:30,l:'30s'},{v:60,l:'1m'},{v:120,l:'2m'},{v:300,l:'5m'},{v:SPORT_RATE_GLOBAL,l:'Default'},{v:SPORT_RATE_OFF,l:'Off'}];
   ['pro','motor','tennis','soccer','ncaam','ncaaw'].forEach(group=>{
     const c=document.getElementById(`sg-${group}`);if(!c)return;c.innerHTML='';
     ALL_SPORTS.filter(s=>s.group===group).forEach(sport=>{
       const on=state.enabledSports.has(sport.id);
-      const expandable=INDIVIDUAL_HEADSHOT_SPORTS.has(sport.id);
+      const hasHeadshots=INDIVIDUAL_HEADSHOT_SPORTS.has(sport.id);
       const wrap=document.createElement('div');
       wrap.style.cssText='margin-bottom:5px;';
       const curHs=state.display.sportHeadshots[sport.id]||28;
-      // Top row: name + expand chevron (if expandable) + enable toggle
-      const expandBtn=expandable
-        ? `<button type="button" id="sport-expand-${sport.id}" onclick="toggleSportExpand('${sport.id}')" style="background:none;border:none;cursor:pointer;color:var(--text-dim);font-size:14px;padding:0 8px;display:flex;align-items:center;transition:transform 0.2s;" title="Display settings">▸</button>`
-        : '';
+      const curRateOv=state.sportRefreshRates[sport.id]??SPORT_RATE_GLOBAL;
+      const defRate=SPORT_DEFAULT_RATES[sport.id]??60;
+      const effRate=effectiveSportRate(sport.id);
+      const rateLabel=curRateOv===SPORT_RATE_GLOBAL?(defRate<60?defRate+'s':defRate/60+'m')+'*':(curRateOv===SPORT_RATE_OFF?'Off':(curRateOv<60?curRateOv+'s':curRateOv/60+'m'));
+      const ratePillsHtml=_rateOpts.map(o=>`<div class="rate-pill sport-rate-pill${o.v===curRateOv?' active':''}" data-rate="${o.v}" onclick="setSportRefreshRate('${sport.id}',${o.v})" style="padding:3px 10px;font-size:10px;">${o.l}</div>`).join('');
       wrap.innerHTML=`
         <div class="sport-setting-row${on?' enabled':''}" style="display:flex;align-items:center;">
-          ${expandBtn}
+          <button type="button" id="sport-expand-${sport.id}" onclick="toggleSportExpand('${sport.id}')" style="background:none;border:none;cursor:pointer;color:var(--text-dim);font-size:14px;padding:0 8px;display:flex;align-items:center;gap:4px;transition:transform 0.2s;" title="Refresh &amp; display settings">▸<span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--accent);letter-spacing:0;">${rateLabel}</span></button>
           <div class="sport-setting-info" style="flex:1;">
             <div style="width:8px;height:8px;border-radius:2px;background:${sport.color}"></div>
             <span class="sport-setting-name">${sport.emoji} ${sport.name}</span>
           </div>
           <div class="small-toggle${on?' on':''}" id="ss-toggle-${sport.id}" onclick="toggleSportEnabled('${sport.id}',this)"></div>
         </div>
-        ${expandable?`
-          <div id="sport-expand-panel-${sport.id}" style="display:none;padding:12px 14px;margin-top:4px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;">${sport.emoji} ${sport.name} · Main View Display</div>
-            <div class="modal-slider-row" style="margin:0;">
-              <span class="modal-slider-label" data-tip="Size of driver/player headshot circles on ${sport.name} cards in the main scoreboard.html browsing view. Per-scoreboard stream output is controlled in the scoreboard editor's Display step.">Headshot Size</span>
-              <input type="range" min="20" max="64" step="1" value="${curHs}" id="sport-hs-${sport.id}"
-                oninput="setSportHeadshotSize('${sport.id}',this.value)">
-              <span class="modal-slider-val" id="sport-hs-val-${sport.id}">${curHs}px</span>
-            </div>
-            <div style="font-size:10px;color:var(--text-dim);margin-top:6px;line-height:1.5;">
-              Affects the main scoreboard.html browsing view only. For per-scoreboard stream output, use the scoreboard editor's <strong>Display</strong> step.
-            </div>
+        <div id="sport-expand-panel-${sport.id}" style="display:none;padding:12px 14px;margin-top:4px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;">${sport.emoji} ${sport.name} · Settings</div>
+          <div style="margin-bottom:${hasHeadshots?'12px':'0'};">
+            <div style="font-size:10px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Auto-Refresh Rate <span style="color:var(--text-dim);font-size:9px;">(default: ${defRate<60?defRate+'s':defRate/60+'m'})</span></div>
+            <div class="rate-pills" id="sport-rate-pills-${sport.id}" style="flex-wrap:wrap;gap:4px;">${ratePillsHtml}</div>
           </div>
-        `:''}
+          ${hasHeadshots?`
+          <div class="modal-slider-row" style="margin:0;">
+            <span class="modal-slider-label" data-tip="Headshot circle size on ${sport.name} cards in the main browsing view.">Headshot Size</span>
+            <input type="range" min="20" max="64" step="1" value="${curHs}" id="sport-hs-${sport.id}" oninput="setSportHeadshotSize('${sport.id}',this.value)">
+            <span class="modal-slider-val" id="sport-hs-val-${sport.id}">${curHs}px</span>
+          </div>`:''}
+        </div>
       `;
       c.appendChild(wrap);
     });
@@ -5495,6 +5564,8 @@ async function fetchAllScores(){
   const el=document.getElementById('lastUpdate');
   if(el)el.textContent=`Updated: ${new Date().toLocaleTimeString()}${state.usingMock?' (demo)':''}`;
   if(btn){btn.innerHTML='<span>↻</span> Refresh Scores';btn.style.opacity='1';}
+  // Seed per-sport due times after every manual fetch so auto-tick doesn't immediately re-fetch
+  scheduleSportDueTimes();
 }
 
 // =====================
@@ -5554,7 +5625,8 @@ function renderScoreboard(){
     }
     return;
   }
-  const sb=document.getElementById('scoreboard');if(!sb)return;sb.innerHTML='';
+  const sb=document.getElementById('scoreboard');if(!sb)return;
+  const _frag=document.createDocumentFragment();
   const hasFavs=state.favTeams.size>0;
   const favsOnly=state.filterMode==='favorites';
   const sports=getSPORTS();
@@ -5573,7 +5645,7 @@ function renderScoreboard(){
       const sec=document.createElement('div');sec.className='pinned-section';
       sec.innerHTML=`<div class="pinned-header"><div class="pinned-stripe"></div><div class="pinned-title">⭐ My Teams</div><div class="pinned-count">${pinned.length} game${pinned.length!==1?'s':''}</div><button onclick="clearAllFavTeams()" title="Clear all favorited teams" style="margin-left:auto;background:none;border:1px solid var(--border);border-radius:12px;color:var(--text-dim);font-size:10px;font-family:'Share Tech Mono',monospace;padding:2px 8px;cursor:pointer;letter-spacing:0.5px;">✕ Clear All</button></div>`;
       const grid=document.createElement('div');grid.className=`games-grid ${state.layout}-mode`;
-      pinned.forEach(g=>grid.appendChild(buildGameCard(g)));sec.appendChild(grid);sb.appendChild(sec);
+      pinned.forEach(g=>grid.appendChild(buildGameCard(g)));sec.appendChild(grid);_frag.appendChild(sec);
     }
   }
 
@@ -5614,10 +5686,10 @@ function renderScoreboard(){
     if(liveUpcomingGames.length){
       let sbadge='';
       if(season&&season.key!=='reg')sbadge=`<span class="league-season-badge ${season.key}">${season.label}</span>`;
-      const sec=document.createElement('div');sec.className='league-section';
+      const sec=document.createElement('div');sec.className='league-section';sec.dataset.sportKey=sport.id;
       sec.innerHTML=`<div class="league-header"><div class="league-stripe" style="background:${sport.color}"></div><div class="league-name">${sport.emoji} ${sport.isMotorSport||sport.fetchFn?getMotorSectionName(sport,liveUpcomingGames[0]):sport.name}</div>${sbadge}${!(sport.isMotorSport||sport.fetchFn)?`<div class="league-game-count">${liveUpcomingGames.length} game${liveUpcomingGames.length!==1?'s':''}</div>`:''}</div>`;
       const grid=document.createElement('div');grid.className=`games-grid ${state.layout}-mode`;
-      liveUpcomingGames.forEach(g=>grid.appendChild(buildGameCard(g)));sec.appendChild(grid);sb.appendChild(sec);
+      liveUpcomingGames.forEach(g=>grid.appendChild(buildGameCard(g)));sec.appendChild(grid);_frag.appendChild(sec);
     }
 
     // Render finals sections for custom scoreboard — grouped by date
@@ -5637,14 +5709,47 @@ function renderScoreboard(){
         const finSec=document.createElement('div');finSec.className='league-section';
         finSec.innerHTML=`<div class="league-header"><div class="league-stripe" style="background:#ffb400"></div><div class="league-name">${sport.emoji} ${(sport.isMotorSport||sport.fetchFn)?getMotorSectionName(sport,dGames[0]):(sport.name+' — Finals'+dateLabel)}</div><div class="league-game-count">${dGames.length} game${dGames.length!==1?'s':''}</div></div>`;
         const finGrid=document.createElement('div');finGrid.className=`games-grid ${state.layout}-mode`;
-        dGames.forEach(g=>finGrid.appendChild(buildGameCard(g)));finSec.appendChild(finGrid);sb.appendChild(finSec);
+        dGames.forEach(g=>finGrid.appendChild(buildGameCard(g)));finSec.appendChild(finGrid);_frag.appendChild(finSec);
       });
     }
   });
 
-  if(!anyGame&&!sb.querySelector('.pinned-section')){
-    sb.innerHTML=`<div class="empty-state"><div class="empty-icon">${favsOnly?'⭐':'📺'}</div><div class="empty-text">${favsOnly?'No favorites playing':'No games to show'}</div><div style="font-size:12px;color:var(--text-dim);margin-top:8px;">${favsOnly?'Star a team or league, or switch to All':state.filterMode==='live'?'No live games right now':'Enable sports in Settings or turn on Ended Games'}</div></div>`;
+  if(!anyGame&&!_frag.querySelector('.pinned-section')){
+    const _empty=document.createElement('div');
+    _empty.className='empty-state';
+    _empty.innerHTML=`<div class="empty-icon">${favsOnly?'⭐':'📺'}</div><div class="empty-text">${favsOnly?'No favorites playing':'No games to show'}</div><div style="font-size:12px;color:var(--text-dim);margin-top:8px;">${favsOnly?'Star a team or league, or switch to All':state.filterMode==='live'?'No live games right now':'Enable sports in Settings or turn on Ended Games'}</div>`;
+    _frag.appendChild(_empty);
   }
+  sb.replaceChildren(_frag);
+}
+
+// In-place update for auto-tick: only rebuilds card grids for changed sports.
+// Falls back to full renderScoreboard() if sections appear/disappear.
+function patchScoreboardSports(dueSports){
+  if(document.body.classList.contains('stream-mode')){updateStreamScoresInPlace();return;}
+  const sb=document.getElementById('scoreboard');if(!sb)return;
+  const hasFavs=state.favTeams.size>0;
+  const favsOnly=state.filterMode==='favorites';
+  let needsFull=false;
+  for(const sport of dueSports){
+    let games=state.games[sport.id]||[];
+    if(state.filterMode==='live') games=games.filter(g=>g.isLive);
+    else if(favsOnly) games=games.filter(g=>isGameFavorited(g));
+    if(!state.showEnded||!state.endedLeagues.has(sport.id)) games=games.filter(g=>!g.isFinal);
+    const liveUpcoming=games.filter(g=>!g.isFinal);
+    const existing=sb.querySelector(`.league-section[data-sport-key="${sport.id}"]`);
+    if(!existing&&liveUpcoming.length){needsFull=true;break;}
+    if(existing&&!liveUpcoming.length){needsFull=true;break;}
+    if(existing&&liveUpcoming.length){
+      const grid=existing.querySelector('.games-grid');
+      if(grid){
+        const f=document.createDocumentFragment();
+        liveUpcoming.forEach(g=>f.appendChild(buildGameCard(g)));
+        grid.replaceChildren(f);
+      }
+    }
+  }
+  if(needsFull) renderScoreboard();
 }
 
 function buildMotorsportEditorPanel(draft){
@@ -7511,6 +7616,7 @@ function flushSave() {
   saveActiveSports();
   saveDisplay();
   ss.set('ss_refresh_rate', String(state.refreshRate));
+  saveSportRates();
   _dirty = false;
   updateSaveUI();
   showSavedBriefly();
@@ -9442,6 +9548,7 @@ document.getElementById('refreshBtn').addEventListener('click',fetchAllScores);
 // =====================
 const savedRate=parseInt(ss.get('ss_refresh_rate')||'60');
 state.refreshRate=savedRate;
+state.sportRefreshRates=loadSportRates();
 loadDisplay();
 initAutoSaveToggle();
 buildSportToggles();
