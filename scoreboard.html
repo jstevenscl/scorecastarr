@@ -6458,8 +6458,9 @@ async function fetchNascarData(sport, sbConfig){
     const isKnownSeries=d.series_id===1||d.series_id===2||d.series_id===3;
     const isThisSeries=d.series_id===seriesId; // live feed is for our series
     const isQualifying=!isKnownSeries||flagState===9||flagState===8||(d.laps_to_go>500&&flagState!==1&&flagState!==2&&flagState!==3);
-    const isLive=isThisSeries&&vehicles.length>0&&d.laps_to_go>0&&!isQualifying;
-    const isFinal=isThisSeries&&vehicles.length>0&&d.laps_to_go===0;
+    const lapsDone=d.laps_in_race>0&&d.lap_number>=d.laps_in_race;
+    const isLive=isThisSeries&&vehicles.length>0&&d.laps_to_go>0&&!isQualifying&&!lapsDone;
+    const isFinal=isThisSeries&&vehicles.length>0&&(d.laps_to_go===0||lapsDone);
     // noRace if live feed is showing a different series, or truly no race
     const noRace=!isThisSeries||(vehicles.length===0&&flagState===0)||isQualifying;
 
@@ -6472,7 +6473,7 @@ async function fetchNascarData(sport, sbConfig){
         try{
           const sr=await fetch(`${API_BASE}/motor/cache/${standKey}`,{signal:AbortSignal.timeout(4000)});
           if(sr.ok){
-            const sd=(await sr.json()).data||{};
+            const srJ=await sr.json(); const sd=srJ.data||{}; const standUpdatedAt=srJ.updated_at||'';
             const seasonData=typeof sd==='string'?JSON.parse(sd):sd;
             // Use cached series_name if available — authoritative, requires no code deploy on name change
             if(seasonData.series_name) seriesDisplayName=seasonData.series_name;
@@ -6488,6 +6489,7 @@ async function fetchNascarData(sport, sbConfig){
                   sportName:seriesDisplayName,sportEmoji:sport.emoji,sportColor:sport.color,
                   isLive:false,isFinal:false,isScheduled:false,isIndividual:false,
                   isNascarStandings:true,drivers:chunk.map(e=>({...e,headshot:_nasHs(e.driver)})),pageNum,totalPages,
+                  updatedAt:standUpdatedAt,
                 });
               }
             }
@@ -6548,18 +6550,21 @@ async function fetchNascarData(sport, sbConfig){
             const raceDate=new Date(nextR.date+'T12:00:00');
             const now=new Date();
             const diff=raceDate-now;
+            if(diff<=0) nextR=null; // race date passed — don't show as upcoming
             const days=Math.floor(diff/86400000);
             const hrs=Math.floor((diff%86400000)/3600000);
-            const countdown=diff>0?(days>0?`${days}d ${hrs}h`:`${hrs}h`):'Soon';
-            cards.push({
-              id:`${sport.id}-next`,
-              name:nextR.name,
-              sportName:seriesDisplayName,sportEmoji:sport.emoji,sportColor:sport.color,
-              isLive:false,isFinal:false,isScheduled:true,isIndividual:false,isNascarInfo:false,
-              isNascarNext:true,
-              track:nextR.track,raceDate:nextR.date,raceTime:nextR.time,tv:nextR.tv,
-              countdown,message:'',
-            });
+            if(nextR){
+              const countdown=days>0?`${days}d ${hrs}h`:`${hrs}h`;
+              cards.push({
+                id:`${sport.id}-next`,
+                name:nextR.name,
+                sportName:seriesDisplayName,sportEmoji:sport.emoji,sportColor:sport.color,
+                isLive:false,isFinal:false,isScheduled:true,isIndividual:false,isNascarInfo:false,
+                isNascarNext:true,
+                track:nextR.track,raceDate:nextR.date,raceTime:nextR.time,tv:nextR.tv,
+                countdown,message:'',
+              });
+            }
           }
         }
       }catch(e){}
@@ -6997,7 +7002,8 @@ function buildNascarCard(g){
   // Resolve which NASCAR series this card belongs to so favorites are scoped per-series
   const _nasSid=resolveSportId(g)||'nascar';
   if(g.isNascarStandings){
-    const hdr=`<div class="card-header"><div style="display:flex;align-items:center;gap:6px;">${sportLabel}</div><span style="font-size:var(--card-header-size,11px);font-family:'Share Tech Mono',monospace;color:var(--card-final-color,var(--text-dim));letter-spacing:1.5px;text-transform:uppercase;font-weight:700;">POINT STANDINGS</span></div><div style="font-family:'Barlow Condensed',sans-serif;font-size:var(--card-title-size,13px);font-weight:900;color:var(--text-primary);margin:4px 0 6px;">${g.name}</div>`;
+    const _standTs=g.updatedAt?`<div style="font-size:var(--card-period-size,10px);color:var(--text-dim);font-family:'Share Tech Mono',monospace;margin-bottom:4px;">Updated: ${g.updatedAt.replace('T',' ').slice(0,16)}</div>`:'';
+    const hdr=`<div class="card-header"><div style="display:flex;align-items:center;gap:6px;">${sportLabel}</div><span style="font-size:var(--card-header-size,11px);font-family:'Share Tech Mono',monospace;color:var(--card-final-color,var(--text-dim));letter-spacing:1.5px;text-transform:uppercase;font-weight:700;">POINT STANDINGS</span></div><div style="font-family:'Barlow Condensed',sans-serif;font-size:var(--card-title-size,13px);font-weight:900;color:var(--text-primary);margin:4px 0 2px;">${g.name}</div>${_standTs}`;
     const rows=(g.drivers||[]).map(d=>{const driverName=_normNascarDriver(d.driver);const star=favPlayerStar(_nasSid,driverName);const mfr=_normNascarMfr(d.manufacturer);const pts=typeof d.points==='number'?d.points:parseInt(String(d.points||'0').replace(/,/g,''))||0;return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);"><span style="font-family:'Share Tech Mono',monospace;font-size:var(--card-period-size,11px);color:var(--text-secondary);width:20px;text-align:right;flex-shrink:0;">${d.pos}</span>${_nasHsImg(d.headshot)}<div style="flex:1;min-width:0;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:var(--card-abbr-size,14px);font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;">${star}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${driverName}</span></div><div style="font-size:var(--card-name-size,11px);color:var(--text-secondary);">${mfr} ${(d.car||'').replace(/^,*#+/,'#')}</div></div><div style="text-align:right;"><div style="font-family:'Share Tech Mono',monospace;font-size:var(--card-abbr-size,14px);color:var(--accent-green);font-weight:700;">${pts}</div>${d.wins>0?`<div style="font-size:var(--card-period-size,11px);color:#ffd700;">🏆${d.wins}</div>`:''}</div></div>`}).join('');
     card.innerHTML=hdr+`<div style="display:flex;flex-direction:column;">${rows}</div>`;
     return card;
@@ -7005,8 +7011,9 @@ function buildNascarCard(g){
   if(g.isNascarLast||g.isNascarLive){
     const medals=['🥇','🥈','🥉'];
     const statusBadge=g.isFinal?'<span class="status-final">RESULT</span>':`<span style="display:flex;align-items:center;gap:4px;font-size:var(--card-header-size,11px);font-family:'Share Tech Mono',monospace;color:var(--card-live-color,#4ade80);font-weight:700;letter-spacing:1.5px;"><span style="width:calc(var(--card-header-size,11px) * 0.55);height:calc(var(--card-header-size,11px) * 0.55);border-radius:50%;background:var(--card-live-color,#4ade80);display:inline-block;"></span>LIVE</span>`;
-    const hdr=`<div class="card-header"><div style="display:flex;align-items:center;gap:6px;">${sportLabel}</div>${statusBadge}</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:var(--card-title-size,13px);font-weight:900;color:var(--text-primary);margin:4px 0 2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${g.name}</div><div style="font-size:var(--card-period-size,11px);color:var(--text-dim);font-family:'Share Tech Mono',monospace;margin-bottom:4px;">📍 ${g.trackName||''} ${g.raceDate?' · '+g.raceDate:''}</div>`;
-    const rows=(g.drivers||[]).map(d=>{const driverName=_normNascarDriver(d.driver);const star=favPlayerStar(_nasSid,driverName);const mfr=_normNascarMfr(d.manufacturer);return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);"><span style="font-size:var(--card-period-size,11px);color:var(--text-dim);width:20px;text-align:right;flex-shrink:0;">${d.pos<=3?medals[d.pos-1]:d.pos}</span>${_nasHsImg(d.headshot)}<div style="flex:1;min-width:0;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:var(--card-abbr-size,14px);font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;">${star}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${driverName}</span></div><div style="font-size:var(--card-name-size,11px);color:var(--text-secondary);">${mfr} ${(d.car||d.number||'').toString().replace(/^,*#+/,'#')}</div></div><div style="text-align:right;"><div style="font-family:'Share Tech Mono',monospace;font-size:var(--card-period-size,11px);color:${(d.status||'Finished')==='Finished'?'var(--accent-green)':'var(--accent-red)'};">${d.status||'Running'}</div>${d.points?`<div style="font-family:'Share Tech Mono',monospace;font-size:var(--card-period-size,11px);color:var(--text-dim);">${d.points}pts</div>`:''}</div></div>`}).join('');
+    const _lapLine=g.isLive&&g.lapsInRace>0?`<div style="font-size:var(--card-period-size,11px);color:var(--text-dim);font-family:'Share Tech Mono',monospace;margin-bottom:4px;">${g.flagEmoji||'⬛'} Lap ${g.lapNumber||0} / ${g.lapsInRace} · ${g.lapsToGo} to go</div>`:'';
+    const hdr=`<div class="card-header"><div style="display:flex;align-items:center;gap:6px;">${sportLabel}</div>${statusBadge}</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:var(--card-title-size,13px);font-weight:900;color:var(--text-primary);margin:4px 0 2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${g.name}</div><div style="font-size:var(--card-period-size,11px);color:var(--text-dim);font-family:'Share Tech Mono',monospace;margin-bottom:${g.isLive&&g.lapsInRace>0?'2px':'4px'};">📍 ${g.trackName||''} ${g.raceDate?' · '+g.raceDate:''}</div>${_lapLine}`;
+    const rows=(g.drivers||[]).map(d=>{const driverName=_normNascarDriver(d.driver);const star=favPlayerStar(_nasSid,driverName);const mfr=_normNascarMfr(d.manufacturer);return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);"><span style="font-size:var(--card-period-size,11px);color:var(--text-dim);width:20px;text-align:right;flex-shrink:0;">${d.pos<=3?medals[d.pos-1]:d.pos}</span>${_nasHsImg(d.headshot)}<div style="flex:1;min-width:0;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:var(--card-abbr-size,14px);font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;">${star}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${driverName}</span></div><div style="font-size:var(--card-name-size,11px);color:var(--text-secondary);">${mfr} ${(d.car||d.number||'').toString().replace(/^,*#+/,'#')}</div></div><div style="text-align:right;"><div style="font-family:'Share Tech Mono',monospace;font-size:var(--card-period-size,11px);color:${['Finished','Running'].includes(d.status||'Running')?'var(--accent-green)':'var(--accent-red)'};">${d.status||'Running'}</div>${d.points?`<div style="font-family:'Share Tech Mono',monospace;font-size:var(--card-period-size,11px);color:var(--text-dim);">${d.points}pts</div>`:''}</div></div>`}).join('');
     card.innerHTML=hdr+`<div style="display:flex;flex-direction:column;">${rows}</div>`;
     return card;
   }
