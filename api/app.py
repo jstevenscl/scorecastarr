@@ -1053,6 +1053,34 @@ def get_stream_profile(profile_id):
     return jsonify({'id':data['id'],'name':data['name'],'command':data.get('command',''),
                     'parameters':data.get('parameters',''),'locked':data.get('locked',False)})
 
+@app.route('/dispatcharr/cleanup-ticker-profiles', methods=['POST'])
+def cleanup_ticker_profiles():
+    """Delete orphaned (Ticker) stream profiles not tracked in ticker_profile_backup."""
+    c = get_creds(); s, err = dispatcharr_session(c)
+    if err: return jsonify({'error': err}), 400
+    with get_db() as conn:
+        active_ids = {r['ticker_profile_id'] for r in conn.execute('SELECT ticker_profile_id FROM ticker_profile_backup').fetchall()}
+    try:
+        r = s.get(f'{c["url"]}/api/core/streamprofiles/', timeout=20)
+        r.raise_for_status()
+        data = r.json()
+        items = data.get('results', data) if isinstance(data, dict) else data
+        if not isinstance(items, list): items = []
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    orphans = [p for p in items if isinstance(p, dict) and p.get('name','').endswith(' (Ticker)') and p['id'] not in active_ids]
+    deleted, errors = [], []
+    for p in orphans:
+        try:
+            dr = s.delete(f'{c["url"]}/api/core/streamprofiles/{p["id"]}/', timeout=15)
+            if dr.status_code in (200, 204):
+                deleted.append({'id': p['id'], 'name': p['name']})
+            else:
+                errors.append(f'{p["name"]}: HTTP {dr.status_code}')
+        except Exception as e:
+            errors.append(f'{p["name"]}: {e}')
+    return jsonify({'deleted': deleted, 'errors': errors, 'count': len(deleted)})
+
 @app.route('/dispatcharr/channels', methods=['GET'])
 def get_channels():
     c = get_creds(); s,err = dispatcharr_session(c)

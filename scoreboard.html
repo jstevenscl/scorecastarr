@@ -1442,6 +1442,19 @@ body.stream-mode .card-header{padding:calc(var(--card-header-size,11px) * 0.36) 
           or a host bind mount like <code style="background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:3px;">/srv/ticker:/ticker</code> in both Compose files (separate stacks).
         </div>
       </div>
+
+      <!-- Maintenance -->
+      <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border);">
+        <div class="section-label" style="margin-bottom:4px;">🧹 Maintenance</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.5;">
+          Ticker profiles accumulate in Dispatcharr when tickers are killed abnormally. This scans for all <code style="background:rgba(255,255,255,0.07);padding:1px 4px;border-radius:3px;">(Ticker)</code> stream profiles that are no longer tracked and removes them.
+        </div>
+        <button onclick="cleanupOrphanedTickerProfiles(this)"
+          style="padding:9px 16px;background:rgba(255,165,0,0.08);border:1px solid rgba(255,165,0,0.3);border-radius:8px;color:#ffa500;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:1px;cursor:pointer;">
+          🧹 CLEAN UP ORPHANED PROFILES
+        </button>
+        <div id="tickerCleanupResult" style="display:none;padding:9px 12px;border-radius:7px;font-size:12px;font-family:'Share Tech Mono',monospace;margin-top:10px;"></div>
+      </div>
     </div><!-- /section-ticker -->
 
     <!-- ── NCAA Teams Management ─────────────────────────────────── -->
@@ -2505,6 +2518,17 @@ function renderEditorStep(sbOverride){
             <div class="wiz-sublabel">How long each page shows before rotating</div>
           </div>
           <div>
+            <div class="wiz-label" data-tip="Adds inward padding on all edges of the stream canvas. Use 2–5% if content is being clipped on hotel TVs or displays with overscan enabled.">Safe-Area Padding</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input type="number" class="wiz-input" id="sbEditOverscan"
+                min="0" max="10" step="0.5"
+                value="${_editorDraft.display_config.stream_overscan ?? 0}"
+                style="width:80px;text-align:center;">
+              <span style="color:var(--text-dim);font-size:12px;">% (0 = no padding)</span>
+            </div>
+            <div class="wiz-sublabel">Inset for hotel/overscan TVs (0–10%)</div>
+          </div>
+          <div>
             <div class="wiz-label" data-tip="Card layout style used in the HLS stream output. Grid = multi-column cards (default). Full = single wide column. Ticker = compact single-line rows.">Stream Layout</div>
             <select class="wiz-input" id="sbEditLayout">
               <option value="grid"       ${(_editorDraft.display_config.stream_layout||'grid')==='grid'      ?'selected':''}>Grid (cards)</option>
@@ -2883,6 +2907,8 @@ function collectEditorStepData(){
     if(logoSzEl) _editorDraft.display_config.logo_size=parseInt(logoSzEl.value);
     const rotEl=document.getElementById('sbEditRotation');
     if(rotEl) _editorDraft.display_config.stream_rotation_secs=parseInt(rotEl.value);
+    const overscanEl=document.getElementById('sbEditOverscan');
+    if(overscanEl) _editorDraft.display_config.stream_overscan=parseFloat(overscanEl.value)||0;
     // Card header / status / period sliders + colors
     const cardHeaderSzEl=document.getElementById('sbEditCardHeaderSize');
     if(cardHeaderSzEl) _editorDraft.display_config.card_header_size=parseInt(cardHeaderSzEl.value);
@@ -3389,6 +3415,7 @@ function ddPopulateUI(def){
   const _scale=Math.round((def.stream_card_scale||1.0)*100);
   s('ddCardScale', _scale); t('ddCardScaleVal',_scale+'%');
   s('ddRotationSecs', def.stream_rotation_secs??15);
+  s('ddOverscan', def.stream_overscan??0);
   s('ddLogoSize', def.logo_size||34); t('ddLogoSizeVal',(def.logo_size||34)+'px');
   const nc=def.card_name_color||'#3d5a78';
   s('ddNameColor',nc); sw('ddNameColorSwatch','ddNameColorVal',nc);
@@ -3431,6 +3458,7 @@ function ddGetValues(){
     channel_name_size:    parseInt(gv('ddChannelNameSize'))||11,
     stream_card_scale:    (parseInt(gv('ddCardScale'))||100)/100,
     stream_rotation_secs: parseInt(gv('ddRotationSecs'))||15,
+    stream_overscan:      parseFloat(gv('ddOverscan'))||0,
     stream_layout:        layout,
   };
 }
@@ -3564,7 +3592,7 @@ function ddReset(){
     card_final_color:'#3d5a78', card_period_color:'#7a9ab8',
     section_header_size:15, section_stripe_width:6, section_header_color:'#e8f0fe',
     logo_size:34, channel_name_size:11,
-    stream_card_scale:1.0, stream_rotation_secs:15, stream_layout:'grid'
+    stream_card_scale:1.0, stream_rotation_secs:15, stream_layout:'grid', stream_overscan:0
   });
 }
 
@@ -3631,6 +3659,7 @@ function sbGetEffectiveDisplayConfig(sb){
     if(def.stream_card_scale)    merged.stream_card_scale    = def.stream_card_scale;
     if(def.stream_rotation_secs) merged.stream_rotation_secs = def.stream_rotation_secs;
     if(def.stream_layout)        merged.stream_layout        = def.stream_layout;
+    if(def.stream_overscan != null) merged.stream_overscan   = def.stream_overscan;
   }
   return merged;
 }
@@ -3757,7 +3786,7 @@ function sbCopyDisplayFrom(sourceId){
     'card_header_size','card_period_size','card_live_color','card_final_color','card_period_color',
     'motor_label_color','motor_secondary_color',
     'section_header_size','section_stripe_width','section_header_color',
-    'stream_card_scale','stream_rotation_secs','stream_layout','stream_resolution',
+    'stream_card_scale','stream_rotation_secs','stream_layout','stream_resolution','stream_overscan',
     'theme_id'
   ];
   const srcDc = src.display_config || {};
@@ -5779,7 +5808,7 @@ function buildMotorsportEditorPanel(draft){
   const xfinSec=hasNoaps?`<div style="margin-bottom:16px;padding:16px;background:var(--bg-card);border:1px solid #ff6b35;border-radius:10px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="font-size:18px;">🏁</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;letter-spacing:1px;color:#ff6b35;">NOAPS · O'REILLY AUTO PARTS SERIES</span><span style="font-size:9px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;margin-left:4px;">via NASCAR Live Feed</span></div>${row(noapsLive,'noaps_live','#ff6b35','🟢 Live Race Leaderboard','Real-time leaderboard during active races')}${row(noapsLast,'noaps_last','#ff6b35','🏁 Last Race Result','Final finishing order from last race')}${row(noapsStand,'noaps_standings','#ff6b35','📊 Driver Standings','Season points standings')}${countSel(noapsMaxRaces,'noaps_max_races','#ff6b35','📋 Past Races to Show')}${row(noapsShowPractice,'noaps_show_practice','#ff6b35','🔬 Include Practice & Qualifying','Show practice sessions and qualifying runs in past race history')}${hsSlider(noapsHsSize,'noaps','#ff6b35','🖼️ Headshot Size','Driver photo circle size on NOAPS cards')}</div>`:'';
   const truckSec=hasTrucks?`<div style="margin-bottom:16px;padding:16px;background:var(--bg-card);border:1px solid #00b4d8;border-radius:10px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="font-size:18px;">🏁</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;letter-spacing:1px;color:#00b4d8;">NASCAR CRAFTSMAN TRUCK SERIES</span><span style="font-size:9px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;margin-left:4px;">via NASCAR Live Feed</span></div>${row(truckLive,'trucks_live','#00b4d8','🟢 Live Race Leaderboard','Real-time leaderboard during active races')}${row(truckLast,'trucks_last','#00b4d8','🏁 Last Race Result','Final finishing order from last race')}${row(truckStand,'trucks_standings','#00b4d8','📊 Driver Standings','Season points standings')}${countSel(truckMaxRaces,'trucks_max_races','#00b4d8','📋 Past Races to Show')}${row(trucksShowPractice,'trucks_show_practice','#00b4d8','🔬 Include Practice & Qualifying','Show practice sessions and qualifying runs in past race history')}${hsSlider(trucksHsSize,'trucks','#00b4d8','🖼️ Headshot Size','Driver photo circle size on Truck Series cards')}</div>`:'';
   const hasPGA=(_editorDraft.sport_config||{})['pga'];
-  const pgaHistory=mc.pga_history!==false,pgaLive=mc.pga_live!==false,pgaShowCut=mc.pga_show_cut!==false;
+  const pgaHistory=mc.pga_history!==false,pgaLive=mc.pga_live!==false,pgaShowCut=mc.pga_show_cut===true;
   const pgaSec=hasPGA?`<div style="margin-bottom:16px;padding:16px;background:var(--bg-card);border:1px solid #00594f;border-radius:10px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="font-size:18px;">⛳</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;letter-spacing:1px;color:#00594f;">PGA TOUR</span></div>${row(pgaLive,'pga_live','#00594f','🟢 Live Tournament','Show leaderboard during active rounds')}${row(pgaHistory,'pga_history','#00594f','🏆 Past Tournaments','Show completed tournament results')}${row(pgaShowCut,'pga_show_cut','#00594f','✂️ Show Cut Players','Include players who missed the cut (CUT/MC/WD/DQ) in results')}${countSel(pgaMaxEventsUI,'pga_max_events','#00594f','📋 Past Tournaments to Show')}${hsSlider(pgaHsSize,'pga','#00594f','🖼️ Headshot Size','Player photo circle size on PGA leaderboard cards')}</div>`:'';
   const tenSec=(hasATP||hasWTA)?`<div style="margin-bottom:16px;padding:16px;background:var(--bg-card);border:1px solid #0066cc;border-radius:10px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="font-size:18px;">🎾</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:900;letter-spacing:1px;color:#0066cc;">TENNIS${hasATP&&hasWTA?' (ATP + WTA)':hasATP?' (ATP)':' (WTA)'}</span></div>${row(tenLive,'tennis_live','#0066cc','🟢 Live Matches','Show active matches with set-by-set scores')}${row(tenUpcoming,'tennis_upcoming','#0066cc','📅 Upcoming Matches','Show scheduled matches not yet started')}${row(tenCompleted,'tennis_completed','#0066cc','🏆 Completed Matches','Show recently finished match results')}${row(tenRankings,'tennis_rankings','#0066cc','📊 World Rankings','Show ATP/WTA world ranking standings card')}<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg-secondary);border-radius:7px;margin-bottom:6px;"><div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--text-primary);">📋 Completed Matches to Show</div></div><div style="display:flex;gap:4px;">${[5,10,15,20,25].map(n=>`<button onclick="setMotorConfig('tennis_max_completed',${n},${_mcSbId})" style="padding:3px 8px;border-radius:4px;border:1px solid ${n===tenMaxCompleted?'#0066cc':'var(--border)'};background:${n===tenMaxCompleted?'#0066cc':'var(--bg-card)'};color:${n===tenMaxCompleted?'#fff':'var(--text-primary)'};font-size:12px;font-weight:700;cursor:pointer;font-family:'Share Tech Mono',monospace;">${n}</button>`).join('')}</div></div><div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg-secondary);border-radius:7px;margin-bottom:6px;"><div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--text-primary);">📅 Upcoming Matches to Show</div></div><div style="display:flex;gap:4px;">${[5,10,15,20,25].map(n=>`<button onclick="setMotorConfig('tennis_max_upcoming',${n},${_mcSbId})" style="padding:3px 8px;border-radius:4px;border:1px solid ${n===tenMaxUpcoming?'#0066cc':'var(--border)'};background:${n===tenMaxUpcoming?'#0066cc':'var(--bg-card)'};color:${n===tenMaxUpcoming?'#fff':'var(--text-primary)'};font-size:12px;font-weight:700;cursor:pointer;font-family:'Share Tech Mono',monospace;">${n}</button>`).join('')}</div></div><div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg-secondary);border-radius:7px;margin-bottom:6px;"><div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--text-primary);">🏅 Rankings Players to Show</div></div><div style="display:flex;gap:4px;">${[10,20,30,50].map(n=>`<button onclick="setMotorConfig('tennis_rankings_count',${n},${_mcSbId})" style="padding:3px 8px;border-radius:4px;border:1px solid ${n===tenRankingsCount?'#0066cc':'var(--border)'};background:${n===tenRankingsCount?'#0066cc':'var(--bg-card)'};color:${n===tenRankingsCount?'#fff':'var(--text-primary)'};font-size:12px;font-weight:700;cursor:pointer;font-family:'Share Tech Mono',monospace;">${n}</button>`).join('')}</div></div>${hsSlider(tenHsSize,'tennis','#0066cc','🖼️ Headshot Size','Player photo circle size (applies to both ATP and WTA)')}</div>`:'' ;
   const none=!hasF1&&!hasNascar&&!hasNoaps&&!hasTrucks&&!hasPGA&&!hasATP&&!hasWTA?`<div style="text-align:center;padding:30px;color:var(--text-dim);"><div style="font-size:36px;margin-bottom:10px;">🏎️</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;">No Sport Configured</div><div style="font-size:11px;margin-top:4px;">Go to Step 1 → Sports to enable Formula 1, NASCAR, PGA, or Tennis</div></div>`:'';
@@ -6301,7 +6330,7 @@ function buildTennisCard(g){
 async function fetchPGAData(sport, sbConfig){
   const mc=(sbConfig&&sbConfig.motor_config)||{};
   const dc=(sbConfig&&sbConfig.display_config)||{};
-  const showLive=mc.pga_live!==false, showHistory=mc.pga_history!==false, showCut=mc.pga_show_cut!==false;
+  const showLive=mc.pga_live!==false, showHistory=mc.pga_history!==false, showCut=mc.pga_show_cut===true;
   const showHeadshots=dc.player_headshots!==false;
   const _madeCut=pos=>/^T?\d+$/.test((pos||'').trim());
   const cards = [];
@@ -8653,6 +8682,29 @@ async function disableAllTickers(){
   loadTickerConfig();
 }
 
+async function cleanupOrphanedTickerProfiles(btn){
+  const res=document.getElementById('tickerCleanupResult');
+  const orig=btn.textContent;
+  btn.disabled=true; btn.textContent='Scanning...';
+  res.style.display='none';
+  try{
+    const r=await fetch(`${API_BASE}/dispatcharr/cleanup-ticker-profiles`,{method:'POST',signal:AbortSignal.timeout(30000)});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Unknown error');
+    res.style.display='';
+    if(d.count===0){
+      res.style.cssText='display:;padding:9px 12px;border-radius:7px;font-size:12px;font-family:Share Tech Mono,monospace;margin-top:10px;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.2);color:var(--accent);';
+      res.textContent='No orphaned profiles found.';
+    }else{
+      res.style.cssText='display:;padding:9px 12px;border-radius:7px;font-size:12px;font-family:Share Tech Mono,monospace;margin-top:10px;background:rgba(0,255,136,0.06);border:1px solid var(--accent-green);color:var(--accent-green);';
+      res.textContent=`Deleted ${d.count} profile${d.count>1?'s':''}: ${d.deleted.map(p=>p.name).join(', ')}${d.errors.length?' | Errors: '+d.errors.join(', '):''}`;
+    }
+  }catch(e){
+    res.style.cssText='display:;padding:9px 12px;border-radius:7px;font-size:12px;font-family:Share Tech Mono,monospace;margin-top:10px;background:rgba(255,59,92,0.06);border:1px solid var(--accent-red);color:var(--accent-red);';
+    res.textContent='Error: '+e.message;
+  }finally{btn.disabled=false; btn.textContent=orig;}
+}
+
 let _tickerSelectedProfileCommand=''; // track whether selected channel uses ffmpeg
 async function onTickerChannelChange(){
   const sel=document.getElementById('tickerChannelSelect');
@@ -9808,6 +9860,7 @@ function getStreamSettings() {
     cardScale: dc.stream_card_scale    != null ? dc.stream_card_scale    : (stored.cardScale || 1.0),
     resolution: dc.stream_resolution  || '1920x1080',
     bitrate:    dc.stream_bitrate      || '2000k',
+    overscan:  dc.stream_overscan      != null ? dc.stream_overscan      : 0,
   };
 }
 
@@ -9989,12 +10042,16 @@ function renderStreamCanvas() {
   const canvas = document.getElementById('stream-canvas');
   const topbarH = document.getElementById('topbar')?.offsetHeight || 64;
   const paginationH = 28; // dot bar at bottom
-  const availH = (canvas && canvas.clientHeight > 50)
+  let availH = (canvas && canvas.clientHeight > 50)
     ? canvas.clientHeight
     : (window.innerHeight - topbarH - paginationH - 16);
-  const availW = (canvas && canvas.clientWidth > 100)
+  let availW = (canvas && canvas.clientWidth > 100)
     ? canvas.clientWidth
     : (window.innerWidth - 28);
+  const overscanPx = settings.overscan > 0 ? Math.round(settings.overscan / 100 * availW) : 0;
+  if (overscanPx > 0) pagesEl.style.padding = overscanPx + 'px'; else pagesEl.style.padding = '';
+  availH -= 2 * overscanPx;
+  availW -= 2 * overscanPx;
 
   // Card approximate height at current scale (header + 2 teams + padding)
   // Individual sport cards (leaderboard, F1, NASCAR) are taller — and scale with font sizes.
