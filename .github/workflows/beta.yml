@@ -68,8 +68,6 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-web:beta
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-web:beta-${{ steps.sha.outputs.short }}
-          cache-from: type=gha,scope=web
-          cache-to: type=gha,mode=max,scope=web
 
       - name: Build & Push — Stream Manager (beta)
         uses: docker/build-push-action@v5
