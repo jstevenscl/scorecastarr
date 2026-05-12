@@ -940,15 +940,17 @@ Go to **Settings → Integrations** and click **Auto Assign** to renumber all Sc
 ### Updating ScorecastArr
 
 ```bash
-# Pull the latest images
+# Pull the latest images and restart
 docker compose pull
-
-# Restart with new images
 docker compose up -d
 
 # Check versions
 docker logs scorecastarr-api 2>&1 | grep -i "version\|starting"
 ```
+
+The included `docker-compose.yml` sets `pull_policy: always` on all services. This tells Docker to always check the registry for a newer image digest before starting a container, so a standard `docker compose pull && docker compose up -d` (or **Pull and redeploy** in Portainer) will always pick up the latest build — no manual stop/remove cycle needed.
+
+> **Note:** If standings, headshots, or motor cache data looks stale after an update, call `POST /api/motor/reseed` to force the API to re-read the cache from the data branch without restarting the container.
 
 Your configuration (scoreboards, audio playlists, settings) is stored in the `scorecastarr_config` volume and survives updates.
 

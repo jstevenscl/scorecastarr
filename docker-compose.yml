@@ -3,6 +3,7 @@ services:
   scorecastarr-api:
     image: ghcr.io/${GITHUB_OWNER:-jstevenscl}/scorecastarr-api:${SCORECASTARR_TAG:-beta}
     container_name: scorecastarr-api
+    pull_policy: always
     restart: unless-stopped
     environment:
       - TZ=${TZ:-America/New_York}
@@ -19,6 +20,7 @@ services:
   scorecastarr-web:
     image: ghcr.io/${GITHUB_OWNER:-jstevenscl}/scorecastarr-web:${SCORECASTARR_TAG:-beta}
     container_name: scorecastarr-web
+    pull_policy: always
     restart: unless-stopped
     ports:
       - "${WEB_PORT:-7777}:80"
@@ -30,6 +32,7 @@ services:
   scorecastarr-stream:
     image: ghcr.io/${GITHUB_OWNER:-jstevenscl}/scorecastarr-stream:${SCORECASTARR_TAG:-beta}
     container_name: scorecastarr-stream
+    pull_policy: always
     restart: unless-stopped
     environment:
       - TZ=${TZ:-America/New_York}

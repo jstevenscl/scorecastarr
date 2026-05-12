@@ -981,7 +981,7 @@ The workflow runs automatically on schedule. To manually refresh:
 
 **NASCAR standings showing abbreviated names (T. Reddick instead of Tyler Reddick) or missing data:**
 - NASCAR standings (Cup, NOAPS, Trucks) are scraped from Fox Sports standings pages. If data looks stale or incorrect, go to GitHub → Actions → **Update Motor Cache Data** → Run workflow, then call `POST /api/motor/reseed` or restart `scorecastarr-api`.
-- A simple container repull does **not** flush the in-memory cache — you must stop and remove the container before repulling, or use the `/motor/reseed` endpoint.
+- A container redeploy does **not** flush the in-memory cache — use the `/motor/reseed` endpoint to force a re-read without restarting, or stop and remove the API container before repulling.
 
 **Ticker overlay not appearing / channel stuck in "connecting" after enabling:**
 - Confirm the `scorecastarr_ticker` volume is mounted in **both** the ScorecastArr stream container AND Dispatcharr's container — this is the most common cause. Run: `docker exec scorecastarr-stream ls /ticker` and `docker exec dispatcharr ls /ticker` — both must succeed with no error
@@ -1007,7 +1007,9 @@ docker compose pull
 docker compose up -d
 ```
 
-> **Important:** A simple repull does **not** flush in-memory state. If updated data (standings, headshots, motor cache) is not appearing after a pull, stop and remove the containers before repulling: in Portainer, use **Stop → Remove → Redeploy**, or via CLI: `docker compose down && docker compose pull && docker compose up -d`. Alternatively, call `POST /api/motor/reseed` to force the API to re-read the motor cache from the data branch without restarting.
+The sample `docker-compose.yml` includes `pull_policy: always` on all services, which ensures Docker always fetches the latest image digest from the registry on each redeploy — no stop/remove cycle needed for UI or code updates.
+
+> **Note:** `pull_policy: always` keeps images current but does **not** flush in-memory API state. If standings, headshots, or motor cache data looks stale after a redeploy, call `POST /api/motor/reseed` to force the API to re-read from the data branch without restarting.
 
 ---
 
