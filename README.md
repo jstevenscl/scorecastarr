@@ -274,6 +274,18 @@ docker run --rm -v scorecastarr_config:/data -v $(pwd):/backup alpine \
 
 Open `http://YOUR_SERVER_IP:7777` in your browser. The ScorecastArr interface loads as a single-page app. The left sidebar contains navigation between sections.
 
+### First-Run Setup Guide
+
+When you open ScorecastArr for the first time — before any scoreboards exist — a guided walkthrough starts automatically. It walks you through:
+
+1. Connecting Dispatcharr (URL + API token)
+2. Confirming your `STREAM_BASE_URL`
+3. Enabling sports in your library
+4. Creating your first scoreboard
+5. Pushing it to Dispatcharr as a live channel
+
+Each step highlights the relevant UI element and waits for you to take the action before advancing. You can skip the guide at any time and restart it from the **🚀 Setup Guide** button in the sidebar.
+
 ### Settings Pages Overview
 
 Click the gear icon in the sidebar to open Settings. The navigation is grouped:

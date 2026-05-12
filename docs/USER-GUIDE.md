@@ -1,7 +1,7 @@
 # ScorecastArr — User Guide
 
 **Version:** 0.3.0-beta  
-**Last Updated:** 2026-05-11
+**Last Updated:** 2026-05-12
 
 ScorecastArr is a self-hosted live sports scoreboard that streams directly into Dispatcharr as real IPTV channels. It pulls live data from publicly accessible sports data APIs, renders a full HD scoreboard, and delivers it as an HLS video stream — automatically registering and numbering channels in Dispatcharr for you.
 
@@ -14,19 +14,20 @@ ScorecastArr is a self-hosted live sports scoreboard that streams directly into 
 3. [Installation](#3-installation)
 4. [Finding Your STREAM_BASE_URL](#4-finding-your-stream_base_url)
 5. [The Main Scoreboard](#5-the-main-scoreboard)
-6. [Settings Overview](#6-settings-overview)
-7. [Integrations — Connecting Dispatcharr](#7-integrations--connecting-dispatcharr)
-8. [My Scoreboards](#8-my-scoreboards)
-9. [Creating & Editing a Scoreboard](#9-creating--editing-a-scoreboard)
-10. [Default Stream Settings](#10-default-stream-settings)
-11. [Sports Library](#11-sports-library)
-12. [Audio Library](#12-audio-library)
-13. [Ticker Overlay](#13-ticker-overlay)
-14. [System Theme](#14-system-theme)
-15. [Backup & Restore](#15-backup--restore)
-16. [Pushing Channels to Dispatcharr](#16-pushing-channels-to-dispatcharr)
-17. [Troubleshooting](#17-troubleshooting)
-18. [Getting Help & Reporting Issues](#18-getting-help--reporting-issues)
+6. [First-Run Setup Guide](#6-first-run-setup-guide)
+7. [Settings Overview](#7-settings-overview)
+8. [Integrations — Connecting Dispatcharr](#8-integrations--connecting-dispatcharr)
+9. [My Scoreboards](#9-my-scoreboards)
+10. [Creating & Editing a Scoreboard](#10-creating--editing-a-scoreboard)
+11. [Default Stream Settings](#11-default-stream-settings)
+12. [Sports Library](#12-sports-library)
+13. [Audio Library](#13-audio-library)
+14. [Ticker Overlay](#14-ticker-overlay)
+15. [System Theme](#15-system-theme)
+16. [Backup & Restore](#16-backup--restore)
+17. [Pushing Channels to Dispatcharr](#17-pushing-channels-to-dispatcharr)
+18. [Troubleshooting](#18-troubleshooting)
+19. [Getting Help & Reporting Issues](#19-getting-help--reporting-issues)
 
 ---
 
@@ -267,7 +268,31 @@ Each game card shows:
 
 ---
 
-## 6. Settings Overview
+## 6. First-Run Setup Guide
+
+When you open ScorecastArr for the first time — before any scoreboards exist and before Dispatcharr is connected — a guided walkthrough starts automatically after a few seconds.
+
+![Setup Guide](screenshots/setup-guide.png)
+
+The guide walks you through five steps, highlighting the relevant part of the UI at each one:
+
+| Step | What You Do |
+|------|------------|
+| **1 — Connect Dispatcharr** | Enter your Dispatcharr URL and API token in Settings → Integrations and click Test Connection |
+| **2 — Stream Base URL** | Review your `STREAM_BASE_URL` (the address Dispatcharr uses to reach your streams) |
+| **3 — Pick Sports** | Enable the sports you want to appear on your scoreboard in Settings → Sports Library |
+| **4 — Create a Scoreboard** | Click **+ New Scoreboard**, name it, and configure it in the editor |
+| **5 — Push to Dispatcharr** | Click **🚀 Push to Dispatcharr** on your scoreboard card to create a live IPTV channel |
+
+Each step waits for you to complete the action before automatically advancing. You can click **Skip Setup** at any point to dismiss the guide.
+
+### Restarting the guide
+
+Click **🚀 Setup Guide** in the left sidebar at any time to restart the walkthrough from the beginning.
+
+---
+
+## 7. Settings Overview
 
 Click the **⚙️ Settings** button in the sidebar (or click the Dispatcharr status badge at the top of the sidebar) to open Settings.
 
@@ -286,7 +311,7 @@ The Settings panel has a left navigation with these sections:
 
 ---
 
-## 7. Integrations — Connecting Dispatcharr
+## 8. Integrations — Connecting Dispatcharr
 
 Before you can push channels to Dispatcharr, you need to enter your credentials.
 
@@ -329,7 +354,7 @@ At the bottom of the Integrations page:
 
 ---
 
-## 8. My Scoreboards
+## 9. My Scoreboards
 
 Go to **Settings → My Scoreboards**.
 
@@ -363,7 +388,7 @@ Click **+ New Scoreboard** at the bottom of the My Scoreboards page. You can als
 
 ---
 
-## 9. Creating & Editing a Scoreboard
+## 10. Creating & Editing a Scoreboard
 
 The scoreboard editor has three steps: **Sports**, **Teams**, and **Display & Save**.
 
@@ -483,7 +508,7 @@ Click **💾 Save & Exit** to save the scoreboard and return to My Scoreboards.
 
 ---
 
-## 10. Default Stream Settings
+## 11. Default Stream Settings
 
 Go to **Settings → Default Stream Settings**.
 
@@ -545,7 +570,7 @@ At the top of Step 3 there is a **Copy Display Settings From Another Scoreboard*
 
 ---
 
-## 11. Sports Library
+## 12. Sports Library
 
 Go to **Settings → Sports Library**.
 
@@ -592,7 +617,7 @@ Each sport has a configurable auto-refresh rate — how often ScorecastArr polls
 
 ---
 
-## 12. Audio Library
+## 13. Audio Library
 
 Go to **Settings → Audio Library**.
 
@@ -629,7 +654,7 @@ In the scoreboard editor (Step 3 → Audio section), set the mode to **Playlist*
 
 ---
 
-## 13. Ticker Overlay
+## 14. Ticker Overlay
 
 Go to **Settings → Ticker Overlay**.
 
@@ -741,7 +766,7 @@ Scroll to the bottom of the Ticker Overlay page to find the **🧹 Maintenance**
 
 ---
 
-## 14. System Theme
+## 15. System Theme
 
 Go to **Settings → System Theme**.
 
@@ -790,7 +815,7 @@ Controls how many historical stats entries are retained per team/player. Higher 
 
 ---
 
-## 15. Backup & Restore
+## 16. Backup & Restore
 
 Go to **Settings → Backup & Restore**.
 
@@ -812,7 +837,7 @@ Click **Choose Backup File**, select a previously downloaded backup JSON, and cl
 
 ---
 
-## 16. Pushing Channels to Dispatcharr
+## 17. Pushing Channels to Dispatcharr
 
 Once your Dispatcharr credentials are saved and tested (Section 7), you can push any scoreboard to Dispatcharr as an IPTV channel.
 
@@ -848,7 +873,7 @@ Go to **Settings → Integrations** and click **Force Sync** to push all scorebo
 
 ---
 
-## 17. Troubleshooting
+## 18. Troubleshooting
 
 ### Scoreboard shows a blank page / "ScorecastArr" with no games
 
@@ -956,7 +981,7 @@ Your configuration (scoreboards, audio playlists, settings) is stored in the `sc
 
 ---
 
-## 18. Getting Help & Reporting Issues
+## 19. Getting Help & Reporting Issues
 
 If something isn't working or you have a question, the fastest paths to an answer are:
 
