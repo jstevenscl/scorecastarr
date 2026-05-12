@@ -305,6 +305,29 @@ body.stream-mode .card-header{padding:calc(var(--card-header-size,11px) * 0.36) 
 .empty-icon{font-size:44px;margin-bottom:12px;}
 .empty-text{font-family:'Barlow Condensed',sans-serif;font-size:15px;letter-spacing:2px;text-transform:uppercase;}
 
+/* ==================== SETUP WALKTHROUGH ==================== */
+.wt-highlight{box-shadow:0 0 0 3px var(--accent),0 0 8px rgba(0,212,255,0.35)!important;border-radius:8px;animation:wtPulse 1.5s ease-in-out infinite;outline:none;}
+@keyframes wtPulse{0%,100%{box-shadow:0 0 0 3px var(--accent),0 0 8px rgba(0,212,255,0.35)!important;}50%{box-shadow:0 0 0 3px var(--accent),0 0 22px rgba(0,212,255,0.6)!important;}}
+#wtModal{position:fixed;inset:0;z-index:10200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.78);backdrop-filter:blur(6px);padding:20px;animation:fadeIn 0.2s ease;}
+#wtModalBox{background:var(--bg-secondary);border:1px solid var(--border);border-radius:18px;padding:36px 40px;max-width:480px;width:100%;animation:slideUp 0.25s ease;text-align:center;}
+#wtModalIcon{font-size:44px;margin-bottom:14px;line-height:1;}
+#wtModalTitle{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:var(--text);margin-bottom:12px;}
+#wtModalBody{font-size:13px;color:var(--text-dim);line-height:1.7;margin-bottom:24px;text-align:left;}
+#wtModalBody code{font-family:'Share Tech Mono',monospace;background:var(--bg-card);padding:1px 6px;border-radius:4px;color:var(--accent);font-size:12px;}
+#wtModalBody strong{color:var(--text);}
+#wtModalNav{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+#wtGuideCard{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:10200;display:none;min-width:340px;max-width:520px;width:calc(100vw - 40px);background:var(--bg-secondary);border:1px solid var(--accent);border-radius:14px;padding:18px 22px 14px;box-shadow:0 8px 40px rgba(0,0,0,0.75),0 0 0 1px rgba(0,212,255,0.15);animation:slideUp 0.25s ease;}
+.wt-card-meta{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.wt-step-chip{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:1px;background:rgba(0,212,255,0.1);color:var(--accent);border:1px solid rgba(0,212,255,0.25);border-radius:20px;padding:2px 10px;white-space:nowrap;}
+.wt-progress{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+.wt-progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 0.4s ease;}
+#wtCardTitle{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--text);margin-bottom:5px;}
+#wtCardBody{font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:14px;}
+#wtCardBody strong{color:var(--text);}
+.wt-card-nav{display:flex;align-items:center;gap:8px;}
+.wt-skip-btn{font-size:11px;color:var(--text-dim);cursor:pointer;background:none;border:none;padding:4px 6px;letter-spacing:0.5px;font-family:inherit;}
+.wt-skip-btn:hover{color:var(--text);}
+#wtCardStatus{font-size:12px;color:var(--accent-green);font-family:'Share Tech Mono',monospace;letter-spacing:0.5px;}
 /* ==================== SETTINGS MODAL ==================== */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn 0.2s ease;}
 @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
@@ -619,6 +642,7 @@ body.stream-mode .card-header{padding:calc(var(--card-header-size,11px) * 0.36) 
     </div>
     <button class="sidebar-btn" onclick="openSettings('scoreboards')">&#x2699;&#xFE0F; Settings</button>
     <button class="sidebar-btn" onclick="window.open('/tour?running=1','_blank')" style="margin-top:4px;">&#x1F4D6; How To / Tour</button>
+    <button class="sidebar-btn" onclick="startWalkthrough()" style="margin-top:2px;">&#x1F680; Setup Guide</button>
   </div>
 
   <div class="sidebar-footer" id="ssVersion">ScorecastArr &middot; Public Sports Data</div>
@@ -1863,6 +1887,7 @@ async function loadScoreboards(){
     const d=await r.json();
     _scoreboards=d.scoreboards||[];
     renderSbCards();
+    if(typeof _wtCheckScoreboards==='function')_wtCheckScoreboards();
   }catch(e){grid.innerHTML='<div style="color:var(--accent-red);font-size:13px;">Failed to load scoreboards</div>';}
 }
 
@@ -8162,7 +8187,7 @@ async function createChannels(mode){
 function updateDsStatus(connected,st=''){
   const dot=document.getElementById('dsDot'),label=document.getElementById('dsLabel');
   if(!dot||!label)return;
-  if(connected){dot.className='ds-dot connected';label.className='ds-label connected';label.textContent='Dispatcharr: Connected';}
+  if(connected){dot.className='ds-dot connected';label.className='ds-label connected';label.textContent='Dispatcharr: Connected';if(typeof _wtOnDsConnected==='function')_wtOnDsConnected();}
   else if(st==='error'){dot.className='ds-dot error';label.className='ds-label error';label.textContent='Dispatcharr: Connection Error';}
   else if(st==='configured'){dot.className='ds-dot configured';label.className='ds-label';label.textContent='Dispatcharr: Configured';}
   else{dot.className='ds-dot';label.className='ds-label';label.textContent='Dispatcharr: Not Configured';}
@@ -10589,8 +10614,176 @@ async function deleteNcaaProgram(pid, name, schoolId){
   }
 }
 
+// ── Setup Walkthrough ──────────────────────────────────────────────────────
+(function(){
+  const LS_KEY='sca_setup_done';
+  let _step=0,_pollTimer=null,_wtActive=false;
+
+  const STEPS=[
+    // 0 — Welcome (modal)
+    {type:'modal',icon:'📡',title:'Welcome to ScorecastArr!',
+     body:'This quick guide walks you through connecting Dispatcharr, configuring your stream, picking sports, creating your first scoreboard, and pushing it as a live IPTV channel.<br><br>It takes about <strong>5 minutes</strong>. You can skip at any time and restart from the <strong>🚀 Setup Guide</strong> button in the sidebar.',
+     btns:[{l:'Skip Setup',c:'',fn:'_wtSkip()'},{l:'Let\'s Go →',c:'primary',fn:'_wtNext()'}]},
+    // 1 — Connect Dispatcharr (guide card)
+    {type:'card',chip:'Step 1 of 5',pct:20,title:'Connect Dispatcharr',
+     body:'Open <strong>Settings → Integrations</strong> and enter your Dispatcharr URL and API token, then click <strong>Test Connection</strong> until it shows Connected.',
+     target:'#dsUrl',
+     open:()=>{if(document.getElementById('settingsPage').style.display!=='flex')openSettings('dispatcharr');else switchSection('dispatcharr');},
+     poll:()=>document.getElementById('dsDot')?.classList.contains('connected')},
+    // 2 — STREAM_BASE_URL (modal)
+    {type:'modal',icon:'🔗',title:'Your Stream Base URL',chip:'Step 2 of 5',pct:40,
+     body:'<strong>STREAM_BASE_URL</strong> is the address Dispatcharr uses to pull your HLS streams. It must point to your server\'s LAN IP — not <code>localhost</code>.<br><br>Set it in your <code>docker-compose.yml</code>:<br><code>STREAM_BASE_URL=http://192.168.1.100:7777</code><br><br>Not sure of the IP? Run:<br><code>docker network inspect scorecastarr_net | grep Gateway</code>',
+     btns:[{l:'← Back',c:'',fn:'_wtBack()'},{l:'Got It →',c:'primary',fn:'_wtNext()'}]},
+    // 3 — Pick sports (guide card)
+    {type:'card',chip:'Step 3 of 5',pct:60,title:'Pick Your Sports',
+     body:'Enable at least one sport using the toggle on the right. You can enable as many as you like — your scoreboard will show all active sports.',
+     target:'#section-sports',
+     open:()=>{if(document.getElementById('settingsPage').style.display!=='flex')openSettings('sports');else switchSection('sports');},
+     poll:()=>state.enabledSports.size>0},
+    // 4 — Create scoreboard (guide card)
+    {type:'card',chip:'Step 4 of 5',pct:80,title:'Create Your First Scoreboard',
+     body:'Click <strong>+ New Scoreboard</strong>, give it a name, and you\'ll enter the editor to configure sports, layout, and display settings.',
+     target:'button[onclick*="createNewScoreboard"]',
+     open:()=>{if(document.getElementById('settingsPage').style.display==='flex')closeSettings();setTimeout(()=>{openSettings('scoreboards');switchSection('scoreboards');},220);},
+     poll:()=>_scoreboards.length>0},
+    // 5 — Push (guide card)
+    {type:'card',chip:'Step 5 of 5',pct:100,title:'Push to Dispatcharr',
+     body:'Click <strong>🚀 Push to Dispatcharr</strong> on your scoreboard card. The wizard will create a live IPTV channel in Dispatcharr.',
+     target:'.sb-action-btn.primary',
+     open:()=>{if(document.getElementById('settingsPage').style.display==='flex')closeSettings();},
+     poll:()=>_scoreboards.some(s=>s.dispatcharr_channel_id)},
+    // 6 — Done (modal)
+    {type:'modal',icon:'🎉',title:"You're All Set!",
+     body:'Your first ScorecastArr channel is live in Dispatcharr. Open your IPTV player and it should appear in your channel list within a minute.<br><br>You can rerun this guide anytime via <strong>🚀 Setup Guide</strong> in the sidebar.',
+     btns:[{l:'Finish',c:'primary',fn:'_wtFinish()'}]}
+  ];
+
+  function _clearPoll(){if(_pollTimer){clearInterval(_pollTimer);_pollTimer=null;}}
+
+  function _clearHighlight(){document.querySelectorAll('.wt-highlight').forEach(el=>el.classList.remove('wt-highlight'));}
+
+  function _highlight(sel){
+    _clearHighlight();
+    if(!sel)return;
+    const el=document.querySelector(sel);
+    if(!el)return;
+    el.classList.add('wt-highlight');
+    setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'center'}),120);
+  }
+
+  function _renderModal(s){
+    _clearPoll();_clearHighlight();
+    document.getElementById('wtGuideCard').style.display='none';
+    document.getElementById('wtModalIcon').textContent=s.icon||'';
+    document.getElementById('wtModalTitle').textContent=s.title;
+    document.getElementById('wtModalBody').innerHTML=s.body;
+    document.getElementById('wtModalNav').innerHTML=(s.btns||[]).map(b=>`<button class="modal-btn ${b.c}" onclick="${b.fn}" style="padding:10px 24px;">${b.l}</button>`).join('');
+    document.getElementById('wtModal').style.display='flex';
+  }
+
+  function _renderCard(s){
+    _clearPoll();
+    document.getElementById('wtModal').style.display='none';
+    document.getElementById('wtStepChip').textContent=s.chip||'';
+    document.getElementById('wtProgressFill').style.width=(s.pct||0)+'%';
+    document.getElementById('wtCardTitle').textContent=s.title;
+    document.getElementById('wtCardBody').innerHTML=s.body;
+    document.getElementById('wtCardStatus').textContent='';
+    document.getElementById('wtNextBtn').style.display='none';
+    document.getElementById('wtBackBtn').style.display=_step>1?'':'none';
+    document.getElementById('wtGuideCard').style.display='block';
+    if(s.open)setTimeout(s.open,120);
+    setTimeout(()=>_highlight(s.target),450);
+    if(s.poll){
+      _clearPoll();
+      _pollTimer=setInterval(()=>{
+        if(s.poll()){_clearPoll();_clearHighlight();_wtAdvance();}
+      },700);
+    } else {
+      document.getElementById('wtNextBtn').style.display='';
+    }
+  }
+
+  function _wtAdvance(){
+    document.getElementById('wtCardStatus').textContent='✓ Done!';
+    document.getElementById('wtNextBtn').style.display='none';
+    setTimeout(()=>_wtNext(),1100);
+  }
+
+  function _render(){
+    if(!_wtActive)return;
+    const s=STEPS[_step];
+    if(!s)return;
+    if(s.type==='modal')_renderModal(s);else _renderCard(s);
+  }
+
+  window.startWalkthrough=function(){_wtActive=true;_step=0;_render();};
+
+  window._wtNext=function(){
+    if(_step<STEPS.length-1){_step++;_render();}
+  };
+  window._wtBack=function(){
+    if(_step>0){_step--;_render();}
+  };
+  window._wtSkip=function(){
+    _wtActive=false;_clearPoll();_clearHighlight();
+    document.getElementById('wtModal').style.display='none';
+    document.getElementById('wtGuideCard').style.display='none';
+    localStorage.setItem(LS_KEY,'1');
+  };
+  window._wtFinish=function(){
+    _wtActive=false;_clearPoll();_clearHighlight();
+    document.getElementById('wtModal').style.display='none';
+    document.getElementById('wtGuideCard').style.display='none';
+    localStorage.setItem(LS_KEY,'1');
+  };
+
+  // Called by patched updateDsStatus on connect
+  window._wtOnDsConnected=function(){
+    if(_wtActive&&_step===1){_clearPoll();_clearHighlight();_wtAdvance();}
+  };
+
+  // Called by loadScoreboards after _scoreboards is updated
+  window._wtCheckScoreboards=function(){
+    if(!_wtActive)return;
+    if(_step===4&&_scoreboards.length>0){_clearPoll();_clearHighlight();_wtAdvance();}
+    if(_step===5&&_scoreboards.some(s=>s.dispatcharr_channel_id)){_clearPoll();_clearHighlight();_wtAdvance();}
+    // Auto-trigger first run: no scoreboards and not connected
+    if(!localStorage.getItem(LS_KEY)&&_scoreboards.length===0&&!document.getElementById('dsDot')?.classList.contains('connected')){
+      setTimeout(()=>{if(!_wtActive)startWalkthrough();},800);
+    }
+  };
+})();
 </script>
 <!-- Body-level file inputs (must be outside fixed modals for reliable programmatic .click()) -->
 <input type="file" id="sbImportFileInp" accept=".json,application/json" style="display:none;" onchange="handleSbImportFile(event)">
+
+<!-- Setup Walkthrough Modal (welcome / info / done steps) -->
+<div id="wtModal">
+  <div id="wtModalBox">
+    <div id="wtModalIcon"></div>
+    <div id="wtModalTitle"></div>
+    <div id="wtModalBody"></div>
+    <div id="wtModalNav"></div>
+  </div>
+</div>
+
+<!-- Setup Walkthrough Guide Card (interactive steps) -->
+<div id="wtGuideCard">
+  <div class="wt-card-meta">
+    <span class="wt-step-chip" id="wtStepChip">Step 1 of 5</span>
+    <div class="wt-progress"><div class="wt-progress-fill" id="wtProgressFill" style="width:0%"></div></div>
+  </div>
+  <div id="wtCardTitle"></div>
+  <div id="wtCardBody"></div>
+  <div class="wt-card-nav">
+    <button class="wt-skip-btn" onclick="_wtSkip()">Skip Setup</button>
+    <span id="wtCardStatus"></span>
+    <div style="margin-left:auto;display:flex;gap:8px;">
+      <button class="modal-btn" id="wtBackBtn" onclick="_wtBack()" style="display:none;padding:7px 16px;font-size:12px;">← Back</button>
+      <button class="modal-btn" id="wtNextBtn" onclick="_wtNext()" style="display:none;padding:7px 16px;font-size:12px;">Next →</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
