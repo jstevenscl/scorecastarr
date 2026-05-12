@@ -5242,13 +5242,15 @@ function setSportRefreshRate(sportId,r){
   _sportNextFetch[sportId]=rate>0?Date.now()+rate*1000:Infinity;
   document.querySelectorAll(`#sport-rate-pills-${sportId} .sport-rate-pill`).forEach(p=>
     p.classList.toggle('active',parseInt(p.dataset.rate)===r));
-  // Update the rate badge in the expand button
+  // Update the rate badge and tooltip in the expand button
   const btn=document.getElementById(`sport-expand-${sportId}`);
   if(btn){
     const defRate=SPORT_DEFAULT_RATES[sportId]??60;
     const lbl=r===SPORT_RATE_GLOBAL?(defRate<60?defRate+'s':defRate/60+'m')+'*':(r===SPORT_RATE_OFF?'Off':(r<60?r+'s':r/60+'m'));
     const badge=btn.querySelector('span');
     if(badge) badge.textContent=lbl;
+    const tip=r===SPORT_RATE_GLOBAL?`Auto-refresh: ${lbl} — * means using the global default rate. Expand to set a per-sport override.`:(r===SPORT_RATE_OFF?`Auto-refresh: Off — not fetching automatically. Expand to re-enable.`:`Auto-refresh: ${lbl} — custom per-sport rate. Expand to change.`);
+    btn.setAttribute('data-tip',tip);
   }
   settingsSave(saveSportRates);
 }
@@ -5343,10 +5345,11 @@ function buildSportsTab(){
       const defRate=SPORT_DEFAULT_RATES[sport.id]??60;
       const effRate=effectiveSportRate(sport.id);
       const rateLabel=curRateOv===SPORT_RATE_GLOBAL?(defRate<60?defRate+'s':defRate/60+'m')+'*':(curRateOv===SPORT_RATE_OFF?'Off':(curRateOv<60?curRateOv+'s':curRateOv/60+'m'));
+      const rateTooltip=curRateOv===SPORT_RATE_GLOBAL?`Auto-refresh: ${rateLabel} — * means using the global default rate. Expand to set a per-sport override.`:(curRateOv===SPORT_RATE_OFF?`Auto-refresh: Off — not fetching automatically. Expand to re-enable.`:`Auto-refresh: ${rateLabel} — custom per-sport rate. Expand to change.`);
       const ratePillsHtml=_rateOpts.map(o=>`<div class="rate-pill sport-rate-pill${o.v===curRateOv?' active':''}" data-rate="${o.v}" onclick="setSportRefreshRate('${sport.id}',${o.v})" style="padding:3px 10px;font-size:10px;">${o.l}</div>`).join('');
       wrap.innerHTML=`
         <div class="sport-setting-row${on?' enabled':''}" style="display:flex;align-items:center;">
-          <button type="button" id="sport-expand-${sport.id}" onclick="toggleSportExpand('${sport.id}')" style="background:none;border:none;cursor:pointer;color:var(--text-dim);font-size:14px;padding:0 8px;display:flex;align-items:center;gap:4px;transition:transform 0.2s;" title="Refresh &amp; display settings">▸<span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--accent);letter-spacing:0;">${rateLabel}</span></button>
+          <button type="button" id="sport-expand-${sport.id}" onclick="toggleSportExpand('${sport.id}')" style="background:none;border:none;cursor:pointer;color:var(--text-dim);font-size:14px;padding:0 8px;display:flex;align-items:center;gap:4px;transition:transform 0.2s;" data-tip="${rateTooltip}">▸<span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--accent);letter-spacing:0;">${rateLabel}</span></button>
           <div class="sport-setting-info" style="flex:1;">
             <div style="width:8px;height:8px;border-radius:2px;background:${sport.color}"></div>
             <span class="sport-setting-name">${sport.emoji} ${sport.name}</span>
