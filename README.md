@@ -953,6 +953,8 @@ The workflow runs automatically on schedule. To manually refresh:
    - **Restart** the `scorecastarr-api` container (seeds from the data branch on startup), or
    - **Call the reseed endpoint** without restarting: `POST http://YOUR_IP:7777/api/motor/reseed` — forces the API to re-read the data branch into its SQLite cache immediately
 
+**Automatic failure alerting:** If a scheduled cache update fails, a GitHub issue is automatically opened in this repository with a direct link to the failed run logs. The issue closes automatically when the next successful run completes — no manual cleanup needed.
+
 ---
 
 ## Troubleshooting

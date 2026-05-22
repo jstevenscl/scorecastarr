@@ -1,7 +1,7 @@
 # ScorecastArr — User Guide
 
 **Version:** 0.3.0-beta  
-**Last Updated:** 2026-05-12
+**Last Updated:** 2026-05-22
 
 ScorecastArr is a self-hosted live sports scoreboard that streams directly into Dispatcharr as real IPTV channels. It pulls live data from publicly accessible sports data APIs, renders a full HD scoreboard, and delivers it as an HLS video stream — automatically registering and numbering channels in Dispatcharr for you.
 
