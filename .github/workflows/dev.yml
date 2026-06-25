@@ -1,19 +1,39 @@
-name: Beta — Build on Main Push
+name: Dev — Build on Dev Push
 
 # ─────────────────────────────────────────────────────────────────────────────
-# RELEASE PIPELINE OVERVIEW  (see dev.yml for full docs)
+# RELEASE PIPELINE OVERVIEW
 # ─────────────────────────────────────────────────────────────────────────────
-# dev.yml     → push to `dev`          → :dev tags   (bleeding-edge)
-# beta.yml    → push to `main`         → :beta tags  (regular users) ← YOU ARE HERE
-# release.yml → git tag v*.*.*         → versioned + :latest/:beta
+# There are three workflows. Pick the right one:
 #
-# Normal workflow: work on dev → test locally → merge to main → :beta rebuilds
+#  dev.yml     (this file)
+#    Trigger : push to `dev` (any change to tracked paths)
+#    Tags    : :dev  and  :dev-{sha}
+#    Audience: adventurous users who want bleeding-edge builds
+#    Use case: automatic — fires on every dev push
+#
+#  beta.yml
+#    Trigger : push to `main` (i.e. after merging dev → main)
+#    Tags    : :beta  and  :beta-{sha}
+#    Audience: regular users — the docker-compose in USER-GUIDE points here
+#    Use case: automatic — merge dev to main when tested and ready
+#
+#  release.yml
+#    Trigger : git tag matching v*.*.*  or  v*.*.*-beta
+#    Tags    : :<tag>  and  :latest (stable) or :beta (beta tag)
+#    Audience: users pinning to a specific version
+#    Use case: manual — `git tag v0.3.0-beta && git push --tags`
+#
+# Normal workflow:
+#   1. Work on `dev`, push freely — :dev images rebuild automatically
+#   2. Test locally at http://localhost:7777
+#   3. When good: merge dev → main — :beta images rebuild automatically
+#   4. For a named release: push a version tag — versioned + :latest/:beta float
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
   push:
     branches:
-      - main
+      - dev
     paths:
       - 'api/**'
       - 'stream/**'
@@ -28,8 +48,8 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  build-beta:
-    name: Build Beta Images
+  build-dev:
+    name: Build Dev Images
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -56,7 +76,7 @@ jobs:
         id: sha
         run: echo "short=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
-      - name: Build & Push — API (beta)
+      - name: Build & Push — API (dev)
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -64,12 +84,12 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:beta
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:beta-${{ steps.sha.outputs.short }}
-          cache-from: type=gha,scope=api
-          cache-to: type=gha,mode=max,scope=api
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:dev
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:dev-${{ steps.sha.outputs.short }}
+          cache-from: type=gha,scope=api-dev
+          cache-to: type=gha,mode=max,scope=api-dev
 
-      - name: Build & Push — Web/Nginx (beta)
+      - name: Build & Push — Web/Nginx (dev)
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -77,10 +97,10 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-web:beta
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-web:beta-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-web:dev
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-web:dev-${{ steps.sha.outputs.short }}
 
-      - name: Build & Push — Stream Manager (beta)
+      - name: Build & Push — Stream Manager (dev)
         uses: docker/build-push-action@v5
         with:
           context: ./stream
@@ -88,12 +108,13 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-stream:beta
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-stream:beta-${{ steps.sha.outputs.short }}
-          cache-from: type=gha,scope=stream
-          cache-to: type=gha,mode=max,scope=stream
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-stream:dev
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-stream:dev-${{ steps.sha.outputs.short }}
+          cache-from: type=gha,scope=stream-dev
+          cache-to: type=gha,mode=max,scope=stream-dev
 
       - name: Summary
         run: |
-          echo "### Beta images pushed" >> $GITHUB_STEP_SUMMARY
+          echo "### Dev images pushed" >> $GITHUB_STEP_SUMMARY
           echo "SHA: ${{ steps.sha.outputs.short }}" >> $GITHUB_STEP_SUMMARY
+          echo "Tags: \`:dev\` and \`:dev-${{ steps.sha.outputs.short }}\`" >> $GITHUB_STEP_SUMMARY

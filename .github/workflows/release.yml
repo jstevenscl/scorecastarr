@@ -1,8 +1,16 @@
 name: Release — Build on Version Tag
 
-# Triggers when you push a tag matching v*.*.*-beta or v*.*.* (stable)
-# Examples: v0.0.1-beta, v0.1.0-beta, v1.0.0
-# Publishes versioned + :latest or :beta tags to GHCR
+# ─────────────────────────────────────────────────────────────────────────────
+# RELEASE PIPELINE OVERVIEW  (see dev.yml for full docs)
+# ─────────────────────────────────────────────────────────────────────────────
+# dev.yml     → push to `dev`          → :dev tags   (bleeding-edge)
+# beta.yml    → push to `main`         → :beta tags  (regular users)
+# release.yml → git tag v*.*.*         → versioned + :latest/:beta ← YOU ARE HERE
+#
+# To cut a release:
+#   git tag v0.3.0-beta && git push --tags   → builds :v0.3.0-beta + :beta
+#   git tag v1.0.0      && git push --tags   → builds :v1.0.0      + :latest
+# ─────────────────────────────────────────────────────────────────────────────
 
 on:
   push:
