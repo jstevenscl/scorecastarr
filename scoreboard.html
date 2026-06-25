@@ -4811,6 +4811,7 @@ const ALL_SPORTS=[
   {id:'bundesliga', name:'Bundesliga',             group:'soccer',color:'#d20515',emoji:'⚽',url:'https://site.api.espn.com/apis/site/v2/sports/soccer/ger.1/scoreboard'},
   {id:'seriea',     name:'Serie A',                group:'soccer',color:'#1e4496',emoji:'⚽',url:'https://site.api.espn.com/apis/site/v2/sports/soccer/ita.1/scoreboard'},
   {id:'ligue1',     name:'Ligue 1',                group:'soccer',color:'#003f8a',emoji:'⚽',url:'https://site.api.espn.com/apis/site/v2/sports/soccer/fra.1/scoreboard'},
+  {id:'fifawc',     name:'FIFA World Cup',         group:'soccer',color:'#004f9f',emoji:'🏆',url:'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard',alwaysShowHistory:true},
   // NCAA Men
   {id:'ncaamb',     name:"NCAA Men's Basketball",  group:'ncaam', color:'#ff6600',emoji:'🏀',url:'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard'},
   {id:'ncaafb',     name:'NCAA Football',          group:'ncaam', color:'#8b0000',emoji:'🏈',url:'https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard'},
@@ -4917,7 +4918,7 @@ function loadSportRates(){try{const s=ss.get('ss_sport_rates');return s?JSON.par
 function saveSportRates(){ss.set('ss_sport_rates',JSON.stringify(state.sportRefreshRates));}
 
 // Per-sport default auto-refresh intervals (seconds). Override per-sport in Sports Library.
-const SPORT_DEFAULT_RATES={'nascar':10,'nascar-noaps':10,'nascar-trucks':10,'f1':30,'mlb':20,'nhl':20,'nba':30,'pga':30,'atp':30,'wta':30,'nfl':60,'wnba':60,'cfl':60,'xfl':60,'ufl':60,'mls':60,'nwsl':60,'epl':60,'ucl':60,'laliga':60,'bundesliga':60,'seriea':60,'ligue1':60,'ncaamb':60,'ncaafb':60,'ncaabase':60,'ncaawb':60,'ncaasb':60,'ncaavb':60,'ncaalax':60};
+const SPORT_DEFAULT_RATES={'nascar':10,'nascar-noaps':10,'nascar-trucks':10,'f1':30,'mlb':20,'nhl':20,'nba':30,'pga':30,'atp':30,'wta':30,'nfl':60,'wnba':60,'cfl':60,'xfl':60,'ufl':60,'mls':60,'nwsl':60,'epl':60,'ucl':60,'laliga':60,'bundesliga':60,'seriea':60,'ligue1':60,'fifawc':30,'ncaamb':60,'ncaafb':60,'ncaabase':60,'ncaawb':60,'ncaasb':60,'ncaavb':60,'ncaalax':60};
 const SPORT_RATE_GLOBAL=-1; // use global default rate
 const SPORT_RATE_OFF=0;     // never auto-fetch this sport
 
@@ -4931,7 +4932,7 @@ const state={
   games:{},
   favTeams:loadFavs(),
   showEnded:false,
-  daysPerSport:{nfl:7,nhl:2,nba:2,mlb:1,ncaamb:2,ncaawb:2,ncaabase:1,ncaasb:1,ncaafb:7,wnba:2,cfl:7,xfl:7,ufl:7,mls:3,nwsl:3,pga:4,epl:3,ucl:4,laliga:3,bundesliga:3,seriea:3,ligue1:3,ncaavb:2,ncaalax:2,f1:7,nascar:7,'nascar-noaps':7,'nascar-trucks':7},
+  daysPerSport:{nfl:7,nhl:2,nba:2,mlb:1,ncaamb:2,ncaawb:2,ncaabase:1,ncaasb:1,ncaafb:7,wnba:2,cfl:7,xfl:7,ufl:7,mls:3,nwsl:3,pga:4,epl:3,ucl:4,laliga:3,bundesliga:3,seriea:3,ligue1:3,fifawc:30,ncaavb:2,ncaalax:2,f1:7,nascar:7,'nascar-noaps':7,'nascar-trucks':7},
   endedLeagues:new Set(ALL_SPORTS.map(s=>s.id)),
   endedFilter:Object.fromEntries(ALL_SPORTS.map(s=>[s.id,'all'])),
   seasonMeta:{},
@@ -5448,6 +5449,9 @@ function buildHistoricalUrl(sport,daysAgo){
   const d=new Date();d.setDate(d.getDate()-daysAgo);
   return sport.url+`?dates=${d.toISOString().slice(0,10).replace(/-/g,'')}`;
 }
+function _sportHistoryOn(sport){
+  return !!(sport.alwaysShowHistory||(state.showEnded&&state.endedLeagues.has(sport.id)));
+}
 
 function parseGame(ev,sport){
   const comp=ev.competitions?.[0],status=ev.status,statusType=status?.type?.name||'STATUS_SCHEDULED',periodDesc=status?.type?.shortDetail||'';
@@ -5483,7 +5487,7 @@ function parseGame(ev,sport){
   const networks=resolvedLabels.slice(0,2);
   return{id:ev.id,sport:sport.id,sportName:sport.name,sportColor:sport.color,sportEmoji:sport.emoji,
     name:ev.name||'',date:ev.date,statusType,periodDesc,teams,stats,networks,
-    isLive:statusType==='STATUS_IN_PROGRESS',isFinal:statusType==='STATUS_FINAL',isScheduled:statusType==='STATUS_SCHEDULED',
+    isLive:statusType==='STATUS_IN_PROGRESS'||statusType==='STATUS_HALFTIME',isFinal:statusType==='STATUS_FINAL'||statusType==='STATUS_FULL_TIME',isScheduled:statusType==='STATUS_SCHEDULED',
     isIndividual};
 }
 
@@ -5552,7 +5556,7 @@ async function fetchSport(sport){
       }
     }
     const sportDays=state.daysPerSport[sport.id]||1;
-    if(state.showEnded&&state.endedLeagues.has(sport.id)&&sportDays>0){
+    if(_sportHistoryOn(sport)&&sportDays>0){
       const fetches=[];
       for(let i=1;i<=sportDays;i++)fetches.push(fetch(buildHistoricalUrl(sport,i)).then(r=>r.ok?r.json():null).catch(()=>null));
       const results=await Promise.all(fetches);
@@ -5694,7 +5698,7 @@ function renderScoreboard(){
     sports.forEach(sport=>{
       if(!state.enabledSports.has(sport.id))return;
       (state.games[sport.id]||[]).forEach(g=>{
-        if(g.isFinal&&(!state.showEnded||!state.endedLeagues.has(sport.id)))return;
+        if(g.isFinal&&!_sportHistoryOn(sport))return;
         if(g.isFinal&&state.endedFilter[sport.id]==='favs-only'&&!isGameFavorited(g))return;
         if(isGameFavorited(g))pinned.push(g);
       });
@@ -5720,7 +5724,7 @@ function renderScoreboard(){
     }
     if(state.filterMode==='live')games=games.filter(g=>g.isLive);
     else if(favsOnly)games=games.filter(g=>isGameFavorited(g));
-    if(!state.showEnded||!state.endedLeagues.has(sport.id))games=games.filter(g=>!g.isFinal);
+    if(!_sportHistoryOn(sport))games=games.filter(g=>!g.isFinal);
     else{
       const ef=state.endedFilter[sport.id]||'all';
       if(ef==='favs-only'&&hasFavs)games=games.filter(g=>!g.isFinal||isGameFavorited(g));
@@ -5734,7 +5738,7 @@ function renderScoreboard(){
     // All Sports: finals come from games (which already passed the showEnded filter above)
     const customFinalGames = _activeFinalsCfg && _activeFinalsCfg[sport.id]?.show
       ? (state.games[sport.id]||[]).filter(g => g.isFinal)
-      : (!_activeFinalsCfg && state.showEnded && state.endedLeagues.has(sport.id))
+      : (!_activeFinalsCfg && _sportHistoryOn(sport))
         ? games.filter(g => g.isFinal)
         : [];
 
@@ -5793,7 +5797,7 @@ function patchScoreboardSports(dueSports){
     let games=state.games[sport.id]||[];
     if(state.filterMode==='live') games=games.filter(g=>g.isLive);
     else if(favsOnly) games=games.filter(g=>isGameFavorited(g));
-    if(!state.showEnded||!state.endedLeagues.has(sport.id)) games=games.filter(g=>!g.isFinal);
+    if(!_sportHistoryOn(sport)) games=games.filter(g=>!g.isFinal);
     const liveUpcoming=games.filter(g=>!g.isFinal);
     const existing=sb.querySelector(`.league-section[data-sport-key="${sport.id}"]`);
     if(!existing&&liveUpcoming.length){needsFull=true;break;}
@@ -8224,6 +8228,7 @@ const TICKER_SPORTS=[
   {id:'bundesliga',   name:'Bundesliga',             group:'soccer', emoji:'⚽'},
   {id:'seriea',       name:'Serie A',                group:'soccer', emoji:'⚽'},
   {id:'ligue1',       name:'Ligue 1',                group:'soccer', emoji:'⚽'},
+  {id:'fifawc',       name:'FIFA World Cup',         group:'soccer', emoji:'🏆'},
   // NCAA Men
   {id:'ncaafb',       name:'NCAA Football',          group:'ncaam',  emoji:'🏈'},
   {id:'ncaamb',       name:"NCAA Men's Basketball",  group:'ncaam',  emoji:'🏀'},
@@ -10338,7 +10343,7 @@ function updateStreamScoresInPlace() {
     }
     // Only filter out finals if they're not configured to show for this sport
     const showFinalForSport = (_activeFinalsCfg && _activeFinalsCfg[sport.id]?.show) ||
-                              (state.showEnded && state.endedLeagues.has(sport.id));
+                              _sportHistoryOn(sport);
     if (!showFinalForSport && !sport.fetchFn) games = games.filter(g => !g.isFinal);
 
     games.forEach(g => {
