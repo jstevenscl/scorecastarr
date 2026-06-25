@@ -1,13 +1,13 @@
-name: Beta — Build on Main Push
+name: Main — Build on Main Push
 
 # ─────────────────────────────────────────────────────────────────────────────
 # RELEASE PIPELINE OVERVIEW  (see dev.yml for full docs)
 # ─────────────────────────────────────────────────────────────────────────────
-# dev.yml     → push to `dev`          → :dev tags   (bleeding-edge)
-# beta.yml    → push to `main`         → :beta tags  (regular users) ← YOU ARE HERE
-# release.yml → git tag v*.*.*         → versioned + :latest/:beta
+# dev.yml     → push to `dev`          → :dev tags      (bleeding-edge)
+# main.yml    → push to `main`         → :latest tags   (what users pull) ← YOU ARE HERE
+# release.yml → git tag v*.*.*         → :{version} tag (pinned installs)
 #
-# Normal workflow: work on dev → test locally → merge to main → :beta rebuilds
+# Normal workflow: work on dev → test locally → merge to main → :latest rebuilds
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
@@ -28,8 +28,8 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  build-beta:
-    name: Build Beta Images
+  build-latest:
+    name: Build Latest Images
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -56,7 +56,7 @@ jobs:
         id: sha
         run: echo "short=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
-      - name: Build & Push — API (beta)
+      - name: Build & Push — API
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -64,12 +64,12 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:beta
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:beta-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:latest-${{ steps.sha.outputs.short }}
           cache-from: type=gha,scope=api
           cache-to: type=gha,mode=max,scope=api
 
-      - name: Build & Push — Web/Nginx (beta)
+      - name: Build & Push — Web/Nginx
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -77,10 +77,10 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-web:beta
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-web:beta-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-web:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-web:latest-${{ steps.sha.outputs.short }}
 
-      - name: Build & Push — Stream Manager (beta)
+      - name: Build & Push — Stream Manager
         uses: docker/build-push-action@v5
         with:
           context: ./stream
@@ -88,12 +88,13 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-stream:beta
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-stream:beta-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-stream:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-stream:latest-${{ steps.sha.outputs.short }}
           cache-from: type=gha,scope=stream
           cache-to: type=gha,mode=max,scope=stream
 
       - name: Summary
         run: |
-          echo "### Beta images pushed" >> $GITHUB_STEP_SUMMARY
+          echo "### Latest images pushed" >> $GITHUB_STEP_SUMMARY
           echo "SHA: ${{ steps.sha.outputs.short }}" >> $GITHUB_STEP_SUMMARY
+          echo "Tags: \`:latest\` and \`:latest-${{ steps.sha.outputs.short }}\`" >> $GITHUB_STEP_SUMMARY

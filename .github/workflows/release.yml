@@ -3,13 +3,13 @@ name: Release — Build on Version Tag
 # ─────────────────────────────────────────────────────────────────────────────
 # RELEASE PIPELINE OVERVIEW  (see dev.yml for full docs)
 # ─────────────────────────────────────────────────────────────────────────────
-# dev.yml     → push to `dev`          → :dev tags   (bleeding-edge)
-# beta.yml    → push to `main`         → :beta tags  (regular users)
-# release.yml → git tag v*.*.*         → versioned + :latest/:beta ← YOU ARE HERE
+# dev.yml     → push to `dev`          → :dev tags      (bleeding-edge)
+# main.yml    → push to `main`         → :latest tags   (what users pull)
+# release.yml → git tag v*.*.*         → :{version} tag (pinned installs) ← YOU ARE HERE
 #
 # To cut a release:
-#   git tag v0.3.0-beta && git push --tags   → builds :v0.3.0-beta + :beta
-#   git tag v1.0.0      && git push --tags   → builds :v1.0.0      + :latest
+#   git tag v0.3.0 && git push --tags   → builds :v0.3.0
+#   :latest is always handled by main.yml — no need to update it here
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
@@ -48,81 +48,47 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Determine if this is a beta or stable release
-      - name: Determine release track
-        id: track
-        run: |
-          TAG=${GITHUB_REF##*/}
-          echo "tag=${TAG}" >> $GITHUB_OUTPUT
-          if [[ "$TAG" == *"-beta" ]]; then
-            echo "channel=beta" >> $GITHUB_OUTPUT
-            echo "floating_tag=beta" >> $GITHUB_OUTPUT
-          else
-            echo "channel=stable" >> $GITHUB_OUTPUT
-            echo "floating_tag=latest" >> $GITHUB_OUTPUT
-          fi
+      - name: Get version tag
+        id: tag
+        run: echo "version=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
 
       - name: Build & Push — API
         uses: docker/build-push-action@v5
         with:
-          context: ./api
+          context: .
           file: ./api/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:${{ steps.track.outputs.tag }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:${{ steps.track.outputs.floating_tag }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api:${{ steps.tag.outputs.version }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
 
       - name: Build & Push — Web/Nginx
         uses: docker/build-push-action@v5
         with:
-          context: ./nginx
+          context: .
           file: ./nginx/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-web:${{ steps.track.outputs.tag }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-web:${{ steps.track.outputs.floating_tag }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-web:${{ steps.tag.outputs.version }}
 
-      - name: Build & Push — Renderer
+      - name: Build & Push — Stream Manager
         uses: docker/build-push-action@v5
         with:
-          context: ./renderer
-          file: ./renderer/Dockerfile
+          context: ./stream
+          file: ./stream/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-renderer:${{ steps.track.outputs.tag }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-renderer:${{ steps.track.outputs.floating_tag }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build & Push — FFmpeg
-        uses: docker/build-push-action@v5
-        with:
-          context: ./ffmpeg
-          file: ./ffmpeg/Dockerfile
-          push: true
-          platforms: linux/amd64,linux/arm64
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-ffmpeg:${{ steps.track.outputs.tag }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-ffmpeg:${{ steps.track.outputs.floating_tag }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-stream:${{ steps.tag.outputs.version }}
+          cache-from: type=gha,scope=stream
+          cache-to: type=gha,mode=max,scope=stream
 
       - name: Summary
         run: |
-          echo "### 🚀 Release images pushed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Tag:** \`${{ steps.track.outputs.tag }}\`  |  **Channel:** \`${{ steps.track.outputs.channel }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Release images pushed" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag:** \`${{ steps.tag.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "ghcr.io/${{ env.IMAGE_NAME }}-api:${{ steps.track.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
-          echo "ghcr.io/${{ env.IMAGE_NAME }}-web:${{ steps.track.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
-          echo "ghcr.io/${{ env.IMAGE_NAME }}-renderer:${{ steps.track.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
-          echo "ghcr.io/${{ env.IMAGE_NAME }}-ffmpeg:${{ steps.track.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "ghcr.io/${{ env.IMAGE_NAME }}-api:${{ steps.tag.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "ghcr.io/${{ env.IMAGE_NAME }}-web:${{ steps.tag.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "ghcr.io/${{ env.IMAGE_NAME }}-stream:${{ steps.tag.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

@@ -1,6 +1,6 @@
 # ScorecastArr — User Guide
 
-**Version:** 0.3.0-beta  
+**Version:** 0.3.0  
 **Last Updated:** 2026-05-22
 
 ScorecastArr is a self-hosted live sports scoreboard that streams directly into Dispatcharr as real IPTV channels. It pulls live data from publicly accessible sports data APIs, renders a full HD scoreboard, and delivers it as an HLS video stream — automatically registering and numbering channels in Dispatcharr for you.
@@ -76,7 +76,7 @@ Create a file called `docker-compose.yml` with the following contents:
 ```yaml
 services:
   scorecastarr-api:
-    image: ghcr.io/jstevenscl/scorecastarr-api:beta
+    image: ghcr.io/jstevenscl/scorecastarr-api:latest
     container_name: scorecastarr-api
     restart: unless-stopped
     environment:
@@ -92,7 +92,7 @@ services:
       - scorecastarr_net
 
   scorecastarr-web:
-    image: ghcr.io/jstevenscl/scorecastarr-web:beta
+    image: ghcr.io/jstevenscl/scorecastarr-web:latest
     container_name: scorecastarr-web
     restart: unless-stopped
     ports:
@@ -103,7 +103,7 @@ services:
       - scorecastarr_net
 
   scorecastarr-stream:
-    image: ghcr.io/jstevenscl/scorecastarr-stream:beta
+    image: ghcr.io/jstevenscl/scorecastarr-stream:latest
     container_name: scorecastarr-stream
     restart: unless-stopped
     environment:

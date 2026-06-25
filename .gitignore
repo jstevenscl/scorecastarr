@@ -1,6 +1,13 @@
-# Environment — never commit credentials
+# Environment & credentials — NEVER commit any of these
 .env
+credentials.env
+secrets.env
+local.env
+*.local.env
+*.credentials
+# Only the example/template files are safe to commit
 !.env.example
+!credentials.env.example
 
 # Runtime data
 config/config.json.bak

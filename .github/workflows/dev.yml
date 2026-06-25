@@ -11,23 +11,23 @@ name: Dev — Build on Dev Push
 #    Audience: adventurous users who want bleeding-edge builds
 #    Use case: automatic — fires on every dev push
 #
-#  beta.yml
+#  main.yml
 #    Trigger : push to `main` (i.e. after merging dev → main)
-#    Tags    : :beta  and  :beta-{sha}
+#    Tags    : :latest  and  :latest-{sha}
 #    Audience: regular users — the docker-compose in USER-GUIDE points here
 #    Use case: automatic — merge dev to main when tested and ready
 #
 #  release.yml
-#    Trigger : git tag matching v*.*.*  or  v*.*.*-beta
-#    Tags    : :<tag>  and  :latest (stable) or :beta (beta tag)
-#    Audience: users pinning to a specific version
-#    Use case: manual — `git tag v0.3.0-beta && git push --tags`
+#    Trigger : git tag matching v*.*.*
+#    Tags    : :{version}  (e.g. :v0.3.0) — pinned, no floating tag update
+#    Audience: users who want to pin to a specific version
+#    Use case: manual — `git tag v0.3.0 && git push --tags`
 #
 # Normal workflow:
 #   1. Work on `dev`, push freely — :dev images rebuild automatically
 #   2. Test locally at http://localhost:7777
-#   3. When good: merge dev → main — :beta images rebuild automatically
-#   4. For a named release: push a version tag — versioned + :latest/:beta float
+#   3. When good: merge dev → main — :latest images rebuild automatically
+#   4. To pin a version: `git tag v0.3.0 && git push --tags`
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:

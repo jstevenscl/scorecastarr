@@ -8,28 +8,48 @@ Versioning follows [Semantic Versioning](https://semver.org/):
 
 Docker images are published to [GitHub Container Registry](https://ghcr.io):
 ```
-ghcr.io/OWNER/scorecastarr-pro-api:latest    # stable
-ghcr.io/OWNER/scorecastarr-pro-api:beta      # bleeding edge
-ghcr.io/OWNER/scorecastarr-pro-api:v0.2.0-beta  # pinned version
+ghcr.io/OWNER/scorecastarr-api:latest    # tracks main — what most users pull
+ghcr.io/OWNER/scorecastarr-api:dev       # tracks dev branch — bleeding edge
+ghcr.io/OWNER/scorecastarr-api:v0.3.0   # pinned version
 ```
 
 ---
 
-## [Unreleased] — 2026-04-16
+## [v0.3.0-beta] — 2026-06-25
+
+### Added
+- **FIFA World Cup 2026** — added to Sports Library and Ticker Overlay under International Soccer. Shows all group stage results automatically (no "Show Ended" toggle required) by fetching ESPN day-by-day from June 11 onwards. Motor cache worker also backfills match history on each run. Live matches refresh every 30s.
+- **Ticker UI overhaul** — group chips for bulk sport selection, active panel with live stream badges, per-group expand/collapse, and inline sport toggles.
+- **Ticker stream end-to-end** — score ticker channel plays in TiviMate with scrolling scores; confirmed working with Dispatcharr.
+- **Per-sport refresh rates** — each sport has a configurable auto-refresh interval (NASCAR/F1: 10s, MLB/NHL: 20s, NBA/PGA: 30s, most others: 60s). 5s master tick dispatches only sports whose due time has passed. Rates shown as badges in Sports Library; `*` suffix = global default.
+- **Built-in setup walkthrough** — 7-step guided overlay auto-triggers on first run (no scoreboards + `sca_setup_done` not set); also accessible via the 🚀 Setup Guide sidebar button.
+- **Interactive tour** — self-contained 6-chapter guide at `/tour`; also published to GitHub Pages.
+- **Stream safe-area padding** — 0–10% overscan inset per scoreboard (Step 3 → Card Scale → Safe-Area Padding). Subtracts from available height/width for set-top box overscan compensation.
+- **PGA cut players toggle** — defaults to hidden; user must opt-in to show cut players on the leaderboard.
+- **Dispatcharr orphaned profile cleanup** — Settings → Ticker Overlay → Maintenance → 🧹 button deletes stream profiles ending in ` (Ticker)` that are no longer associated with any active ticker. Confirmed safe: active ticker profiles are always preserved.
+- **Sports Library rate badge tooltip** — hovering the expand button shows a tooltip explaining the `*` suffix (global default) vs. custom rate or off.
+- **Cache-worker failure alerting** — workflow opens a GitHub issue in `scorecastarr` on any failed cache run (deduplicated); auto-closes on next successful run.
+- **CI/CD pipeline restructured** — three explicit workflows: `dev.yml` (push to `dev` → `:dev` tags), `beta.yml` (push to `main` → `:beta` tags), `release.yml` (version tag → `:latest`/versioned). All three files include a shared header documenting the full pipeline.
 
 ### Fixed
-- **Channel group bleeding between scoreboards in Dispatcharr push** ([#2](https://github.com/jstevenscl/scorecastarr/issues/2)) — Three related bugs caused the wrong channel group to be sent when switching between scoreboards. (1) `groupId=0` was treated as falsy due to an `or` fallback in the API, making it silently fall through to the previous scoreboard's group. (2) The PATCH payload to Dispatcharr omitted `channel_group` when not explicitly changing it, leaving the prior channel's group on record. (3) Both `executeQuickUpdate` and `executeWizardPush` read `_activeSbId` after async `await` calls — a scoreboard switch mid-flight wrote results to the wrong scoreboard. Fixed with an explicit key-presence check, always-included group field in PATCH payloads, and capturing `_sbId` before the first `await` in both functions.
-- **F1/NASCAR/PGA card header height did not respond to Header/Status Size slider** ([#1](https://github.com/jstevenscl/scorecastarr/issues/1)) — `.card-header` had hardcoded `padding: 5px 12px` and ignored `--card-header-size`. Changed to `calc(var(--card-header-size, 11px) * 0.45)` to match the pattern already used by `.card-status`. Default 11px renders identically to before.
-- **F1/NASCAR/PGA sport label ignored Header/Status Size slider; Period/Time Size slider was dead for motor sports** ([#3](https://github.com/jstevenscl/scorecastarr/issues/3)) — Sport name text ("Formula 1", "NASCAR Cup Series", etc.) in card headers used `--card-name-size` instead of `--card-header-size`, so it never moved with the Header/Status Size slider. Separately, the Period/Time Size slider (`--card-period-size`) had no consumers in any motor sport card builder — all monospace stats data (position numbers, lap times, points values, race round/countdown, circuit/date lines, win counts) used `--card-name-size`. Both fixed: sport labels now use `--card-header-size`; monospace stats data now uses `--card-period-size`; `--card-name-size` is retained for label-style text (team, manufacturer, car number, track country).
-- **Slider range caps too low for larger stream resolutions** ([#3](https://github.com/jstevenscl/scorecastarr/issues/3)) — Title Size (22→36), Header/Status Size (24→36), Period/Time Size (24→36), Detail/Label Text Size (16→28), Driver/Player Name Size (28→40).
-- **Logo gallery thumbnails too small to distinguish logos** — Push wizard Step 5 and Quick Update gallery were rendering 36×36 / 30×30 square thumbnails for 1400×270 landscape logos, making them unreadably small. Changed to 140×27px (`object-fit: cover`) in both locations.
-- **NASCAR driver names** — standings for NOAPS (O'Reilly Auto Parts Series) and Craftsman Truck Series were showing abbreviated names (T. Reddick, J. Allgaier). Root cause: `cf.nascar.com/cacher/` standings endpoints return 403 from GitHub Actions CI. All three NASCAR series (Cup, NOAPS, Trucks) now scrape full driver names, car numbers, points, wins, and headshots directly from Fox Sports standings pages.
-- **NASCAR headshot cache format** — the motor cache workflow was writing a mixed-key format that caused the frontend to silently fall back to the legacy name-map path. The nascar-drivers cache now always writes clean slug-keyed entries.
-- **Tennis headshot 404 errors** — ESPN CDN (`espncdn.com/i/headshots/tennis/players/full/{id}.png`) does not host tennis player images and returned 404 for every request. Removed the CDN fallback from the motor cache workflow; tennis players are now fetched via ESPN Core API (which provides limited coverage — ESPN does not publish headshots for most tennis players).
-- **`/api/stream/status` returning 404** — added a proxy route in `api/app.py` that forwards `GET /stream/status` to the stream manager. This endpoint is polled by the frontend to show live stream badges; it was silently failing on every page load.
+- **Channel group bleeding between scoreboards in Dispatcharr push** ([#2](https://github.com/jstevenscl/scorecastarr/issues/2)) — Three related bugs caused the wrong channel group to be sent when switching between scoreboards. Fixed with an explicit key-presence check, always-included group field in PATCH payloads, and capturing `_sbId` before the first `await` in both `executeQuickUpdate` and `executeWizardPush`.
+- **F1/NASCAR/PGA card header height did not respond to Header/Status Size slider** ([#1](https://github.com/jstevenscl/scorecastarr/issues/1)) — `.card-header` had hardcoded padding; now uses `calc(var(--card-header-size, 11px) * 0.45)`.
+- **F1/NASCAR/PGA sport label and Period/Time Size slider** ([#3](https://github.com/jstevenscl/scorecastarr/issues/3)) — sport labels now use `--card-header-size`; monospace stats data now uses `--card-period-size`.
+- **Slider range caps** ([#3](https://github.com/jstevenscl/scorecastarr/issues/3)) — Title Size (22→36), Header/Status Size (24→36), Period/Time Size (24→36), Detail/Label Text Size (16→28), Driver/Player Name Size (28→40).
+- **Logo gallery thumbnails** — changed from 36×36 square thumbnails to 140×27px landscape crops so logos are actually distinguishable.
+- **NASCAR driver names** — NOAPS and Trucks series now scrape full names from Fox Sports standings after `cf.nascar.com/cacher/` started returning 403 from GitHub Actions.
+- **NASCAR headshot cache format** — nascar-drivers cache now always writes clean slug-keyed entries, eliminating silent fallback to the legacy name-map path.
+- **Tennis headshot 404 errors** — removed ESPN CDN fallback (it never hosted tennis images); tennis players now fetched via ESPN Core API.
+- **`/api/stream/status` returning 404** — added proxy route in `api/app.py` forwarding to the stream manager.
+- **NASCAR post-race detection** — `lapsDone` check, upcoming date guard, standings timestamp, and lap counter added to correctly identify post-race state.
+- **F1 next-race pointer permanently stale** — was stuck on Miami GP; now fetches full Jolpica 2026 schedule on every cache run and advances automatically.
+- **GHA build cache** — removed stale cache directives from web/nginx build in `beta.yml` that were causing failed builds.
+- **Soccer `STATUS_FULL_TIME` not recognized as final** — `parseGame` only matched `STATUS_FINAL`; ESPN uses `STATUS_FULL_TIME` for completed soccer matches. Also added `STATUS_HALFTIME` → `isLive`.
+- **`actions/checkout` deprecated** — upgraded cache-worker from v4.2.2 (Node.js 20) to v6.0.2.
 
 ### Changed
-- Motor cache reseed no longer requires a container restart — call `POST /api/motor/reseed` to force the API to re-read the data branch into SQLite immediately.
+- Motor cache reseed no longer requires a container restart — call `POST /api/motor/reseed` to force an immediate re-read from the data branch.
+- `:beta` Docker images now build on `main` push (previously built on every `dev` push, meaning untested code reached users).
 
 ---
 
